@@ -67,7 +67,7 @@ exports.handler = async (event, context, callback) => {
     return {
       'sendingId': item.sendingId.S,
       'sender': item.sender.S,
-      'destination': utils.maskEmail(item.destination.S),
+      'destination': item.destination.S,
       'transferAmount': item.transferAmount.S,
       'cryptoType': item.cryptoType.S,
       'data': item.data.S,
@@ -90,7 +90,12 @@ exports.handler = async (event, context, callback) => {
   }
 
   async function getTransfer (sendingId, receivingId) {
-    return sendingId ? getTransferBySendingId(sendingId) : getTransferByReceivingId(receivingId)
+    let rv = sendingId ? (await getTransferBySendingId(sendingId)) : (await getTransferByReceivingId(receivingId))
+    if (sendingId) {
+      // hide destination email address
+      rv.destination = utils.maskEmail(rv.destination)
+    }
+    return rv
   }
 
   async function send (sender, destination, transferAmount, cryptoType, data, sendTxHash, password) {

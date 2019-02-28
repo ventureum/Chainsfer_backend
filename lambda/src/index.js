@@ -3,6 +3,7 @@ exports.handler = async (event, context, callback) => {
   var moment = require('moment')
   var UUID = require('uuid/v4')
   var email = require('./email.js')
+  var utils = require('./utils.js')
 
   // load the AWS SDK for Node.js
   var AWS = require('aws-sdk')
@@ -66,7 +67,7 @@ exports.handler = async (event, context, callback) => {
     return {
       'sendingId': item.sendingId.S,
       'sender': item.sender.S,
-      'destination': item.destination.S,
+      'destination': utils.maskEmail(item.destination.S),
       'transferAmount': item.transferAmount.S,
       'cryptoType': item.cryptoType.S,
       'data': item.data.S,

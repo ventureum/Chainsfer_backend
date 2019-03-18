@@ -91,10 +91,6 @@ exports.handler = async (event, context, callback) => {
 
   async function getTransfer (sendingId, receivingId) {
     let rv = sendingId ? (await getTransferBySendingId(sendingId)) : (await getTransferByReceivingId(receivingId))
-    if (sendingId) {
-      // hide destination email address
-      rv.destination = utils.maskEmail(rv.destination)
-    }
     return rv
   }
 

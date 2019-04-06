@@ -5,19 +5,19 @@ Resources:
   transferRequest:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Handler: dist/index.handler
+      Handler: dist/transfer.handler
       Runtime: nodejs6.10
       Description: ''
       MemorySize: 128
       Timeout: 15
-      Role: >-
-        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
       Events:
         LambdaMicroservice:
           Type: Api
           Properties:
             Path: /transfer
             Method: ANY
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
   transferRequestPermission:
     Type: 'AWS::Lambda::Permission'
     Properties:
@@ -29,3 +29,23 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn:
         'Fn::Sub': 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*/*/*'
+  stream:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: dist/stream.handler
+      Runtime: nodejs6.10
+      Description: ''
+      MemorySize: 128
+      Timeout: 15
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+  validateTx:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: dist/validateTx.handler
+      Runtime: nodejs6.10
+      Description: ''
+      MemorySize: 128
+      Timeout: 15
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC

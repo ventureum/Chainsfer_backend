@@ -5,5 +5,9 @@ module.exports = {
 
     // [first]***[last]@[parts[1]]
     return parts[0].slice(0, 1) + '*****' + parts[0].slice(-1) + '@' + parts[1]
+  },
+
+  lowerCaseFirstLetter: function (str) {
+    return str.charAt(0).toLowerCase() + str.slice(1)
   }
 }

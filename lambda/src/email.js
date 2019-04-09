@@ -1,3 +1,5 @@
+import moment from 'moment'
+
 const EMAIL_SOURCE = 'notify@chainsfer.io'
 
 const CRYPTO_SYMBOL = {
@@ -7,45 +9,31 @@ const CRYPTO_SYMBOL = {
 }
 
 module.exports = {
-  sendActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType, password) {
+  sendActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType, password, sendTimestamp) {
+    const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
+    sendTimestamp = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
+      ConfigurationSetName: "email",
       Destination: {
         ToAddresses: [sender]
       },
-      Message: {
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            Data: `To cancel this transfer, click <a class="ulink" href="http://localhost:3000/cancel?id=${id}&pwd=${password}" target="_blank">here</a>.`
-          }
-        },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: `Chainsfer: ${transferAmount} ${CRYPTO_SYMBOL[cryptoType]} has been sent to ${destination}`
-        }
-      }
+      Template: 'SenderNotification',
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"password\": \"${password}\",  \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestamp}\"}`
     }
   },
-  sendActionReceiverEmailParams: function (id, sender, destination, transferAmount, cryptoType) {
+  sendActionReceiverEmailParams: function (id, sender, destination, transferAmount, cryptoType, sendTimestamp) {
+    const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
+    sendTimestamp = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
+      ConfigurationSetName: "email",
       Destination: {
         ToAddresses: [destination]
       },
-      Message: {
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            Data: `To accept this transfer, click <a class="ulink" href="http://localhost:3000/receive?id=${id}" target="_blank">here</a>.`
-          }
-        },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: `Chainsfer: ${sender} sent you ${transferAmount} ${CRYPTO_SYMBOL[cryptoType]}`
-        }
+      Template: 'ReceiverNotification',
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestamp}\"}`
       }
-    }
   },
   receiveActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType) {
     return {
@@ -140,8 +128,8 @@ module.exports = {
     sendTimestamp,
     password) {
     return Promise.all([
-      ses.sendEmail(this.sendActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType, password)).promise(),
-      ses.sendEmail(this.sendActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType)).promise()
+      ses.sendTemplatedEmail(this.sendActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType, password, sendTimestamp)).promise(),
+      ses.sendTemplatedEmail(this.sendActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType, sendTimestamp)).promise()
     ])
   },
   receiveAction: function (

@@ -47,7 +47,7 @@ async function processTxConfirmation (retryCount, checkFunction, cryptoType, txH
         await sendMessageBackToSQS(messageBody, retryCount, txHashConfirmed, gasTxHashConfirmed, cryptoType)
       } else {
         await updateTxState('Confirmed', item)
-        await sendEmail(item)
+        const result = await sendEmail(item)
         console.log('For %s, suceeded to confirm with RetryCount %d: transaction txHash %s and gasTxHash %s',
           cryptoType, retryCount, txHash, gasTxHash)
       }
@@ -138,7 +138,7 @@ async function sendEmail (item) {
   const transferStage = item.transferStage.S
   switch (transferStage) {
     case 'SenderToChainsfer':
-      await email.sendAction(
+      return email.sendAction(
         ses,
         item.transferId.S,
         item.receivingId.S,
@@ -147,12 +147,11 @@ async function sendEmail (item) {
         item.transferAmount.S,
         item.cryptoType.S,
         item.senderToChainsfer.M.txHash.S,
-        item.created.N,
+        item.created.S,
         item.password.S
       )
-      break
     case 'ChainsferToReceiver':
-      await email.receiveAction(
+      return email.receiveAction(
         ses,
         item.transferId.S,
         item.receivingId.S,
@@ -165,9 +164,8 @@ async function sendEmail (item) {
         item.chainsferToReceiver.M.txHash.S,
         item.chainsferToReceiver.M.txTimestamp.N
       )
-      break
     case 'ChainsferToSender':
-      await email.cancelAction(
+      return email.cancelAction(
         ses,
         item.transferId.S,
         item.receivingId.S,
@@ -180,7 +178,6 @@ async function sendEmail (item) {
         item.chainsferToSender.M.txHash.S,
         item.chainsferToSender.M.txTimestamp.N
       )
-      break
   }
 }
 

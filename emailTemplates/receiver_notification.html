@@ -635,14 +635,13 @@
                         
                         <td valign="top" class="mcnTextContent" style="padding-top:0; padding-right:18px; padding-bottom:9px; padding-left:18px;">
                         
-                            <h1><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">Hi yuxianggu,</span></span><br>
+                            <h1><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">Hi {{destination}},</span></span><br>
 <br>
-<strong><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">lezhong.li@gmail.com just sent you 2.843 ETH</span></strong></h1>
+<strong><span style="font-size:20px"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">{{sender}}&nbsp;just sent you {{transferAmount}} {{cryptoSymbol}}.</span></span></strong></h1>
 
 <p><br>
-<span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">The transfer was sent by <strong>lezhong.li@gmail.com</strong> on 2019-02-04 20:21(UTC).<br>
-To <strong>cancel</strong> or review details of this transfer, please click on the button below to receive it.</span></span><br>
-&nbsp;</p>
+<span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">The transfer was sent by {{sender}} on {{sendTimestamp}}&nbsp;(UTC).<br>
+To <strong>cancel</strong> or review details of this transfer, please click on the button below to receive it.</span></span></p>
 
                         </td>
                     </tr>
@@ -666,7 +665,7 @@ To <strong>cancel</strong> or review details of this transfer, please click on t
                     <tbody>
                         <tr>
                             <td align="center" valign="middle" class="mcnButtonContent" style="font-family: Roboto, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif; font-size: 16px; padding: 15px;">
-                                <a class="mcnButton " title="Deposite your ETH" href="" target="_blank" style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;">Deposite your ETH</a>
+                                <a class="mcnButton " title="Deposit your {{cryptoSymbol}}" href="http://localhost:3000/receive?id={{id}}" target="_blank" style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;">Deposite your {{cryptoSymbol}}</a>
                             </td>
                         </tr>
                     </tbody>
@@ -942,7 +941,7 @@ To <strong>cancel</strong> or review details of this transfer, please click on t
                         
                             <p style="text-align: left;"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">Please do not reply to this e-mail, as it is auto-generated and you will not receive a response.<br>
 <br>
-This email was sent to you by&nbsp;<em>Ventureum Inc.</em>, the owner of the <em>Chainsfer</em>&nbsp;service, on behalf of&nbsp;lezhong.li@gmail.com.<br>
+This email was sent to you by&nbsp;<em>Ventureum Inc.</em>, the owner of the <em>Chainsfer</em>&nbsp;service, on behalf of {{sender}}.<br>
 <br>
 Ventureum Inc.<br>
 Yonge-Eglinton Center,&nbsp;2300 Yonge&nbsp;Street, Suite 1600<br>

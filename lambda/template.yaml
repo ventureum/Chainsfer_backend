@@ -1,25 +1,153 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Transform: 'AWS::Serverless-2016-10-31'
 Description: An AWS Serverless Specification template describing your function.
+Parameters:
+  TransactionDataTableName:
+    Description: DynamoDB Table Name for Transaction Data
+    Type: String
+    Default: ChainsferTransactionData
+  TransactionConfirmationSQSName:
+    Description: Transaction Confirmation SQS Name
+    Type: String
+    Default: ChainsferTransactionConfirmationSQS
+  ENV:
+    Description: Development ENV
+    Type: String
+    Default: Dev
+Globals:
+  Function:
+    Runtime: nodejs8.10
+    Timeout: 15
+    Environment:
+      Variables:
+        SQS_NAME:
+          'Fn::Join':
+            - ''
+            - - Ref: TransactionConfirmationSQSName
+              - Ref: ENV
+        TABLE_NAME:
+          'Fn::Join':
+            - ''
+            - - Ref: TransactionDataTableName
+              - Ref: ENV
 Resources:
-  transferRequest:
-    Type: 'AWS::Serverless::Function'
+  stream:
     Properties:
-      Handler: dist/transfer.handler
-      Runtime: nodejs6.10
-      Description: ''
+      FunctionName:
+        'Fn::Join':
+          - ''
+          - - LambdaDynamodbStream
+            - Ref: ENV
       MemorySize: 128
-      Timeout: 15
-      Events:
-        LambdaMicroservice:
-          Type: Api
-          Properties:
-            Path: /transfer
-            Method: ANY
+      Handler: dist/stream.handler
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+      Description: ''
+    Type: 'AWS::Serverless::Function'
+  transferRequest:
+    Properties:
+      FunctionName:
+        'Fn::Join':
+          - ''
+          - - LambdaTransfer
+            - Ref: ENV
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+      Events:
+        LambdaMicroservice:
+          Properties:
+            Method: ANY
+            Path: /transfer
+          Type: Api
+      Handler: dist/transfer.handler
+      MemorySize: 128
+      Description: ''
+    Type: 'AWS::Serverless::Function'
+  validateTx:
+    Properties:
+      FunctionName:
+        'Fn::Join':
+          - ''
+          - - LambdaValidateTx
+            - Ref: ENV
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+      Handler: dist/validateTx.handler
+      MemorySize: 128
+      Description: ''
+    Type: 'AWS::Serverless::Function'
+  TransactionData:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName:
+        'Fn::Join':
+          - ''
+          - - Ref: TransactionDataTableName
+            - Ref: ENV
+      AttributeDefinitions:
+        - AttributeName: transferId
+          AttributeType: S
+        - AttributeName: receivingId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: transferId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: receivingId-index
+          KeySchema:
+            - AttributeName: receivingId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+    DependsOn:
+      - transferRequest
+  TransactionDataStreamMapping:
+    Type: 'AWS::Lambda::EventSourceMapping'
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn:
+        'Fn::GetAtt':
+          - TransactionData
+          - StreamArn
+      FunctionName:
+        'Fn::GetAtt':
+          - stream
+          - Arn
+      StartingPosition: LATEST
+  TransactionConfirmationQueue:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      QueueName:
+        'Fn::Join':
+          - ''
+          - - Ref: TransactionConfirmationSQSName
+            - Ref: ENV
+      DelaySeconds: 0
+      VisibilityTimeout: 30
+    DependsOn:
+      - stream
+  LambdaStreamSQSEventSourceMapping:
+    Type: 'AWS::Lambda::EventSourceMapping'
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn:
+        'Fn::GetAtt':
+          - TransactionConfirmationQueue
+          - Arn
+      FunctionName:
+        'Fn::GetAtt':
+          - validateTx
+          - Arn
   transferRequestPermission:
-    Type: 'AWS::Lambda::Permission'
     Properties:
       Action: 'lambda:InvokeFunction'
       FunctionName:
@@ -29,23 +157,5 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn:
         'Fn::Sub': 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*/*/*'
-  stream:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      Handler: dist/stream.handler
-      Runtime: nodejs6.10
-      Description: ''
-      MemorySize: 128
-      Timeout: 15
-      Role: >-
-        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-  validateTx:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      Handler: dist/validateTx.handler
-      Runtime: nodejs6.10
-      Description: ''
-      MemorySize: 128
-      Timeout: 15
-      Role: >-
-        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+    Type: 'AWS::Lambda::Permission'
+Transform: 'AWS::Serverless-2016-10-31'

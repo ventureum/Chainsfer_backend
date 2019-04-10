@@ -1,7 +1,8 @@
-var QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/727151012682/SenderToChainsfer'
 var AWS = require('aws-sdk')
 var sqs = new AWS.SQS({ region: 'us-east-1' })
 var utils = require('./utils.js')
+var Config = require('./config.js')
+const sqsName = process.env.SQS_NAME;
 
 exports.handler = function (event, context, callback) {
   event.Records.forEach(function (record) {
@@ -13,7 +14,7 @@ exports.handler = function (event, context, callback) {
         record.eventName, newImage.transferId.S, transferStage)
       const params = {
         MessageBody: JSON.stringify(newImage),
-        QueueUrl: QUEUE_URL,
+        QueueUrl: Config.QueueURLPrefix + sqsName,
         MessageAttributes: {
           'RetryCount': {
             DataType: 'Number',

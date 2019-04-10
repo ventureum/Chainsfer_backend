@@ -3,10 +3,11 @@ var UUID = require('uuid/v4')
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient()
+const tableName = process.env.TABLE_NAME;
 
 async function queryTransferIdByReceivingId (receivingId) {
   const params = {
-    TableName: 'TransactionDataStaging',
+    TableName: tableName,
     IndexName: 'receivingId-index',
     KeyConditionExpression: 'receivingId = :rid',
     ExpressionAttributeValues: {
@@ -41,7 +42,7 @@ async function sendTransfer (clientId, sender, destination, transferAmount, cryp
   }
 
   const params = {
-    TableName: 'TransactionDataStaging',
+    TableName: tableName,
     Item: {
       'clientId': clientId,
       'transferId': transferId,
@@ -81,7 +82,7 @@ async function receiveTransfer (receivingId, receiveTxHash) {
   let transferId = await queryTransferIdByReceivingId(receivingId)
   const receiveTimestamp = moment().unix().toString()
   const params = {
-    TableName: 'TransactionDataStaging',
+    TableName: tableName,
     Key: {
       'transferId': transferId
     },
@@ -133,7 +134,7 @@ async function receiveTransfer (receivingId, receiveTxHash) {
 async function cancelTransfer (transferId, cancelTxHash) {
   const cancelTimestamp = moment().unix().toString()
   const params = {
-    TableName: 'TransactionDataStaging',
+    TableName: tableName,
     Key: {
       'transferId': transferId
     },
@@ -189,7 +190,7 @@ async function getTransfer (sendingId, receivingId) {
 
 async function getTransferByTransferId (transferId) {
   const params = {
-    TableName: 'TransactionDataStaging',
+    TableName: tableName,
     Key: {
       'transferId': transferId
     }

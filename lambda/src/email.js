@@ -18,7 +18,7 @@ module.exports = {
       Destination: {
         ToAddresses: [sender]
       },
-      Template: 'SenderNotification',
+      Template: 'sendActionSenderEmail',
       TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"password\": \"${password}\",  \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestamp}\"}`
     }
   },
@@ -31,7 +31,7 @@ module.exports = {
       Destination: {
         ToAddresses: [destination]
       },
-      Template: 'ReceiverNotification',
+      Template: 'sendActionReceiverEmail',
       TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestamp}\"}`
       }
   },

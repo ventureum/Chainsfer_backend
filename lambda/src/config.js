@@ -1,11 +1,11 @@
 const TxConfirmationConfig = {
   'ethereum': {
-    'delaySeconds': 120,
-    'maxRetry': 15
+    'delaySeconds': 60,
+    'maxRetry': 20
   },
   'dai': {
-    'delaySeconds': 120,
-    'maxRetry': 15
+    'delaySeconds': 60,
+    'maxRetry': 20
   },
   'bitcoin': {
     'delaySeconds': 600,

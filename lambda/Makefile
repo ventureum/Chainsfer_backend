@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 STACK_NAME_PREFIX=chainsfer-backend-stack
 ENV=dev
 REGION=us-east-1

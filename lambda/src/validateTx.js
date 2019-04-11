@@ -1,5 +1,4 @@
 var AWS = require('aws-sdk')
-var QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/727151012682/SenderToChainsfer'
 AWS.config.update({ region: 'us-east-1' })
 var ddb = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' })
 var email = require('./email.js')
@@ -11,7 +10,8 @@ var ethers = require('ethers')
 var ethProvider = ethers.getDefaultProvider('rinkeby')
 var utils = require('./utils.js')
 var Config = require('./config.js')
-
+const tableName = process.env.TABLE_NAME;
+const sqsName = process.env.SQS_NAME;
 
 async function checkEthTxConfirmation (txHash) {
   let transactionReceipt = await ethProvider.getTransactionReceipt(txHash)
@@ -65,7 +65,7 @@ async function updateTxState (state, item) {
   const ts = moment().unix().toString()
   const transferStage = item.transferStage.S
   const params = {
-    TableName: 'TransactionDataStaging',
+    TableName: tableName,
     Key: {
       'transferId': item.transferId.S
     },
@@ -96,7 +96,7 @@ async function sendMessageBackToSQS (messageBody, retryCount, txHashConfirmed, g
   const params = {
     DelaySeconds: delaySeconds,
     MessageBody: messageBody,
-    QueueUrl: QUEUE_URL,
+    QueueUrl: Config.QueueURLPrefix + sqsName,
     MessageAttributes: {
       'RetryCount': {
         DataType: 'Number',
@@ -122,7 +122,7 @@ async function sendMessageBackToSQS (messageBody, retryCount, txHashConfirmed, g
 
 async function deleteMessageFromSQS (receiptHandle) {
   const deleteParams = {
-    QueueUrl: QUEUE_URL,
+    QueueUrl: Config.QueueURLPrefix + sqsName,
     ReceiptHandle: receiptHandle
   }
 

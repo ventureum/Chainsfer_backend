@@ -13,6 +13,9 @@ const TxConfirmationConfig = {
   }
 }
 
+const QueueURLPrefix = 'https://sqs.us-east-1.amazonaws.com/727151012682/'
+
 module.exports = {
-  TxConfirmationConfig: TxConfirmationConfig
+  TxConfirmationConfig: TxConfirmationConfig,
+  QueueURLPrefix: QueueURLPrefix
 }

@@ -37,13 +37,13 @@ exports.handler = async (event, context, callback) => {
       const address = result.LastEvaluatedKey.address.S
       result = await dynamodb.deleteItem(deleteItemBuilder(address)).promise()
       response.statusCode = 200
-      response.body = {
+      response.body = JSON.stringify({
         address: result.Attributes.address.S,
         privateKey: result.Attributes.privateKey.S
-      }
+      })
       callback(null, response)
     } else {
-      response.statusCode = 200
+      response.statusCode = 500
       response.body = 'ETH test account list exhausted.'
       callback(null, response)
     }

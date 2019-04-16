@@ -3,6 +3,10 @@ STACK_NAME_PREFIX=chainsfer-backend-stack
 ENV=dev
 REGION=us-east-1
 
+.PHONY: all init package deploy delete output clean
+
+all: init package deploy clean
+
 init:
 	@aws s3api create-bucket \
 		--bucket $(STACK_NAME_PREFIX)-$(ENV) \

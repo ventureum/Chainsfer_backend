@@ -35,84 +35,57 @@ module.exports = {
       TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestamp}\"}`
       }
   },
-  receiveActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType) {
+  receiveActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType, receiveTimestamp) {
+    const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
+    console.log(receiveTimestamp)
+    receiveTimestamp = moment.unix(receiveTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
+      ConfigurationSetName: "email",
       Destination: {
         ToAddresses: [sender]
       },
-      Message: {
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            Data: `To view details of this transfer, click <a class="ulink" href="http://localhost:3000/send?id=${id}" target="_blank">here</a>.`
-          }
-        },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: `Chainsfer: ${destination} accepted your transfer of ${transferAmount} ${CRYPTO_SYMBOL[cryptoType]}`
-        }
-      }
+      Template: 'receiveActionSenderEmail',
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"receiveTimestamp\": \"${receiveTimestamp}\"}`
     }
   },
-  receiveActionReceiverEmailParams: function (id, sender, destination, transferAmount, cryptoType) {
+  receiveActionReceiverEmailParams: function (id, sender, destination, transferAmount, cryptoType, sendTimestamp) {
+    const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
+    sendTimestamp = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
+      ConfigurationSetName: "email",
       Destination: {
         ToAddresses: [destination]
       },
-      Message: {
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            Data: `To view details of this transfer, click <a class="ulink" href="http://localhost:3000/receive?id=${id}" target="_blank">here</a>.`
-          }
-        },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: `Chainsfer: Transfer of ${transferAmount} ${CRYPTO_SYMBOL[cryptoType]} from ${sender} accepted`
-        }
-      }
+      Template: 'receiveActionReceiverEmail',
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestamp}\"}`
     }
   },
-  cancelActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType) {
+  cancelActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType, cancelTimestamp) {
+    const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
+    cancelTimestamp = moment.unix(cancelTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
+      ConfigurationSetName: "email",
       Destination: {
         ToAddresses: [sender]
       },
-      Message: {
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            Data: `To view details of this transfer, click <a class="ulink" href="http://localhost:3000/send?id=${id}" target="_blank">here</a>.`
-          }
-        },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: `Chainsfer: Transfer of ${transferAmount} ${CRYPTO_SYMBOL[cryptoType]} to ${destination} cancelled`
-        }
-      }
+      Template: 'cancelActionSenderEmail',
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestamp}\"}`
     }
   },
-  cancelActionReceiverEmailParams: function (id, sender, destination, transferAmount, cryptoType) {
+  cancelActionReceiverEmailParams: function (id, sender, destination, transferAmount, cryptoType, cancelTimestamp) {
+    const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
+    cancelTimestamp = moment.unix(cancelTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
+      ConfigurationSetName: "emailh",
       Destination: {
         ToAddresses: [destination]
       },
-      Message: {
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            Data: `To view details of this transfer, click <a class="ulink" href="http://localhost:3000/receive?id=${id}" target="_blank">here</a>.`
-          }
-        },
-        Subject: {
-          Charset: 'UTF-8',
-          Data: `Chainsfer: Transfer of ${transferAmount} ${CRYPTO_SYMBOL[cryptoType]} from ${sender} cancelled`
-        }
-      }
+      Template: 'cancelActionReceiverEmail',
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestamp}\"}`
     }
   },
   // ses utils
@@ -145,8 +118,8 @@ module.exports = {
     receiveTxHash,
     receiveTimestamp) {
     return Promise.all([
-      ses.sendEmail(this.receiveActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType)).promise(),
-      ses.sendEmail(this.receiveActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType)).promise()
+      ses.sendTemplatedEmail(this.receiveActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType, receiveTimestamp)).promise(),
+      ses.sendTemplatedEmail(this.receiveActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType, sendTimestamp)).promise()
     ])
   },
   cancelAction: function (
@@ -162,8 +135,8 @@ module.exports = {
     cancelTxHash,
     cancelTimestamp) {
     return Promise.all([
-      ses.sendEmail(this.cancelActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType)).promise(),
-      ses.sendEmail(this.cancelActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType)).promise()
+      ses.sendTemplatedEmail(this.cancelActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType, cancelTimestamp)).promise(),
+      ses.sendTemplatedEmail(this.cancelActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType, cancelTimestamp)).promise()
     ])
   }
 }

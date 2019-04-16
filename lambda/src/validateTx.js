@@ -160,9 +160,9 @@ async function sendEmail (item) {
         item.transferAmount.S,
         item.cryptoType.S,
         item.senderToChainsfer.M.txHash.S,
-        item.senderToChainsfer.M.txTimestamp.N,
+        item.senderToChainsfer.M.txTimestamp.S,
         item.chainsferToReceiver.M.txHash.S,
-        item.chainsferToReceiver.M.txTimestamp.N
+        item.chainsferToReceiver.M.txTimestamp.S
       )
     case 'ChainsferToSender':
       return email.cancelAction(
@@ -174,9 +174,9 @@ async function sendEmail (item) {
         item.transferAmount.S,
         item.cryptoType.S,
         item.senderToChainsfer.M.txHash.S,
-        item.senderToChainsfer.M.txTimestamp.N,
+        item.senderToChainsfer.M.txTimestamp.S,
         item.chainsferToSender.M.txHash.S,
-        item.chainsferToSender.M.txTimestamp.N
+        item.chainsferToSender.M.txTimestamp.S
       )
   }
 }

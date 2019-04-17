@@ -15,20 +15,18 @@ var AWS = require("aws-sdk");
 // Set the region
 AWS.config.update({ region: "us-east-1" });
 
+const path = require("path");
 const fs = require("fs");
-let sendActionSenderHtml = "./templates/send_action_sender_notification.html";
-let sendActionReceiverHtml =
-  "./templates/send_action_receiver_notification.html";
 
-let receiveActionSenderHtml =
-  "./templates/receive_action_sender_notification.html";
-let receiveActionReceiverHtml =
-  "./templates/receive_action_receiver_notification.html";
+let templatesDir = path.resolve(__dirname, '../emailTemplates/templates')
+let sendActionSenderHtml = templatesDir + "/send_action_sender_notification.html";
+let sendActionReceiverHtml = templatesDir + "/send_action_receiver_notification.html";
 
-let cancelActionSenderHtml =
-  "./templates/cancel_action_sender_notification.html";
-let cancelActionReceiverHtml =
-  "./templates/cancel_action_receiver_notification.html";
+let receiveActionSenderHtml = templatesDir + "/receive_action_sender_notification.html";
+let receiveActionReceiverHtml = templatesDir + "/receive_action_receiver_notification.html";
+
+let cancelActionSenderHtml = templatesDir + "/cancel_action_sender_notification.html";
+let cancelActionReceiverHtml = templatesDir + "/cancel_action_receiver_notification.html";
 
 let sendActionSenderStr = fs.readFileSync(sendActionSenderHtml, "utf8");
 let sendActionReceiverStr = fs.readFileSync(sendActionReceiverHtml, "utf8");

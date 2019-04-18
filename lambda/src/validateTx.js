@@ -5,13 +5,13 @@ var email = require('./email.js')
 var ses = new AWS.SES({ apiVersion: '2010-12-01' })
 var sqs = new AWS.SQS({ region: 'us-east-1' })
 var moment = require('moment')
-var blockexplorer = require('blockchain.info/blockexplorer')
-var ethers = require('ethers')
-var ethProvider = ethers.getDefaultProvider('rinkeby')
 var utils = require('./utils.js')
 var Config = require('./config.js')
-const tableName = process.env.TABLE_NAME;
-const sqsName = process.env.SQS_NAME;
+const tableName = process.env.TABLE_NAME
+const sqsName = process.env.SQS_NAME
+const env = process.env.ENV_VALUE
+const ethProvider = Config.EthTxAPIConfig[env.toLowerCase()] || Config.EthTxAPIConfig['default']
+const blockexplorer = Config.BtcTxAPIConfig[env.toLowerCase()] || Config.BtcTxAPIConfig['default']
 
 async function checkEthTxConfirmation (txHash) {
   let transactionReceipt = await ethProvider.getTransactionReceipt(txHash)
@@ -34,12 +34,12 @@ async function processTxConfirmation (retryCount, checkFunction, cryptoType, txH
     const maxRetry = Config.TxConfirmationConfig[cryptoType].maxRetry
     if (retryCount <= maxRetry) {
       if (txHash !== null && txHashConfirmed === 0) {
-        txHashConfirmed =  await checkFunction(txHash)
+        txHashConfirmed = await checkFunction(txHash)
         console.log('For %s, checking confirmation with RetryCount %d: transaction txHash %s (status: %d)',
           cryptoType, retryCount, txHash, txHashConfirmed)
       }
       if (gasTxHash !== null && gasTxHashConfirmed === 0) {
-        gasTxHashConfirmed =  await checkFunction(gasTxHash)
+        gasTxHashConfirmed = await checkFunction(gasTxHash)
         console.log('For %s, checking confirmation with RetryCount %d: transaction gasTxHash %s (status: %d)',
           cryptoType, retryCount, gasTxHash, gasTxHashConfirmed)
       }
@@ -47,14 +47,13 @@ async function processTxConfirmation (retryCount, checkFunction, cryptoType, txH
         await sendMessageBackToSQS(messageBody, retryCount, txHashConfirmed, gasTxHashConfirmed, cryptoType)
       } else {
         await updateTxState('Confirmed', item)
-        const result = await sendEmail(item)
+        await sendEmail(item)
         console.log('For %s, suceeded to confirm with RetryCount %d: transaction txHash %s and gasTxHash %s',
           cryptoType, retryCount, txHash, gasTxHash)
       }
     } else {
-      console.log(9)
       const errStr = `For ${cryptoType}, failed to confirm within the given RetryCount ${maxRetry}: transaction txHash ${txHash} (status:  ${txHashConfirmed}) and gasTxHash  ${gasTxHash} (status:  ${gasTxHashConfirmed})`
-      throw new Error(errStr)  
+      throw new Error(errStr)
     }
   } catch (err) {
     throw new Error('Failed to process Tx Confirmation with error: ' + err.message)
@@ -82,7 +81,7 @@ async function updateTxState (state, item) {
       ':ts': ts
     }
   }
-  
+
   try {
     await ddb.update(params).promise()
     console.log('txState is updated successfully')
@@ -195,18 +194,18 @@ exports.handler = async (event, context, callback) => {
       const transferStage = item.transferStage.S
       const transferStageMetaData = item[utils.lowerCaseFirstLetter(transferStage)].M
       const txHash = transferStageMetaData.txHash.S
-  
-      await deleteMessageFromSQS(record.receiptHandle) 
-  
+
+      await deleteMessageFromSQS(record.receiptHandle)
+
       if (txHash === null) {
         throw new Error('Null txHash for record ' + JSON.stringify(record, null, 2))
       }
-  
+
       let gasTxHash = null
       if (transferStageMetaData.gasTxHash != null) {
         gasTxHash = transferStageMetaData.gasTxHash.S
       }
-    
+
       const cryptoType = item.cryptoType.S
       switch (cryptoType) {
         case 'bitcoin':
@@ -223,7 +222,7 @@ exports.handler = async (event, context, callback) => {
       }
     } catch (err) {
       await updateTxState('Failed', item)
-      console.error('Failed to validate Tx Confirmation with error: ' +  err.message)
+      console.error('Failed to validate Tx Confirmation with error: ' + err.message)
     }
   }
   callback(null, 'message')

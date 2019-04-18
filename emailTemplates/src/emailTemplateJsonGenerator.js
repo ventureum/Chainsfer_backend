@@ -29,6 +29,11 @@ let cancelActionSenderHtml =
   "./templates/cancel_action_sender_notification.html";
 let cancelActionReceiverHtml =
   "./templates/cancel_action_receiver_notification.html";
+  
+let expireActionSenderHtml =
+  "./templates/expire_action_sender_notification.html";
+let expireActionReceiverHtml =
+  "./templates/expire_action_receiver_notification.html";
 
 let sendActionSenderStr = fs.readFileSync(sendActionSenderHtml, "utf8");
 let sendActionReceiverStr = fs.readFileSync(sendActionReceiverHtml, "utf8");
@@ -38,6 +43,9 @@ let receiveActionReceiverStr = fs.readFileSync(receiveActionReceiverHtml, "utf8"
 
 let cancelActionSenderStr = fs.readFileSync(cancelActionSenderHtml, "utf8");
 let cancelActionReceiverStr = fs.readFileSync(cancelActionReceiverHtml, "utf8");
+
+let expireActionSenderStr = fs.readFileSync(expireActionSenderHtml, "utf8");
+let expireActionReceiverStr = fs.readFileSync(expireActionReceiverHtml, "utf8");
 
 const sendActionSenderEmail = {
   Template: {
@@ -93,13 +101,33 @@ const cancelActionReceiverEmail = {
   }
 };
 
+const expireActionSenderEmail = {
+  Template: {
+    TemplateName: "expireActionSenderEmail",
+    SubjectPart:
+      "Chainsfer: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has expired",
+    HtmlPart: expireActionSenderStr
+  }
+};
+
+const expireActionReceiverEmail = {
+  Template: {
+    TemplateName: "expireActionReceiverEmail",
+    SubjectPart:
+      "Chainsfer: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has expired",
+    HtmlPart: expireActionReceiverStr
+  }
+};
+
 var templates = [
   sendActionSenderEmail,
   sendActionReceiverEmail,
   receiveActionSenderEmail,
   receiveActionReceiverEmail,
   cancelActionSenderEmail,
-  cancelActionReceiverEmail
+  cancelActionReceiverEmail,
+  expireActionSenderEmail,
+  expireActionReceiverEmail
 ];
 
 async function main() {

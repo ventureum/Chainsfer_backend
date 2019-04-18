@@ -80,12 +80,36 @@ module.exports = {
     cancelTimestamp = moment.unix(cancelTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
-      ConfigurationSetName: "emailh",
+      ConfigurationSetName: "email",
       Destination: {
         ToAddresses: [destination]
       },
       Template: 'cancelActionReceiverEmail',
       TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestamp}\"}`
+    }
+  },
+  expireActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType) {
+    const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
+    return {
+      Source: EMAIL_SOURCE,
+      ConfigurationSetName: "email",
+      Destination: {
+        ToAddresses: [sender]
+      },
+      Template: 'expireActionSenderEmail',
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\"}`
+    }
+  },
+  expireActionReceiverEmailParams: function (id, sender, destination, transferAmount, cryptoType) {
+    const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
+    return {
+      Source: EMAIL_SOURCE,
+      ConfigurationSetName: "email",
+      Destination: {
+        ToAddresses: [destination]
+      },
+      Template: 'expireActionReceiverEmail',
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\"}`
     }
   },
   // ses utils
@@ -137,6 +161,19 @@ module.exports = {
     return Promise.all([
       ses.sendTemplatedEmail(this.cancelActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType, cancelTimestamp)).promise(),
       ses.sendTemplatedEmail(this.cancelActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType, cancelTimestamp)).promise()
+    ])
+  },
+  expireAction: function (
+    ses,
+    sendingId,
+    receivingId,
+    sender,
+    destination,
+    transferAmount,
+    cryptoType) {
+    return Promise.all([
+      ses.sendTemplatedEmail(this.expireActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType)).promise(),
+      ses.sendTemplatedEmail(this.expireActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType)).promise()
     ])
   }
 }

@@ -52,7 +52,6 @@ async function processTxConfirmation (retryCount, checkFunction, cryptoType, txH
           cryptoType, retryCount, txHash, gasTxHash)
       }
     } else {
-      console.log(9)
       const errStr = `For ${cryptoType}, failed to confirm within the given RetryCount ${maxRetry}: transaction txHash ${txHash} (status:  ${txHashConfirmed}) and gasTxHash  ${gasTxHash} (status:  ${gasTxHashConfirmed})`
       throw new Error(errStr)  
     }

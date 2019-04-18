@@ -13,6 +13,10 @@ Parameters:
     Description: Development ENV
     Type: String
     Default: Dev
+  ApiRoleVersion:
+    Description: Api Role Version
+    Type: String
+    Default: '2012-10-17'     
 Globals:
   Function:
     Runtime: nodejs8.10
@@ -29,6 +33,8 @@ Globals:
             - ''
             - - Ref: TransactionDataTableName
               - Ref: ENV
+        ENV_VALUE:
+          Ref: ENV
 Resources:
   stream:
     Properties:
@@ -76,6 +82,19 @@ Resources:
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
       Handler: dist/validateTx.handler
+      MemorySize: 128
+      Description: ''
+    Type: 'AWS::Serverless::Function'
+  checkTxExpiration:
+    Properties:
+      FunctionName:
+        'Fn::Join':
+          - ''
+          - - LambdaCheckTxExpiration
+            - Ref: ENV
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+      Handler: dist/checkTxExpiration.handler
       MemorySize: 128
       Description: ''
     Type: 'AWS::Serverless::Function'
@@ -168,7 +187,8 @@ Resources:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
-        Version: 2012-10-17
+        Version: 
+          Ref: ApiRoleVersion
         Statement:
           - Effect: Allow
             Principal:
@@ -179,7 +199,8 @@ Resources:
       Policies:
         - PolicyName: ApiGatewayLogsPolicy
           PolicyDocument:
-            Version: 2012-10-17
+            Version: 
+              Ref: ApiRoleVersion
             Statement:
               - Effect: Allow
                 Action:

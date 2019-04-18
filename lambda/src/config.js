@@ -1,3 +1,9 @@
+var blockexplorerMain = require('blockchain.info/blockexplorer')
+var blockexplorerTest3 = require('blockchain.info/blockexplorer').usingNetwork(3)
+var ethers = require('ethers')
+var ethProviderTest = ethers.getDefaultProvider('rinkeby')
+let ethProviderMain = ethers.getDefaultProvider('homestead')
+
 const TxConfirmationConfig = {
   'ethereum': {
     'delaySeconds': 60,
@@ -20,10 +26,26 @@ const ExpirationLengthConfig = {
   'default': 300 // 5 mins
 }
 
+const BtcTxAPIConfig = {
+  'prod': blockexplorerMain,
+  'staging': blockexplorerTest3,
+  'test': blockexplorerTest3,
+  'default': blockexplorerTest3
+}
+
+const EthTxAPIConfig = {
+  'prod': ethProviderMain,
+  'staging': ethProviderTest,
+  'test': ethProviderTest,
+  'default': ethProviderTest
+}
+
 const QueueURLPrefix = 'https://sqs.us-east-1.amazonaws.com/727151012682/'
 
 module.exports = {
   TxConfirmationConfig: TxConfirmationConfig,
   QueueURLPrefix: QueueURLPrefix,
-  ExpirationLengthConfig: ExpirationLengthConfig
+  ExpirationLengthConfig: ExpirationLengthConfig,
+  BtcTxAPIConfig: BtcTxAPIConfig,
+  EthTxAPIConfig: EthTxAPIConfig
 }

@@ -12,16 +12,16 @@ exports.handler = async (event, context, callback) => {
   let items = await dynamoDBTxOps.validateExpiration(tableName, expirationLength)
   for (let index = 0; index < items.length; index++) {
     const item = items[index]
-    console.log("item", item)
+    console.log('Expired tarnsfer: ', item.transferId)
     await email.expireAction(
-        ses,
-        item.transferId,
-        item.receivingId,
-        item.sender,
-        item.receiver,
-        item.transferAmount,
-        item.cryptoType
-      )
+      ses,
+      item.transferId,
+      item.receivingId,
+      item.sender,
+      item.receiver,
+      item.transferAmount,
+      item.cryptoType
+    )
   }
   callback(null, 'message')
 }

@@ -232,32 +232,32 @@ async function getTransferByReceivingId (tableName, receivingId) {
   return data
 }
 
-async function validateExpiration(tableName, expirationLength) {
-    const timestamp = moment().unix()
-    
-    const params = {
-      ExpressionAttributeValues: {
-        ':tdelta': (timestamp - expirationLength).toString(),
-        ':confirmed': 'Confirmed'
-      },
-      ExpressionAttributeNames: {
-        '#ctrTx': 'chainsferToReceiver',
-        '#ctsTx': 'chainsferToSender',
-        '#stcTx': 'senderToChainsfer',
-        '#txState': 'txState',
-        '#crt': 'created'
-      },
-      FilterExpression: '#stcTx.#txState = :confirmed and attribute_not_exists(#ctrTx) and attribute_not_exists(#ctsTx) and (#crt < :tdelta)',
-      TableName: tableName
-    }
+async function validateExpiration (tableName, expirationLength) {
+  const timestamp = moment().unix()
 
-    try {
-      let response = await documentClient.scan(params).promise()
-      console.log('Scaned table successfully with valid count %d and total ScannedCount %s', response.Count,  response.ScannedCount)
-      return response.Items
-    } catch (err) {
-      throw new Error('Unable to scaned table . Error: ' + err.message)
-    }
+  const params = {
+    ExpressionAttributeValues: {
+      ':tdelta': (timestamp - expirationLength).toString(),
+      ':confirmed': 'Confirmed'
+    },
+    ExpressionAttributeNames: {
+      '#ctrTx': 'chainsferToReceiver',
+      '#ctsTx': 'chainsferToSender',
+      '#stcTx': 'senderToChainsfer',
+      '#txState': 'txState',
+      '#crt': 'created'
+    },
+    FilterExpression: '#stcTx.#txState = :confirmed and attribute_not_exists(#ctrTx) and attribute_not_exists(#ctsTx) and (#crt < :tdelta)',
+    TableName: tableName
+  }
+
+  try {
+    let response = await documentClient.scan(params).promise()
+    console.log('Scaned table successfully with valid count %d and total ScannedCount %s', response.Count, response.ScannedCount)
+    return response.Items
+  } catch (err) {
+    throw new Error('Unable to scaned table . Error: ' + err.message)
+  }
 }
 
 module.exports = {

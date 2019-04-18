@@ -2,3 +2,4 @@
 /node_modules
 /**/lambda-payloads.json
 /dist
+template_packaged*.yml

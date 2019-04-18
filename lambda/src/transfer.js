@@ -1,6 +1,5 @@
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
-const tableName = process.env.TABLE_NAME;
-
+const tableName = process.env.TABLE_NAME
 
 exports.handler = async (event, context, callback) => {
   // parse request data

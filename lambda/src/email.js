@@ -14,7 +14,7 @@ module.exports = {
     sendTimestamp = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
-      ConfigurationSetName: "email",
+      ConfigurationSetName: 'email',
       Destination: {
         ToAddresses: [sender]
       },
@@ -27,13 +27,13 @@ module.exports = {
     sendTimestamp = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
-      ConfigurationSetName: "email",
+      ConfigurationSetName: 'email',
       Destination: {
         ToAddresses: [destination]
       },
       Template: 'sendActionReceiverEmail',
       TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestamp}\"}`
-      }
+    }
   },
   receiveActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType, receiveTimestamp) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
@@ -41,7 +41,7 @@ module.exports = {
     receiveTimestamp = moment.unix(receiveTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
-      ConfigurationSetName: "email",
+      ConfigurationSetName: 'email',
       Destination: {
         ToAddresses: [sender]
       },
@@ -54,7 +54,7 @@ module.exports = {
     sendTimestamp = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
-      ConfigurationSetName: "email",
+      ConfigurationSetName: 'email',
       Destination: {
         ToAddresses: [destination]
       },
@@ -67,7 +67,7 @@ module.exports = {
     cancelTimestamp = moment.unix(cancelTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
-      ConfigurationSetName: "email",
+      ConfigurationSetName: 'email',
       Destination: {
         ToAddresses: [sender]
       },
@@ -80,7 +80,7 @@ module.exports = {
     cancelTimestamp = moment.unix(cancelTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
-      ConfigurationSetName: "email",
+      ConfigurationSetName: 'email',
       Destination: {
         ToAddresses: [destination]
       },
@@ -92,7 +92,7 @@ module.exports = {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
     return {
       Source: EMAIL_SOURCE,
-      ConfigurationSetName: "email",
+      ConfigurationSetName: 'email',
       Destination: {
         ToAddresses: [sender]
       },
@@ -104,7 +104,7 @@ module.exports = {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
     return {
       Source: EMAIL_SOURCE,
-      ConfigurationSetName: "email",
+      ConfigurationSetName: 'email',
       Destination: {
         ToAddresses: [destination]
       },

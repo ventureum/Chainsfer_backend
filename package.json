@@ -4,8 +4,9 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "./fix1980.sh && rimraf dist/ && ./node_modules/.bin/babel src --out-dir dist --ignore ./package.json,./npm-debug.log --copy-files"
+    "test": "echo \"Error: no test specified\" && exit 0",
+    "build": "./fix1980.sh && rimraf dist/ && ./node_modules/.bin/babel */src --out-dir dist --ignore ./package.json,./npm-debug.log --copy-files",
+    "upload": "node ./dist/emailTemplateJsonGenerator.js"
   },
   "author": "",
   "license": "ISC",
@@ -17,7 +18,7 @@
     "ethers": "^4.0.27",
     "moment": "^2.24.0",
     "uuid": "^3.3.2",
-    "web3": "^1.0.0-beta.37"
+    "web3": "^1.0.0-beta.52"
   },
   "devDependencies": {
     "@babel/cli": "^7.2.3",

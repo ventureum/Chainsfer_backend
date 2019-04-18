@@ -35,7 +35,7 @@ delete:
 output:
 	@aws cloudformation describe-stacks \
 		--stack-name $(STACK_NAME_PREFIX)-$(ENV) \
-	    --region ${REGION} \
+		--region ${REGION} \
 		--query 'Stacks[].Outputs' \
 		--output table
 clean:

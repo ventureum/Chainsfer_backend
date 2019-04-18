@@ -16,7 +16,11 @@ Parameters:
   ApiRoleVersion:
     Description: Api Role Version
     Type: String
-    Default: '2012-10-17'     
+    Default: '2012-10-17'
+  LambdaCheckTxExpirationRate:
+    Description: The rate that triggers checkTxExpiration Lambda function
+    Default: rate(1 day)
+    Type: String
 Globals:
   Function:
     Runtime: nodejs8.10
@@ -62,14 +66,18 @@ Resources:
       MemorySize: 128
       Description: ''
     Type: 'AWS::Serverless::Function'
-  # Permission for API gateway to call transferRequest lambda function
   TransferRequestApiGatewayInvokePermission:
-    Type: "AWS::Lambda::Permission"
+    Type: 'AWS::Lambda::Permission'
     Properties:
-      Action: "lambda:InvokeFunction"
-      FunctionName: !GetAtt "transferRequest.Arn"
-      Principal: "apigateway.amazonaws.com"
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/POST/transfer"
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - transferRequest
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        'Fn::Sub': >-
+          arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/POST/transfer
     DependsOn:
       - ChainsferRestApi
   validateTx:
@@ -98,6 +106,31 @@ Resources:
       MemorySize: 128
       Description: ''
     Type: 'AWS::Serverless::Function'
+  LambdaCheckTxExpirationSchedule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      ScheduleExpression:
+        Ref: LambdaCheckTxExpirationRate
+      State: ENABLED
+      Targets:
+        - Arn:
+            'Fn::GetAtt':
+              - checkTxExpiration
+              - Arn
+          Id: LambdaCheckTxExpirationSchedule
+  LambdaCheckTxExpirationSchedulePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - checkTxExpiration
+          - Arn
+      Principal: events.amazonaws.com
+      SourceArn:
+        'Fn::GetAtt':
+          - LambdaCheckTxExpirationSchedule
+          - Arn
   TransactionData:
     Type: 'AWS::DynamoDB::Table'
     Properties:
@@ -170,24 +203,21 @@ Resources:
         'Fn::GetAtt':
           - validateTx
           - Arn
-  ######################  
-  # Chainsfer Rest API #
-  ######################
   ChainsferRestApi:
     Type: 'AWS::ApiGateway::RestApi'
     Properties:
-      Name: 
+      Name:
         'Fn::Join':
           - '-'
-          - - Ref: AWS::StackName
-            - 'apigateway'
+          - - Ref: 'AWS::StackName'
+            - apigateway
       Description: API used for transfer requests
       FailOnWarnings: true
   ApiGatewayCloudWatchLogsRole:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
-        Version: 
+        Version:
           Ref: ApiRoleVersion
         Statement:
           - Effect: Allow
@@ -199,7 +229,7 @@ Resources:
       Policies:
         - PolicyName: ApiGatewayLogsPolicy
           PolicyDocument:
-            Version: 
+            Version:
               Ref: ApiRoleVersion
             Statement:
               - Effect: Allow
@@ -215,23 +245,27 @@ Resources:
   ApiGatewayAccount:
     Type: 'AWS::ApiGateway::Account'
     Properties:
-      CloudWatchRoleArn: !GetAtt 
-        - ApiGatewayCloudWatchLogsRole
-        - Arn
+      CloudWatchRoleArn:
+        'Fn::GetAtt':
+          - ApiGatewayCloudWatchLogsRole
+          - Arn
   ApiDeployment:
     Type: 'AWS::ApiGateway::Deployment'
     DependsOn:
       - ChainsferRestApiRequestPOST
     Properties:
-      RestApiId: !Ref ChainsferRestApi
+      RestApiId:
+        Ref: ChainsferRestApi
       StageName: Prod
   ChainsferRestApiResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:
-      RestApiId: !Ref ChainsferRestApi
-      ParentId: !GetAtt 
-        - ChainsferRestApi
-        - RootResourceId
+      RestApiId:
+        Ref: ChainsferRestApi
+      ParentId:
+        'Fn::GetAtt':
+          - ChainsferRestApi
+          - RootResourceId
       PathPart: transfer
   ChainsferRestApiRequestPOST:
     DependsOn: TransferRequestApiGatewayInvokePermission
@@ -242,11 +276,18 @@ Resources:
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
-        Uri: !Sub
-          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations"
-          - lambdaArn: !GetAtt "transferRequest.Arn"
-      ResourceId: !Ref ChainsferRestApiResource
-      RestApiId: !Ref ChainsferRestApi
+        Uri:
+          'Fn::Sub':
+            - >-
+              arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+            - lambdaArn:
+                'Fn::GetAtt':
+                  - transferRequest
+                  - Arn
+      ResourceId:
+        Ref: ChainsferRestApiResource
+      RestApiId:
+        Ref: ChainsferRestApi
       MethodResponses:
         - ResponseParameters:
             method.response.header.Access-Control-Allow-Headers: true
@@ -254,41 +295,45 @@ Resources:
             method.response.header.Access-Control-Allow-Origin: true
           StatusCode: '200'
   ChainsferRestApiCORSOptionMethod:
-      Type: "AWS::ApiGateway::Method"
-      Properties:
-        ResourceId: !Ref ChainsferRestApiResource
-        RestApiId: !Ref ChainsferRestApi
-        AuthorizationType: NONE
-        HttpMethod: OPTIONS
-        Integration:
-          Type: MOCK
-          IntegrationResponses:
-            - ResponseParameters:
-                method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-                method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
-                method.response.header.Access-Control-Allow-Origin: "'*'"
-              ResponseTemplates:
-                application/json: ''
-              StatusCode: '200'
-          PassthroughBehavior: NEVER
-          RequestTemplates:
-            application/json: '{"statusCode": 200}'
-        MethodResponses:
-          - ResponseModels:
-              application/json: Empty
-            ResponseParameters:
-              method.response.header.Access-Control-Allow-Headers: true
-              method.response.header.Access-Control-Allow-Methods: true
-              method.response.header.Access-Control-Allow-Origin: true
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      ResourceId:
+        Ref: ChainsferRestApiResource
+      RestApiId:
+        Ref: ChainsferRestApi
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: >-
+                'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
+              method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS'''
+              method.response.header.Access-Control-Allow-Origin: '''*'''
+            ResponseTemplates:
+              application/json: ''
             StatusCode: '200'
+        PassthroughBehavior: NEVER
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+          StatusCode: '200'
 Outputs:
   RootUrl:
     Description: Root URL of the API gateway
-    Value: !Join 
-      - ''
-      - - 'https://'
-        - !Ref ChainsferRestApi
-        - .execute-api.
-        - !Ref 'AWS::Region'
-        - .amazonaws.com/Prod
+    Value:
+      'Fn::Join':
+        - ''
+        - - 'https://'
+          - Ref: ChainsferRestApi
+          - .execute-api.
+          - Ref: 'AWS::Region'
+          - .amazonaws.com/Prod
 Transform: 'AWS::Serverless-2016-10-31'

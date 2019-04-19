@@ -34,6 +34,8 @@ exports.handler = async (event, context, callback) => {
     let rv = null
     if (request.action === 'GET') {
       rv = await dynamoDBTxOps.getTransfer(tableName, request.sendingId, request.receivingId)
+    } else if (request.action === 'BATCH_GET') {
+      rv = await dynamoDBTxOps.getBatchTransfers(tableName, request.sendingId, request.receivingId)
     } else if (request.action === 'SEND') {
       rv = await dynamoDBTxOps.sendTransfer(tableName, clientId, request.sender, request.destination, request.transferAmount, request.cryptoType, request.data, request.sendTxHash, request.password)
     } else if (request.action === 'RECEIVE') {

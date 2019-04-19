@@ -4,7 +4,22 @@ var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient()
 
-async function queryTransferIdByReceivingId (tableName, receivingId) {
+async function batchQueryTransfersByIds (tableName, ids, forReceiver) {
+  let items = []
+  for (let index = 0; index < ids.length; index++) {
+    const id = ids[index]
+    let item
+    if (forReceiver === false) {
+      item = await getTransferByTransferId(tableName, id)
+    } else {
+      item = await getTransferByReceivingId(tableName, id)
+    }
+    items.push(formatQueriedTransfer(item, forReceiver))
+  }
+  return items
+}
+
+async function getTransferByReceivingId (tableName, receivingId) {
   const params = {
     TableName: tableName,
     IndexName: 'receivingId-index',
@@ -14,7 +29,62 @@ async function queryTransferIdByReceivingId (tableName, receivingId) {
     }
   }
   let data = await documentClient.query(params).promise()
-  return data.Items[0].transferId
+  return data.Items[0]
+}
+
+async function getTransferByTransferId (tableName, transferId) {
+  const params = {
+    TableName: tableName,
+    Key: {
+      'transferId': transferId
+    }
+  }
+  let data = await documentClient.get(params).promise()
+  return data.Item
+}
+
+function formatQueriedTransfer (item, forReceiver) {
+  const senderToChainsfer = item.senderToChainsfer
+  const chainsferToReceiver = item.chainsferToReceiver
+  const chainsferToSender = item.chainsferToSender
+
+  let result = {
+    'sendingId': item.transferId,
+    'sender': item.sender,
+    'destination': item.receiver,
+    'transferAmount': item.transferAmount,
+    'cryptoType': item.cryptoType,
+    'data': item.data,
+    'sendTxHash': senderToChainsfer.txHash,
+    'sendTimestamp': senderToChainsfer.txTimestamp,
+    'sendTxState': senderToChainsfer.txState,
+    'receiveTxHash': chainsferToReceiver ? chainsferToReceiver.txHash : null,
+    'receiveTimestamp': chainsferToReceiver ? chainsferToReceiver.txTimestamp : null,
+    'receiveTxState': chainsferToReceiver ? chainsferToReceiver.txState : null,
+    'cancelTxHash': chainsferToSender ? chainsferToSender.txHash : null,
+    'cancelTimestamp': chainsferToSender ? chainsferToSender.txTimestamp : null,
+    'cancelTxState': chainsferToSender ? chainsferToSender.txState : null
+  }
+
+  if (senderToChainsfer.gasTxHash != null) {
+    result.gasTxHash = senderToChainsfer.gasTxHash
+  }
+
+  if (forReceiver === true) {
+    result.receivingId = item.receivingId
+    result.sendingId = null
+  }
+  return result
+}
+
+async function getTransfer (tableName, sendingId, receivingId) {
+  let rv = sendingId ? (await getTransferByTransferId(tableName, sendingId)) : (await getTransferByReceivingId(tableName, receivingId))
+  return sendingId ? formatQueriedTransfer(rv, false) : formatQueriedTransfer(rv, true)
+}
+
+async function getBatchTransfers (tableName, sendingIds, receivingIds) {
+  let rv = sendingIds ? (await batchQueryTransfersByIds(tableName, sendingIds, false)) : (await batchQueryTransfersByIds(tableName, receivingIds, true))
+  return rv
 }
 
 async function sendTransfer (tableName, clientId, sender, destination, transferAmount, cryptoType, data, sendTxHash, password) {
@@ -78,12 +148,12 @@ async function sendTransfer (tableName, clientId, sender, destination, transferA
 }
 
 async function receiveTransfer (tableName, receivingId, receiveTxHash) {
-  let transferId = await queryTransferIdByReceivingId(receivingId)
+  let transfer = await getTransferByReceivingId(getTransferByReceivingId)
   const receiveTimestamp = moment().unix().toString()
   const params = {
     TableName: tableName,
     Key: {
-      'transferId': transferId
+      'transferId': transfer.transferId
     },
     ConditionExpression: 'attribute_not_exists(#ctr) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
     UpdateExpression: 'SET #ctr = :ctr, #tstage = :tstage, #upt = :upt',
@@ -182,56 +252,6 @@ async function cancelTransfer (tableName, transferId, cancelTxHash) {
   return result
 }
 
-async function getTransfer (tableName, sendingId, receivingId) {
-  let rv = sendingId ? (await getTransferByTransferId(tableName, sendingId)) : (await getTransferByReceivingId(tableName, receivingId))
-  return rv
-}
-
-async function getTransferByTransferId (tableName, transferId) {
-  const params = {
-    TableName: tableName,
-    Key: {
-      'transferId': transferId
-    }
-  }
-  let data = await documentClient.get(params).promise()
-  const item = data.Item
-  const senderToChainsfer = item.senderToChainsfer
-  const chainsferToReceiver = item.chainsferToReceiver
-  const chainsferToSender = item.chainsferToSender
-
-  let result = {
-    'sendingId': item.transferId,
-    'sender': item.sender,
-    'destination': item.receiver,
-    'transferAmount': item.transferAmount,
-    'cryptoType': item.cryptoType,
-    'data': item.data,
-    'sendTxHash': senderToChainsfer.txHash,
-    'sendTimestamp': senderToChainsfer.txTimestamp,
-    'sendTxState': senderToChainsfer.txState,
-    'receiveTxHash': chainsferToReceiver ? chainsferToReceiver.txHash : null,
-    'receiveTimestamp': chainsferToReceiver ? chainsferToReceiver.txTimestamp : null,
-    'receiveTxState': chainsferToReceiver ? chainsferToReceiver.txState : null,
-    'cancelTxHash': chainsferToSender ? chainsferToSender.txHash : null,
-    'cancelTimestamp': chainsferToSender ? chainsferToSender.txTimestamp : null,
-    'cancelTxState': chainsferToSender ? chainsferToSender.txState : null
-  }
-
-  if (senderToChainsfer.gasTxHash != null) {
-    result.gasTxHash = senderToChainsfer.gasTxHash
-  }
-  return result
-}
-
-async function getTransferByReceivingId (tableName, receivingId) {
-  let transferId = await queryTransferIdByReceivingId(tableName, receivingId)
-  let data = await getTransferByTransferId(transferId)
-  data.sendingId = null
-  data.receivingId = receivingId
-  return data
-}
-
 async function validateExpiration (tableName, expirationLength) {
   const timestamp = moment().unix()
 
@@ -265,5 +285,6 @@ module.exports = {
   cancelTransfer: cancelTransfer,
   receiveTransfer: receiveTransfer,
   getTransfer: getTransfer,
+  getBatchTransfers: getBatchTransfers,
   validateExpiration: validateExpiration
 }

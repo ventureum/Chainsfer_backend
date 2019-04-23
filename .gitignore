@@ -2,4 +2,5 @@
 /node_modules
 /**/lambda-payloads.json
 /dist
+/flow-typed
 template_packaged*.yml

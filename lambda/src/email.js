@@ -1,3 +1,5 @@
+// @flow
+
 import moment from 'moment'
 
 const EMAIL_SOURCE = 'notify@chainsfer.io'
@@ -9,9 +11,9 @@ const CRYPTO_SYMBOL = {
 }
 
 module.exports = {
-  sendActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType, password, sendTimestamp) {
+  sendActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, password: string, sendTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
-    sendTimestamp = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const sendTimestampStr = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -19,12 +21,12 @@ module.exports = {
         ToAddresses: [sender]
       },
       Template: 'sendActionSenderEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"password\": \"${password}\",  \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestamp}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"password\": \"${password}\",  \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
     }
   },
-  sendActionReceiverEmailParams: function (id, sender, destination, transferAmount, cryptoType, sendTimestamp) {
+  sendActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, sendTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
-    sendTimestamp = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const sendTimestampStr = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -32,13 +34,12 @@ module.exports = {
         ToAddresses: [destination]
       },
       Template: 'sendActionReceiverEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestamp}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
     }
   },
-  receiveActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType, receiveTimestamp) {
+  receiveActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, receiveTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
-    console.log(receiveTimestamp)
-    receiveTimestamp = moment.unix(receiveTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const receiveTimestampStr = moment.unix(receiveTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -46,12 +47,12 @@ module.exports = {
         ToAddresses: [sender]
       },
       Template: 'receiveActionSenderEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"receiveTimestamp\": \"${receiveTimestamp}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"receiveTimestamp\": \"${receiveTimestampStr}\"}`
     }
   },
-  receiveActionReceiverEmailParams: function (id, sender, destination, transferAmount, cryptoType, sendTimestamp) {
+  receiveActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, sendTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
-    sendTimestamp = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const sendTimestampStr = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -59,12 +60,12 @@ module.exports = {
         ToAddresses: [destination]
       },
       Template: 'receiveActionReceiverEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestamp}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
     }
   },
-  cancelActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType, cancelTimestamp) {
+  cancelActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, cancelTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
-    cancelTimestamp = moment.unix(cancelTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const cancelTimestampStr = moment.unix(cancelTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -72,12 +73,12 @@ module.exports = {
         ToAddresses: [sender]
       },
       Template: 'cancelActionSenderEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestamp}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestampStr}\"}`
     }
   },
-  cancelActionReceiverEmailParams: function (id, sender, destination, transferAmount, cryptoType, cancelTimestamp) {
+  cancelActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, cancelTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
-    cancelTimestamp = moment.unix(cancelTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const cancelTimestampStr = moment.unix(cancelTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -85,10 +86,10 @@ module.exports = {
         ToAddresses: [destination]
       },
       Template: 'cancelActionReceiverEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestamp}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestampStr}\"}`
     }
   },
-  expireActionSenderEmailParams: function (id, sender, destination, transferAmount, cryptoType) {
+  expireActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
     return {
       Source: EMAIL_SOURCE,
@@ -100,7 +101,7 @@ module.exports = {
       TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\"}`
     }
   },
-  expireActionReceiverEmailParams: function (id, sender, destination, transferAmount, cryptoType) {
+  expireActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
     return {
       Source: EMAIL_SOURCE,
@@ -114,63 +115,63 @@ module.exports = {
   },
   // ses utils
   sendAction: function (
-    ses,
-    sendingId,
-    receivingId,
-    sender,
-    destination,
-    transferAmount,
-    cryptoType,
-    sendTxHash,
-    sendTimestamp,
-    password) {
+    ses: Object,
+    sendingId: string,
+    receivingId: string,
+    sender: string,
+    destination: string,
+    transferAmount: string,
+    cryptoType: string,
+    sendTxHash: string,
+    sendTimestamp: string,
+    password: string) {
     return Promise.all([
       ses.sendTemplatedEmail(this.sendActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType, password, sendTimestamp)).promise(),
       ses.sendTemplatedEmail(this.sendActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType, sendTimestamp)).promise()
     ])
   },
   receiveAction: function (
-    ses,
-    sendingId,
-    receivingId,
-    sender,
-    destination,
-    transferAmount,
-    cryptoType,
-    sendTxHash,
-    sendTimestamp,
-    receiveTxHash,
-    receiveTimestamp) {
+    ses: Object,
+    sendingId: string,
+    receivingId: string,
+    sender: string,
+    destination: string,
+    transferAmount: string,
+    cryptoType: string,
+    sendTxHash: string,
+    sendTimestamp: string,
+    receiveTxHash: string,
+    receiveTimestamp: string) {
     return Promise.all([
       ses.sendTemplatedEmail(this.receiveActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType, receiveTimestamp)).promise(),
       ses.sendTemplatedEmail(this.receiveActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType, sendTimestamp)).promise()
     ])
   },
   cancelAction: function (
-    ses,
-    sendingId,
-    receivingId,
-    sender,
-    destination,
-    transferAmount,
-    cryptoType,
-    sendTxHash,
-    sendTimestamp,
-    cancelTxHash,
-    cancelTimestamp) {
+    ses: Object,
+    sendingId: string,
+    receivingId: string,
+    sender: string,
+    destination: string,
+    transferAmount: string,
+    cryptoType: string,
+    sendTxHash: string,
+    sendTimestamp: string,
+    cancelTxHash: string,
+    cancelTimestamp: string) {
     return Promise.all([
       ses.sendTemplatedEmail(this.cancelActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType, cancelTimestamp)).promise(),
       ses.sendTemplatedEmail(this.cancelActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType, cancelTimestamp)).promise()
     ])
   },
   expireAction: function (
-    ses,
-    sendingId,
-    receivingId,
-    sender,
-    destination,
-    transferAmount,
-    cryptoType) {
+    ses: Object,
+    sendingId: string,
+    receivingId: string,
+    sender: string,
+    destination: string,
+    transferAmount: string,
+    cryptoType: string) {
     return Promise.all([
       ses.sendTemplatedEmail(this.expireActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType)).promise(),
       ses.sendTemplatedEmail(this.expireActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType)).promise()

@@ -13,7 +13,9 @@ env:
 before_install:
   # set up awscli packages
   - pip install --user awscli
-script: 
+script:
+  - npm run eslint
+  - npm run flow 
   - npm run build
 deploy:
   # deploy to AWS

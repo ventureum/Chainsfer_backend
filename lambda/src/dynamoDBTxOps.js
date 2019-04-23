@@ -1,27 +1,29 @@
+// @flow
+import type { CryptoType } from './typeConst'
 var moment = require('moment')
 var UUID = require('uuid/v4')
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient()
 
-async function batchQueryTransfersByIds (tableName, ids, forReceiver) {
+async function batchQueryTransfersByIds (transActionDataTableName: string, ids: Array<string>, forReceiver: boolean) {
   let items = []
   for (let index = 0; index < ids.length; index++) {
     const id = ids[index]
     let item
     if (forReceiver === false) {
-      item = await getTransferByTransferId(tableName, id)
+      item = await getTransferByTransferId(transActionDataTableName, id)
     } else {
-      item = await getTransferByReceivingId(tableName, id)
+      item = await getTransferByReceivingId(transActionDataTableName, id)
     }
     items.push(formatQueriedTransfer(item, forReceiver))
   }
   return items
 }
 
-async function getTransferByReceivingId (tableName, receivingId) {
+async function getTransferByReceivingId (transActionDataTableName: string, receivingId: string) {
   const params = {
-    TableName: tableName,
+    TableName: transActionDataTableName,
     IndexName: 'receivingId-index',
     KeyConditionExpression: 'receivingId = :rid',
     ExpressionAttributeValues: {
@@ -32,9 +34,9 @@ async function getTransferByReceivingId (tableName, receivingId) {
   return data.Items[0]
 }
 
-async function getTransferByTransferId (tableName, transferId) {
+async function getTransferByTransferId (transActionDataTableName: string, transferId: string) {
   const params = {
-    TableName: tableName,
+    TableName: transActionDataTableName,
     Key: {
       'transferId': transferId
     }
@@ -48,7 +50,7 @@ function formatQueriedTransfer (item, forReceiver) {
   const chainsferToReceiver = item.chainsferToReceiver
   const chainsferToSender = item.chainsferToSender
 
-  let result = {
+  let result : { [key: string] : ?string } = {
     'sendingId': item.transferId,
     'sender': item.sender,
     'destination': item.receiver,
@@ -77,22 +79,22 @@ function formatQueriedTransfer (item, forReceiver) {
   return result
 }
 
-async function getTransfer (tableName, sendingId, receivingId) {
-  let rv = sendingId ? (await getTransferByTransferId(tableName, sendingId)) : (await getTransferByReceivingId(tableName, receivingId))
+async function getTransfer (transActionDataTableName: string, sendingId: string, receivingId: string) {
+  let rv = sendingId ? (await getTransferByTransferId(transActionDataTableName, sendingId)) : (await getTransferByReceivingId(transActionDataTableName, receivingId))
   return sendingId ? formatQueriedTransfer(rv, false) : formatQueriedTransfer(rv, true)
 }
 
-async function getBatchTransfers (tableName, sendingIds, receivingIds) {
-  let rv = sendingIds ? (await batchQueryTransfersByIds(tableName, sendingIds, false)) : (await batchQueryTransfersByIds(tableName, receivingIds, true))
+async function getBatchTransfers (transActionDataTableName: string, sendingIds: Array<string>, receivingIds: Array<string>) {
+  let rv = sendingIds ? (await batchQueryTransfersByIds(transActionDataTableName, sendingIds, false)) : (await batchQueryTransfersByIds(transActionDataTableName, receivingIds, true))
   return rv
 }
 
-async function sendTransfer (tableName, clientId, sender, destination, transferAmount, cryptoType, data, sendTxHash, password) {
+async function sendTransfer (transActionDataTableName: string, clientId: string, sender: string, destination: string, transferAmount: string, cryptoType: CryptoType, data: string, sendTxHash: string, password: string) {
   const timestamp = moment().unix().toString()
   const transferId = UUID()
   const receivingId = UUID()
 
-  let senderToChainsfer = {
+  let senderToChainsfer: { [key: string] : string } = {
     'txState': 'Pending',
     'txTimestamp': timestamp
   }
@@ -111,7 +113,7 @@ async function sendTransfer (tableName, clientId, sender, destination, transferA
   }
 
   const params = {
-    TableName: tableName,
+    TableName: transActionDataTableName,
     Item: {
       'clientId': clientId,
       'transferId': transferId,
@@ -131,7 +133,7 @@ async function sendTransfer (tableName, clientId, sender, destination, transferA
   await documentClient.put(params).promise()
 
   console.log('sendTransfer: transferId %s, receivingId %s', transferId, receivingId)
-  let result = {
+  let result: { [key: string] : string} = {
     sender: sender,
     destination: destination,
     transferAmount: transferAmount,
@@ -147,11 +149,11 @@ async function sendTransfer (tableName, clientId, sender, destination, transferA
   return result
 }
 
-async function receiveTransfer (tableName, receivingId, receiveTxHash) {
-  let transfer = await getTransferByReceivingId(getTransferByReceivingId)
+async function receiveTransfer (transActionDataTableName: string, receivingId: string, receiveTxHash: string) {
+  let transfer = await getTransferByReceivingId(transActionDataTableName, receivingId)
   const receiveTimestamp = moment().unix().toString()
   const params = {
-    TableName: tableName,
+    TableName: transActionDataTableName,
     Key: {
       'transferId': transfer.transferId
     },
@@ -182,7 +184,7 @@ async function receiveTransfer (tableName, receivingId, receiveTxHash) {
   const attributes = data.Attributes
   const senderToChainsfer = attributes.senderToChainsfer
 
-  let result = {
+  let result : { [key: string] : string } = {
     sender: attributes.sender,
     destination: attributes.receiver,
     transferAmount: attributes.transferAmount,
@@ -200,10 +202,10 @@ async function receiveTransfer (tableName, receivingId, receiveTxHash) {
   return result
 }
 
-async function cancelTransfer (tableName, transferId, cancelTxHash) {
+async function cancelTransfer (transActionDataTableName: string, transferId: string, cancelTxHash: string) {
   const cancelTimestamp = moment().unix().toString()
   const params = {
-    TableName: tableName,
+    TableName: transActionDataTableName,
     Key: {
       'transferId': transferId
     },
@@ -234,7 +236,7 @@ async function cancelTransfer (tableName, transferId, cancelTxHash) {
   const attributes = data.Attributes
   const senderToChainsfer = attributes.senderToChainsfer
 
-  let result = {
+  let result: { [key: string] : string } = {
     sender: attributes.sender,
     destination: attributes.receiver,
     transferAmount: attributes.transferAmount,
@@ -252,7 +254,7 @@ async function cancelTransfer (tableName, transferId, cancelTxHash) {
   return result
 }
 
-async function validateExpiration (tableName, expirationLength) {
+async function validateExpiration (transActionDataTableName: string, expirationLength: number) {
   const timestamp = moment().unix()
 
   const params = {
@@ -268,7 +270,7 @@ async function validateExpiration (tableName, expirationLength) {
       '#crt': 'created'
     },
     FilterExpression: '#stcTx.#txState = :confirmed and attribute_not_exists(#ctrTx) and attribute_not_exists(#ctsTx) and (#crt < :tdelta)',
-    TableName: tableName
+    TableName: transActionDataTableName
   }
 
   try {

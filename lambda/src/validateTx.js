@@ -1,3 +1,6 @@
+// @flow
+import type { Context, Callback } from 'flow-aws-lambda'
+import type { CryptoType } from './typeConst'
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var ddb = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' })
@@ -7,11 +10,18 @@ var sqs = new AWS.SQS({ region: 'us-east-1' })
 var moment = require('moment')
 var utils = require('./utils.js')
 var Config = require('./config.js')
-const tableName = process.env.TABLE_NAME
+
+if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
+const transactionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
+
+if (!process.env.SQS_NAME) throw new Error('SQS_NAME missing')
 const sqsName = process.env.SQS_NAME
-const env = process.env.ENV_VALUE
-const ethProvider = Config.EthTxAPIConfig[env.toLowerCase()] || Config.EthTxAPIConfig['default']
-const blockexplorer = Config.BtcTxAPIConfig[env.toLowerCase()] || Config.BtcTxAPIConfig['default']
+
+if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
+const deploymentStage = process.env.ENV_VALUE.toLowerCase()
+
+const ethProvider = Config.EthTxAPIConfig[deploymentStage] || Config.EthTxAPIConfig['default']
+const blockexplorer = Config.BtcTxAPIConfig[deploymentStage] || Config.BtcTxAPIConfig['default']
 
 async function checkEthTxConfirmation (txHash) {
   let transactionReceipt = await ethProvider.getTransactionReceipt(txHash)
@@ -29,7 +39,7 @@ async function checkBtcTxConfirmation (txHash) {
   return 0
 }
 
-async function processTxConfirmation (retryCount, checkFunction, cryptoType, txHash, gasTxHash, txHashConfirmed, gasTxHashConfirmed, item, messageBody) {
+async function processTxConfirmation (retryCount: number, checkFunction: Function, cryptoType: CryptoType, txHash: string, gasTxHash: ?string, txHashConfirmed: number, gasTxHashConfirmed: number, item: any, messageBody: any) {
   try {
     const maxRetry = Config.TxConfirmationConfig[cryptoType].maxRetry
     if (retryCount <= maxRetry) {
@@ -52,7 +62,12 @@ async function processTxConfirmation (retryCount, checkFunction, cryptoType, txH
           cryptoType, retryCount, txHash, gasTxHash)
       }
     } else {
-      const errStr = `For ${cryptoType}, failed to confirm within the given RetryCount ${maxRetry}: transaction txHash ${txHash} (status:  ${txHashConfirmed}) and gasTxHash  ${gasTxHash} (status:  ${gasTxHashConfirmed})`
+      let errStr
+      if (gasTxHash != null) {
+        errStr = `For ${cryptoType}, failed to confirm within the given RetryCount ${maxRetry}: transaction txHash ${txHash} (status:  ${txHashConfirmed}) and gasTxHash  ${gasTxHash} (status:  ${gasTxHashConfirmed})`
+      } else {
+        errStr = `For ${cryptoType}, failed to confirm within the given RetryCount ${maxRetry}: transaction txHash ${txHash} (status:  ${txHashConfirmed})`
+      }
       throw new Error(errStr)
     }
   } catch (err) {
@@ -64,7 +79,7 @@ async function updateTxState (state, item) {
   const ts = moment().unix().toString()
   const transferStage = item.transferStage.S
   const params = {
-    TableName: tableName,
+    TableName: transactionDataTableName,
     Key: {
       'transferId': item.transferId.S
     },
@@ -180,7 +195,7 @@ async function sendEmail (item) {
   }
 }
 
-exports.handler = async (event, context, callback) => {
+exports.handler = async (event: any, context: Context, callback: Callback) => {
   for (let index = 0; index < event.Records.length; index++) {
     const record = event.Records[index]
     const messageBody = record.body
@@ -206,7 +221,7 @@ exports.handler = async (event, context, callback) => {
         gasTxHash = transferStageMetaData.gasTxHash.S
       }
 
-      const cryptoType = item.cryptoType.S
+      const cryptoType: CryptoType = item.cryptoType.S
       switch (cryptoType) {
         case 'bitcoin':
           await processTxConfirmation(retryCount, checkBtcTxConfirmation, cryptoType, txHash, null, txHashConfirmed, 1, item, messageBody)

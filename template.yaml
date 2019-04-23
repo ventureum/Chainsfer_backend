@@ -32,7 +32,7 @@ Globals:
             - ''
             - - Ref: TransactionConfirmationSQSName
               - Ref: ENV
-        TABLE_NAME:
+        TRANSACTION_DATA_TABLE_NAME:
           'Fn::Join':
             - ''
             - - Ref: TransactionDataTableName

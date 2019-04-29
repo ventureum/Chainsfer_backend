@@ -1,10 +1,40 @@
 // @flow
-import type { CryptoType } from './typeConst'
+import type { CryptoType, WalletType } from './typeConst'
 var moment = require('moment')
 var UUID = require('uuid/v4')
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient()
+
+async function setLastUsedAddress (walletAddressTableName: string, googleId: string, walletType: WalletType, address: string) {
+  const timestamp = moment().unix().toString()
+
+  const wallet : { [key: string] : string } = {
+    'address': address,
+    'timestamp': timestamp
+  }
+
+  const params : { [key: string | WalletType] : any } = {
+    TableName: walletAddressTableName,
+    Item: {
+      'googleId': googleId,
+      'lastUpdatedWalletType': walletType
+    }
+  }
+  params.Item[walletType] = wallet
+  await documentClient.put(params).promise()
+}
+
+async function getLastUsedAddress (walletAddressTableName: string, googleId: string) {
+  const params = {
+    TableName: walletAddressTableName,
+    Key: {
+      'googleId': googleId
+    }
+  }
+  let data = await documentClient.get(params).promise()
+  return data.Item
+}
 
 async function batchQueryTransfersByIds (transActionDataTableName: string, ids: Array<string>, forReceiver: boolean) {
   let items = []
@@ -288,5 +318,7 @@ module.exports = {
   receiveTransfer: receiveTransfer,
   getTransfer: getTransfer,
   getBatchTransfers: getBatchTransfers,
-  validateExpiration: validateExpiration
+  validateExpiration: validateExpiration,
+  setLastUsedAddress: setLastUsedAddress,
+  getLastUsedAddress: getLastUsedAddress
 }

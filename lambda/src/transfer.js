@@ -5,6 +5,9 @@ var dynamoDBTxOps = require('./dynamoDBTxOps.js')
 if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
 const transactionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
 
+if (!process.env.WALLET_ADDRESSES_DATA_TABLE_NAME) throw new Error('WALLET_ADDRESSES_DATA_TABLE_NAME missing')
+const walletAddressesDataTableName = process.env.WALLET_ADDRESSES_DATA_TABLE_NAME
+
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   // parse request data
   // for local testing, use request = event.body
@@ -46,6 +49,11 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await dynamoDBTxOps.receiveTransfer(transactionDataTableName, request.receivingId, request.receiveTxHash)
     } else if (request.action === 'CANCEL') {
       rv = await dynamoDBTxOps.cancelTransfer(transactionDataTableName, request.sendingId, request.cancelTxHash)
+    } else if (request.action === 'SET_LAST_USED_ADDRESS') {
+      await dynamoDBTxOps.setLastUsedAddress(walletAddressesDataTableName, request.googleId, request.walletType, request.address)
+      rv = { 'OK': true }
+    } else if (request.action === 'GET_LAST_USED_ADDRESS') {
+      rv = await dynamoDBTxOps.getLastUsedAddress(walletAddressesDataTableName, request.googleId)
     } else {
       throw new Error('Invalid command')
     }

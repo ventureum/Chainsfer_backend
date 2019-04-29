@@ -1,5 +1,7 @@
+// @flow
+
 module.exports = {
-  maskEmail: function (email) {
+  maskEmail: function (email: string) {
     // first split str by '@'
     let parts = email.split('@')
 
@@ -7,7 +9,7 @@ module.exports = {
     return parts[0].slice(0, 1) + '*****' + parts[0].slice(-1) + '@' + parts[1]
   },
 
-  lowerCaseFirstLetter: function (str) {
+  lowerCaseFirstLetter: function (str: string) {
     return str.charAt(0).toLowerCase() + str.slice(1)
   }
 }

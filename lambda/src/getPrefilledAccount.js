@@ -1,3 +1,5 @@
+// @flow
+import type { Context, Callback, ProxyResult } from 'flow-aws-lambda'
 const AWS = require('aws-sdk')
 const dynamodb = new AWS.DynamoDB({ region: 'us-east-1' })
 
@@ -22,8 +24,8 @@ function deleteItemBuilder (address) {
   }
 }
 
-exports.handler = async (event, context, callback) => {
-  let response = {
+exports.handler = async (event: any, context: Context, callback: Callback) => {
+  let response: ProxyResult = {
     'headers': {
       'Access-Control-Allow-Origin': '*', // Required for CORS support to work
       'Access-Control-Allow-Credentials': true // Required for cookies, authorization headers with HTTPS

@@ -1,10 +1,14 @@
+// @flow
+import type { Context, Callback } from 'flow-aws-lambda'
 var AWS = require('aws-sdk')
 var sqs = new AWS.SQS({ region: 'us-east-1' })
 var utils = require('./utils.js')
 var Config = require('./config.js')
+
+if (!process.env.SQS_NAME) throw new Error('SQS_NAME missing')
 const sqsName = process.env.SQS_NAME
 
-exports.handler = function (event, context, callback) {
+exports.handler = function (event: any, context: Context, callback: Callback) {
   event.Records.forEach(function (record) {
     const newImage = record.dynamodb.NewImage
     const transferStage = newImage.transferStage.S

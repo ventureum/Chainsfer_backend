@@ -1,3 +1,5 @@
+// @flow
+
 const AWS = require('aws-sdk')
 const Web3 = require('web3')
 const EthereumTx = require('ethereumjs-tx')

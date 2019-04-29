@@ -1,0 +1,17 @@
+[ignore]
+
+[include]
+./lambda
+./emailTemplates
+
+[libs]
+./flow-typed/npm/.*
+
+[lints]
+
+
+[options]
+
+[strict]
+[untyped]
+.*/node_modules/.*

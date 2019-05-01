@@ -5,6 +5,10 @@ Parameters:
     Description: DynamoDB Table Name for Transaction Data
     Type: String
     Default: ChainsferTransactionData
+  WalletAddressesDataTableName:
+    Description: Table Name for Wallet Addresses Data
+    Type: String
+    Default: ChainsferWalletAddressesData  
   TransactionConfirmationSQSName:
     Description: Transaction Confirmation SQS Name
     Type: String
@@ -20,6 +24,10 @@ Parameters:
   LambdaCheckTxExpirationRate:
     Description: The rate that triggers checkTxExpiration Lambda function
     Default: rate(1 day)
+    Type: String
+  LambdaValidateTxRate:
+    Description: The rate that triggers validateTx Lambda function
+    Default: rate(2 minutes)
     Type: String
 Globals:
   Function:
@@ -37,6 +45,11 @@ Globals:
             - ''
             - - Ref: TransactionDataTableName
               - Ref: ENV
+        WALLET_ADDRESSES_DATA_TABLE_NAME:
+          'Fn::Join':
+            - ''
+            - - Ref: WalletAddressesDataTableName
+              - Ref: ENV      
         ENV_VALUE:
           Ref: ENV
 Resources:
@@ -93,6 +106,31 @@ Resources:
       MemorySize: 128
       Description: ''
     Type: 'AWS::Serverless::Function'
+  LambdaValidateTxSchedule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      ScheduleExpression:
+        Ref: LambdaValidateTxRate
+      State: ENABLED
+      Targets:
+        - Arn:
+            'Fn::GetAtt':
+              - validateTx
+              - Arn
+          Id: LambdaValidateTxSchedule
+  LambdaValidateTxSchedulePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - validateTx
+          - Arn
+      Principal: events.amazonaws.com
+      SourceArn:
+        'Fn::GetAtt':
+          - LambdaValidateTxSchedule
+          - Arn
   checkTxExpiration:
     Properties:
       FunctionName:
@@ -164,6 +202,23 @@ Resources:
         StreamViewType: NEW_IMAGE
     DependsOn:
       - transferRequest
+  WalletAddressesData:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName:
+        'Fn::Join':
+          - ''
+          - - Ref: WalletAddressesDataTableName
+            - Ref: ENV
+      AttributeDefinitions:
+        - AttributeName: googleId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: googleId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
   TransactionDataStreamMapping:
     Type: 'AWS::Lambda::EventSourceMapping'
     Properties:
@@ -190,19 +245,6 @@ Resources:
       VisibilityTimeout: 30
     DependsOn:
       - stream
-  LambdaStreamSQSEventSourceMapping:
-    Type: 'AWS::Lambda::EventSourceMapping'
-    Properties:
-      BatchSize: 10
-      Enabled: true
-      EventSourceArn:
-        'Fn::GetAtt':
-          - TransactionConfirmationQueue
-          - Arn
-      FunctionName:
-        'Fn::GetAtt':
-          - validateTx
-          - Arn
   ChainsferRestApi:
     Type: 'AWS::ApiGateway::RestApi'
     Properties:

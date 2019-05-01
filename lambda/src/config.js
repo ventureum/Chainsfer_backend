@@ -1,10 +1,25 @@
 // @flow
 
-var blockexplorerMain = require('blockchain.info/blockexplorer')
-var blockexplorerTest3 = require('blockchain.info/blockexplorer').usingNetwork(3)
 var ethers = require('ethers')
 var ethProviderTest = ethers.getDefaultProvider('rinkeby')
 let ethProviderMain = ethers.getDefaultProvider('homestead')
+var request = require('request-promise')
+
+const BlockcypherMainTxURL = 'https://api.blockcypher.com/v1/btc/main/txs/'
+const BlockcypherTest3TxURL = 'https://api.blockcypher.com/v1/btc/test3/txs/'
+
+async function getBtcTx (txHash: string, apiUrl: string) {
+  try {
+    const options = {
+      method: 'GET',
+      uri: apiUrl + txHash
+    }
+    let response = await request(options).promise()
+    return JSON.parse(response)
+  } catch (err) {
+    throw new Error('Unable to get Btc Tx. Error: ' + err.message)
+  }
+}
 
 const TxConfirmationConfig = {
   'ethereum': {
@@ -29,10 +44,10 @@ const ExpirationLengthConfig: { [key: string]: number } = {
 }
 
 const BtcTxAPIConfig: { [key:string]: any } = {
-  'prod': blockexplorerMain,
-  'staging': blockexplorerTest3,
-  'test': blockexplorerTest3,
-  'default': blockexplorerTest3
+  'prod': BlockcypherMainTxURL,
+  'staging': BlockcypherTest3TxURL,
+  'test': BlockcypherTest3TxURL,
+  'default': BlockcypherTest3TxURL
 }
 
 const EthTxAPIConfig: { [key: string]: any } = {
@@ -49,5 +64,6 @@ module.exports = {
   QueueURLPrefix: QueueURLPrefix,
   ExpirationLengthConfig: ExpirationLengthConfig,
   BtcTxAPIConfig: BtcTxAPIConfig,
-  EthTxAPIConfig: EthTxAPIConfig
+  EthTxAPIConfig: EthTxAPIConfig,
+  getBtcTx: getBtcTx
 }

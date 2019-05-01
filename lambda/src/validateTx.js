@@ -21,22 +21,30 @@ if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
 const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 
 const ethProvider = Config.EthTxAPIConfig[deploymentStage] || Config.EthTxAPIConfig['default']
-const blockexplorer = Config.BtcTxAPIConfig[deploymentStage] || Config.BtcTxAPIConfig['default']
+const btcApiTxURL = Config.BtcTxAPIConfig[deploymentStage] || Config.BtcTxAPIConfig['default']
 
 async function checkEthTxConfirmation (txHash) {
-  let transactionReceipt = await ethProvider.getTransactionReceipt(txHash)
-  if (transactionReceipt !== null && transactionReceipt.status === 1) {
-    return 1
+  try {
+    let transactionReceipt = await ethProvider.getTransactionReceipt(txHash)
+    if (transactionReceipt !== null && transactionReceipt.status === 1) {
+      return 1
+    }
+    return 0
+  } catch (err) {
+    throw new Error('Failed to check Eth Tx Confirmation with error: ' + err.message)
   }
-  return 0
 }
 
 async function checkBtcTxConfirmation (txHash) {
-  let transactionReceipt = await blockexplorer.getTx(txHash)
-  if (transactionReceipt.block_height !== undefined) {
-    return 1
+  try {
+    let transactionReceipt = await Config.getBtcTx(txHash, btcApiTxURL)
+    if (transactionReceipt.block_height !== undefined && transactionReceipt.block_height > 0) {
+      return 1
+    }
+    return 0
+  } catch (err) {
+    throw new Error('Failed to check Btc Tx Confirmation with error: ' + err.message)
   }
-  return 0
 }
 
 async function processTxConfirmation (retryCount: number, checkFunction: Function, cryptoType: CryptoType, txHash: string, gasTxHash: ?string, txHashConfirmed: number, gasTxHashConfirmed: number, item: any, messageBody: any) {
@@ -99,7 +107,7 @@ async function updateTxState (state, item) {
 
   try {
     await ddb.update(params).promise()
-    console.log('txState is updated successfully')
+    console.log('txState is updated successfully with State ', state)
   } catch (err) {
     throw new Error('Unable to update txState. Error: ' + err.message)
   }
@@ -145,6 +153,22 @@ async function deleteMessageFromSQS (receiptHandle) {
     console.log('Message is deleted from SQS successfully', response)
   } catch (err) {
     throw new Error('Unable to delete message. Error: ' + err.message)
+  }
+}
+
+async function receiveMessagesFromSQS () {
+  const params = {
+    QueueUrl: Config.QueueURLPrefix + sqsName,
+    MaxNumberOfMessages: '10',
+    VisibilityTimeout: '120',
+    MessageAttributeNames: ['All']
+  }
+  try {
+    let response = await sqs.receiveMessage(params).promise()
+    console.log('Messages are received from SQS successfully', response)
+    return response
+  } catch (err) {
+    throw new Error('Unable to receive message. Error: ' + err.message)
   }
 }
 
@@ -196,48 +220,52 @@ async function sendEmail (item) {
 }
 
 exports.handler = async (event: any, context: Context, callback: Callback) => {
-  for (let index = 0; index < event.Records.length; index++) {
-    const record = event.Records[index]
-    const messageBody = record.body
-    const item = JSON.parse(messageBody)
-    console.log('Message Id', record.messageId)
-    try {
-      const retryCount = parseInt(record.messageAttributes.RetryCount.stringValue) + 1
-      let txHashConfirmed = parseInt(record.messageAttributes.TxHashConfirmed.stringValue)
-      let gasTxHashConfirmed = parseInt(record.messageAttributes.GasTxHashConfirmed.stringValue)
+  let data = await receiveMessagesFromSQS()
+  if (data.Messages) {
+    let messages = data.Messages
+    for (let index = 0; index < messages.length; index++) {
+      const record = messages[index]
+      const messageBody = record.Body
+      const item = JSON.parse(messageBody)
+      console.log('Message Id', record.MessageId)
+      try {
+        const retryCount = parseInt(record.MessageAttributes.RetryCount.StringValue) + 1
+        let txHashConfirmed = parseInt(record.MessageAttributes.TxHashConfirmed.StringValue)
+        let gasTxHashConfirmed = parseInt(record.MessageAttributes.GasTxHashConfirmed.StringValue)
 
-      const transferStage = item.transferStage.S
-      const transferStageMetaData = item[utils.lowerCaseFirstLetter(transferStage)].M
-      const txHash = transferStageMetaData.txHash.S
+        const transferStage = item.transferStage.S
+        const transferStageMetaData = item[utils.lowerCaseFirstLetter(transferStage)].M
+        const txHash = transferStageMetaData.txHash.S
 
-      await deleteMessageFromSQS(record.receiptHandle)
+        await deleteMessageFromSQS(record.ReceiptHandle)
 
-      if (txHash === null) {
-        throw new Error('Null txHash for record ' + JSON.stringify(record, null, 2))
+        if (txHash === null) {
+          throw new Error('Null txHash for record ' + JSON.stringify(record, null, 2))
+        }
+
+        let gasTxHash = null
+        if (transferStageMetaData.gasTxHash != null) {
+          gasTxHash = transferStageMetaData.gasTxHash.S
+        }
+
+        const cryptoType: CryptoType = item.cryptoType.S
+        switch (cryptoType) {
+          case 'bitcoin':
+            await processTxConfirmation(retryCount, checkBtcTxConfirmation, cryptoType, txHash, null, txHashConfirmed, 1, item, messageBody)
+            break
+          case 'ethereum':
+            await processTxConfirmation(retryCount, checkEthTxConfirmation, cryptoType, txHash, null, txHashConfirmed, 1, item, messageBody)
+            break
+          default: // ERC20
+            if (gasTxHash === null) {
+              throw new Error('Null gasTxHash for record ' + JSON.stringify(record, null, 2))
+            }
+            await processTxConfirmation(retryCount, checkEthTxConfirmation, cryptoType, txHash, gasTxHash, txHashConfirmed, gasTxHashConfirmed, item, messageBody)
+        }
+      } catch (err) {
+        await updateTxState('Failed', item)
+        console.error('Failed to validate Tx Confirmation with error: ' + err.message)
       }
-
-      let gasTxHash = null
-      if (transferStageMetaData.gasTxHash != null) {
-        gasTxHash = transferStageMetaData.gasTxHash.S
-      }
-
-      const cryptoType: CryptoType = item.cryptoType.S
-      switch (cryptoType) {
-        case 'bitcoin':
-          await processTxConfirmation(retryCount, checkBtcTxConfirmation, cryptoType, txHash, null, txHashConfirmed, 1, item, messageBody)
-          break
-        case 'ethereum':
-          await processTxConfirmation(retryCount, checkEthTxConfirmation, cryptoType, txHash, null, txHashConfirmed, 1, item, messageBody)
-          break
-        default: // ERC20
-          if (gasTxHash === null) {
-            throw new Error('Null gasTxHash for record ' + JSON.stringify(record, null, 2))
-          }
-          await processTxConfirmation(retryCount, checkEthTxConfirmation, cryptoType, txHash, gasTxHash, txHashConfirmed, gasTxHashConfirmed, item, messageBody)
-      }
-    } catch (err) {
-      await updateTxState('Failed', item)
-      console.error('Failed to validate Tx Confirmation with error: ' + err.message)
     }
   }
   callback(null, 'message')

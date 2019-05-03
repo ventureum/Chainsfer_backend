@@ -6,25 +6,6 @@ var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient()
 
-async function setLastUsedAddress (walletAddressTableName: string, googleId: string, walletType: WalletType, address: string) {
-  const timestamp = moment().unix().toString()
-
-  const wallet : { [key: string] : string } = {
-    'address': address,
-    'timestamp': timestamp
-  }
-
-  const params : { [key: string | WalletType] : any } = {
-    TableName: walletAddressTableName,
-    Item: {
-      'googleId': googleId,
-      'lastUpdatedWalletType': walletType
-    }
-  }
-  params.Item[walletType] = wallet
-  await documentClient.put(params).promise()
-}
-
 async function getLastUsedAddress (walletAddressTableName: string, googleId: string) {
   const params = {
     TableName: walletAddressTableName,
@@ -34,6 +15,35 @@ async function getLastUsedAddress (walletAddressTableName: string, googleId: str
   }
   let data = await documentClient.get(params).promise()
   return data.Item
+}
+
+async function setLastUsedAddress (walletAddressTableName: string, googleId: string, walletType: WalletType, cryptoType: CryptoType, address: string) {
+  const timestamp = moment().unix().toString()
+
+  const wallet : { [key: string] : string } = {
+    'address': address,
+    'timestamp': timestamp
+  }
+
+  let params : { [key: string] : any } = {
+    TableName: walletAddressTableName
+  }
+
+  params['Item'] = await getLastUsedAddress(walletAddressTableName, googleId)
+  if (!params['Item']) {
+    params['Item'] = {
+      'googleId': googleId
+    }
+  }
+
+  if (!params['Item'][walletType]) {
+    params['Item'][walletType] = {}
+  }
+  params['Item'][walletType][cryptoType] = wallet
+  params['Item']['lastUpdatedWalletType'] = walletType
+  params['Item']['lastUpdatedCryptoType'] = cryptoType
+
+  await documentClient.put(params).promise()
 }
 
 async function batchQueryTransfersByIds (transActionDataTableName: string, ids: Array<string>, forReceiver: boolean) {

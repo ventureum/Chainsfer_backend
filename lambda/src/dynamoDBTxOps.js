@@ -129,12 +129,12 @@ async function getBatchTransfers (transActionDataTableName: string, sendingIds: 
   return rv
 }
 
-async function sendTransfer (transActionDataTableName: string, clientId: string, sender: string, destination: string, transferAmount: string, cryptoType: CryptoType, data: string, sendTxHash: string, password: string) {
+async function sendTransfer (transActionDataTableName: string, clientId: string, sender: string, destination: string, transferAmount: string, cryptoType: CryptoType, data: string, sendTxHash: string | Array<string>, password: string) {
   const timestamp = moment().unix().toString()
   const transferId = UUID()
   const receivingId = UUID()
 
-  let senderToChainsfer: { [key: string] : string } = {
+  let senderToChainsfer: { [key: string] : string | Array<string> } = {
     'txState': 'Pending',
     'txTimestamp': timestamp
   }
@@ -173,7 +173,7 @@ async function sendTransfer (transActionDataTableName: string, clientId: string,
   await documentClient.put(params).promise()
 
   console.log('sendTransfer: transferId %s, receivingId %s', transferId, receivingId)
-  let result: { [key: string] : string} = {
+  let result: { [key: string] : string | Array<string> } = {
     sender: sender,
     destination: destination,
     transferAmount: transferAmount,

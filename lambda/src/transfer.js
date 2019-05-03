@@ -50,8 +50,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     } else if (request.action === 'CANCEL') {
       rv = await dynamoDBTxOps.cancelTransfer(transactionDataTableName, request.sendingId, request.cancelTxHash)
     } else if (request.action === 'SET_LAST_USED_ADDRESS') {
-      await dynamoDBTxOps.setLastUsedAddress(walletAddressesDataTableName, request.googleId, request.walletType, request.address)
-      rv = { 'OK': true }
+      await dynamoDBTxOps.setLastUsedAddress(walletAddressesDataTableName, request.googleId, request.walletType, request.cryptoType, request.address)
     } else if (request.action === 'GET_LAST_USED_ADDRESS') {
       rv = await dynamoDBTxOps.getLastUsedAddress(walletAddressesDataTableName, request.googleId)
     } else {

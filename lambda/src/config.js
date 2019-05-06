@@ -36,6 +36,13 @@ const TxConfirmationConfig = {
   }
 }
 
+const RootUrlConfig: { [key: string]: string } = {
+  'prod': 'chainsfer.io',
+  'staging': 'testnet.chainsfer.io',
+  'test': 'testnet.chainsfer.io',
+  'default': 'testnet.chainsfer.io'
+}
+
 const ExpirationLengthConfig: { [key: string]: number } = {
   'prod': 2592000, // 1 month in seconds
   'staging': 300, // 5 mins
@@ -60,6 +67,7 @@ const EthTxAPIConfig: { [key: string]: any } = {
 const QueueURLPrefix = 'https://sqs.us-east-1.amazonaws.com/727151012682/'
 
 module.exports = {
+  RootUrlConfig,
   TxConfirmationConfig: TxConfirmationConfig,
   QueueURLPrefix: QueueURLPrefix,
   ExpirationLengthConfig: ExpirationLengthConfig,

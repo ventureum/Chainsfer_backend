@@ -1,6 +1,7 @@
 // @flow
 
 import moment from 'moment'
+import Config from './config'
 
 const EMAIL_SOURCE = 'notify@chainsfer.io'
 
@@ -9,6 +10,11 @@ const CRYPTO_SYMBOL = {
   'bitcoin': 'BTC',
   'dai': 'DAI'
 }
+
+if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
+const deploymentStage = process.env.ENV_VALUE.toLowerCase()
+
+const rootUrl = Config.RootUrlConfig[deploymentStage] || Config.RootUrlConfig['default']
 
 module.exports = {
   sendActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, password: string, sendTimestamp: number) {
@@ -21,7 +27,7 @@ module.exports = {
         ToAddresses: [sender]
       },
       Template: 'sendActionSenderEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"password\": \"${password}\",  \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"password\": \"${password}\",  \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
     }
   },
   sendActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, sendTimestamp: number) {
@@ -34,7 +40,7 @@ module.exports = {
         ToAddresses: [destination]
       },
       Template: 'sendActionReceiverEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
     }
   },
   receiveActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, receiveTimestamp: number) {
@@ -47,7 +53,7 @@ module.exports = {
         ToAddresses: [sender]
       },
       Template: 'receiveActionSenderEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"receiveTimestamp\": \"${receiveTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"receiveTimestamp\": \"${receiveTimestampStr}\"}`
     }
   },
   receiveActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, sendTimestamp: number) {
@@ -60,7 +66,7 @@ module.exports = {
         ToAddresses: [destination]
       },
       Template: 'receiveActionReceiverEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
     }
   },
   cancelActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, cancelTimestamp: number) {
@@ -73,7 +79,7 @@ module.exports = {
         ToAddresses: [sender]
       },
       Template: 'cancelActionSenderEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestampStr}\"}`
     }
   },
   cancelActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, cancelTimestamp: number) {
@@ -86,7 +92,7 @@ module.exports = {
         ToAddresses: [destination]
       },
       Template: 'cancelActionReceiverEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestampStr}\"}`
     }
   },
   expireActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string) {
@@ -98,7 +104,7 @@ module.exports = {
         ToAddresses: [sender]
       },
       Template: 'expireActionSenderEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\"}`
     }
   },
   expireActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string) {
@@ -110,7 +116,7 @@ module.exports = {
         ToAddresses: [destination]
       },
       Template: 'expireActionReceiverEmail',
-      TemplateData: `{\"id\": \"${id}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\"}`
     }
   },
   // ses utils

@@ -86,6 +86,9 @@ async function getTransferByTransferId (transActionDataTableName: string, transf
 }
 
 function formatQueriedTransfer (item, forReceiver) {
+  if (!item) {
+    return { 'error': 'Not Found' }
+  }
   const senderToChainsfer = item.senderToChainsfer
   const chainsferToReceiver = item.chainsferToReceiver
   const chainsferToSender = item.chainsferToSender
@@ -249,13 +252,14 @@ async function cancelTransfer (transActionDataTableName: string, transferId: str
     Key: {
       'transferId': transferId
     },
-    ConditionExpression: 'attribute_not_exists(#ctr) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
+    ConditionExpression: '(attribute_not_exists(#ctr) or attribute_not_exists(#ctr.#ctrTxHash)) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
     UpdateExpression: 'SET #cts = :cts, #tstage = :tstage, #upt = :upt',
     ExpressionAttributeNames: {
       '#ctr': 'chainsferToReceiver',
       '#cts': 'chainsferToSender',
       '#stcTx': 'senderToChainsfer',
       '#stcTxSate': 'txState',
+      '#ctrTxHash': 'txHash',
       '#tstage': 'transferStage',
       '#upt': 'updated'
     },

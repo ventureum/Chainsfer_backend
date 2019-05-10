@@ -20,6 +20,8 @@ module.exports = {
   sendActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, password: string, sendTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
     const sendTimestampStr = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const { years, months, date, hours, minutes, seconds } = moment.unix(sendTimestamp).utc().toObject()
+    const sendTimestampParam = `day=${date}&month=${months + 1}&year=${years}&hour=${hours}&min=${minutes}&sec=${seconds}`
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -27,12 +29,14 @@ module.exports = {
         ToAddresses: [sender]
       },
       Template: 'sendActionSenderEmail',
-      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"password\": \"${password}\",  \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"password\": \"${password}\",  \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\", \"sendTimestampParam\": \"${sendTimestampParam}\"}`
     }
   },
   sendActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, sendTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
     const sendTimestampStr = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const { years, months, date, hours, minutes, seconds } = moment.unix(sendTimestamp).utc().toObject()
+    const sendTimestampParam = `day=${date}&month=${months + 1}&year=${years}&hour=${hours}&min=${minutes}&sec=${seconds}`
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -40,12 +44,14 @@ module.exports = {
         ToAddresses: [destination]
       },
       Template: 'sendActionReceiverEmail',
-      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\", \"sendTimestampParam\": \"${sendTimestampParam}\"}`
     }
   },
   receiveActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, receiveTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
     const receiveTimestampStr = moment.unix(receiveTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const { years, months, date, hours, minutes, seconds } = moment.unix(receiveTimestamp).utc().toObject()
+    const receiveTimestampParam = `day=${date}&month=${months + 1}&year=${years}&hour=${hours}&min=${minutes}&sec=${seconds}`
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -53,12 +59,14 @@ module.exports = {
         ToAddresses: [sender]
       },
       Template: 'receiveActionSenderEmail',
-      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"receiveTimestamp\": \"${receiveTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"receiveTimestamp\": \"${receiveTimestampStr}\", \"receiveTimestampParam\": \"${receiveTimestampParam}\"}`
     }
   },
   receiveActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, sendTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
     const sendTimestampStr = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const { years, months, date, hours, minutes, seconds } = moment.unix(sendTimestamp).utc().toObject()
+    const sendTimestampParam = `day=${date}&month=${months + 1}&year=${years}&hour=${hours}&min=${minutes}&sec=${seconds}`
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -66,12 +74,14 @@ module.exports = {
         ToAddresses: [destination]
       },
       Template: 'receiveActionReceiverEmail',
-      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\", \"sendTimestampParam\": \"${sendTimestampParam}\"}`
     }
   },
   cancelActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, cancelTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
     const cancelTimestampStr = moment.unix(cancelTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const { years, months, date, hours, minutes, seconds } = moment.unix(cancelTimestamp).utc().toObject()
+    const cancelTimestampParam = `day=${date}&month=${months + 1}&year=${years}&hour=${hours}&min=${minutes}&sec=${seconds}`
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -79,12 +89,14 @@ module.exports = {
         ToAddresses: [sender]
       },
       Template: 'cancelActionSenderEmail',
-      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestampStr}\", \"cancelTimestampParam\": \"${cancelTimestampParam}\"}`
     }
   },
   cancelActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, cancelTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
     const cancelTimestampStr = moment.unix(cancelTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const { years, months, date, hours, minutes, seconds } = moment.unix(cancelTimestamp).utc().toObject()
+    const cancelTimestampParam = `day=${date}&month=${months + 1}&year=${years}&hour=${hours}&min=${minutes}&sec=${seconds}`
     return {
       Source: EMAIL_SOURCE,
       ConfigurationSetName: 'email',
@@ -92,7 +104,7 @@ module.exports = {
         ToAddresses: [destination]
       },
       Template: 'cancelActionReceiverEmail',
-      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestampStr}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"cancelTimestamp\": \"${cancelTimestampStr}\", \"cancelTimestampParam\": \"${cancelTimestampParam}\"}`
     }
   },
   expireActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string) {

@@ -17,7 +17,7 @@ const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 const rootUrl = Config.RootUrlConfig[deploymentStage] || Config.RootUrlConfig['default']
 
 module.exports = {
-  sendActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, password: string, sendTimestamp: number) {
+  sendActionSenderEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, sendTimestamp: number) {
     const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
     const sendTimestampStr = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
     const { years, months, date, hours, minutes, seconds } = moment.unix(sendTimestamp).utc().toObject()
@@ -29,7 +29,7 @@ module.exports = {
         ToAddresses: [sender]
       },
       Template: 'sendActionSenderEmail',
-      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"password\": \"${password}\",  \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\", \"sendTimestampParam\": \"${sendTimestampParam}\"}`
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\",  \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\", \"sendTimestampParam\": \"${sendTimestampParam}\"}`
     }
   },
   sendActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, sendTimestamp: number) {
@@ -141,10 +141,9 @@ module.exports = {
     transferAmount: string,
     cryptoType: string,
     sendTxHash: string,
-    sendTimestamp: string,
-    password: string) {
+    sendTimestamp: string) {
     return Promise.all([
-      ses.sendTemplatedEmail(this.sendActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType, password, sendTimestamp)).promise(),
+      ses.sendTemplatedEmail(this.sendActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType, sendTimestamp)).promise(),
       ses.sendTemplatedEmail(this.sendActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType, sendTimestamp)).promise()
     ])
   },

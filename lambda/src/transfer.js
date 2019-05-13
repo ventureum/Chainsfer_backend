@@ -44,7 +44,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     } else if (request.action === 'BATCH_GET') {
       rv = await dynamoDBTxOps.getBatchTransfers(transactionDataTableName, request.sendingId, request.receivingId)
     } else if (request.action === 'SEND') {
-      rv = await dynamoDBTxOps.sendTransfer(transactionDataTableName, clientId, request.sender, request.destination, request.transferAmount, request.cryptoType, request.data, request.sendTxHash, request.password)
+      rv = await dynamoDBTxOps.sendTransfer(transactionDataTableName, clientId, request.sender, request.destination, request.transferAmount, request.cryptoType, request.data, request.sendTxHash)
     } else if (request.action === 'RECEIVE') {
       rv = await dynamoDBTxOps.receiveTransfer(transactionDataTableName, request.receivingId, request.receiveTxHash)
     } else if (request.action === 'CANCEL') {

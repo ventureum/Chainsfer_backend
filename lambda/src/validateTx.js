@@ -185,8 +185,7 @@ async function sendEmail (item) {
         item.transferAmount.S,
         item.cryptoType.S,
         item.senderToChainsfer.M.txHash.S,
-        item.created.S,
-        item.password.S
+        item.created.S
       )
     case 'ChainsferToReceiver':
       return email.receiveAction(

@@ -132,14 +132,22 @@ async function getBatchTransfers (transActionDataTableName: string, sendingIds: 
   return rv
 }
 
-async function sendTransfer (transActionDataTableName: string, clientId: string, sender: string, destination: string, transferAmount: string, cryptoType: CryptoType, data: string, sendTxHash: string | Array<string>) {
-  const timestamp = moment().unix().toString()
+async function sendTransfer (transActionDataTableName: string, clientId: string, sender: string, destination: string, transferAmount: string, cryptoType: CryptoType, data: string, sendTxHash: string | Array<string>, expirationLength: number, reminderInterval: number) {
+  const ts = moment().unix()
+  const timestamp = ts.toString()
   const transferId = UUID()
   const receivingId = UUID()
 
   let senderToChainsfer: { [key: string] : string | Array<string> } = {
     'txState': 'Pending',
     'txTimestamp': timestamp
+  }
+
+  let reminder: { [key: string] : number} = {
+    'expirationTime': ts + expirationLength,
+    'availableReminderToReceiver': Math.floor(expirationLength / reminderInterval),
+    'reminderToSenderCount': 0,
+    'reminderToReceiverCount': 0
   }
 
   if (Array.isArray(sendTxHash)) {
@@ -163,6 +171,7 @@ async function sendTransfer (transActionDataTableName: string, clientId: string,
       'receivingId': receivingId,
       'created': timestamp,
       'updated': timestamp,
+      'reminder': reminder,
       'transferStage': 'SenderToChainsfer',
       'sender': sender,
       'receiver': destination,
@@ -297,31 +306,100 @@ async function cancelTransfer (transActionDataTableName: string, transferId: str
   return result
 }
 
-async function validateExpiration (transActionDataTableName: string, expirationLength: number) {
+async function collectPotentialExpirationRemainderList (
+  transActionDataTableName: string) {
   const timestamp = moment().unix()
 
   const params = {
     ExpressionAttributeValues: {
-      ':tdelta': (timestamp - expirationLength).toString(),
-      ':confirmed': 'Confirmed'
+      ':ts': timestamp,
+      ':confirmed': 'Confirmed',
+      ':expired': 'Expired'
+    },
+    ExpressionAttributeNames: {
+      '#ctr': 'chainsferToReceiver',
+      '#cts': 'chainsferToSender',
+      '#stc': 'senderToChainsfer',
+      '#txState': 'txState',
+      '#reminder': 'reminder',
+      '#exp': 'expirationTime'
+    },
+    FilterExpression: '(attribute_not_exists(#ctr) or (attribute_exists(#ctr.#txState) and #ctr.#txState = :expired)) and attribute_not_exists(#cts) and (#stc.#txState = :confirmed) and (#reminder.#exp <= :ts)',
+    TableName: transActionDataTableName
+  }
+
+  try {
+    let response = await documentClient.scan(params).promise()
+    console.log('CollectPotentialExpirationRemainderList: scaned table successfully with valid count %d and total ScannedCount %s', response.Count, response.ScannedCount)
+    return response.Items
+  } catch (err) {
+    throw new Error('CollectPotentialExpirationRemainderList: unable to scaned table . Error: ' + err.message)
+  }
+}
+
+async function collectPotentialReceiverRemainderList (transActionDataTableName: string) {
+  const timestamp = moment().unix()
+
+  const params = {
+    ExpressionAttributeValues: {
+      ':ts': timestamp,
+      ':confirmed': 'Confirmed',
+      ':zero': 0
     },
     ExpressionAttributeNames: {
       '#ctrTx': 'chainsferToReceiver',
       '#ctsTx': 'chainsferToSender',
       '#stcTx': 'senderToChainsfer',
       '#txState': 'txState',
-      '#crt': 'created'
+      '#reminder': 'reminder',
+      '#exp': 'expirationTime',
+      '#artc': 'availableReminderToReceiver'
     },
-    FilterExpression: '#stcTx.#txState = :confirmed and attribute_not_exists(#ctrTx) and attribute_not_exists(#ctsTx) and (#crt < :tdelta)',
+    FilterExpression: '#stcTx.#txState = :confirmed and attribute_not_exists(#ctrTx) and attribute_not_exists(#ctsTx) and (#reminder.#exp > :ts) and (#reminder.#artc > :zero)',
     TableName: transActionDataTableName
   }
 
   try {
     let response = await documentClient.scan(params).promise()
-    console.log('Scaned table successfully with valid count %d and total ScannedCount %s', response.Count, response.ScannedCount)
+    console.log('CollectReceiverRemainderList: scaned table successfully with valid count %d and total ScannedCount %s', response.Count, response.ScannedCount)
     return response.Items
   } catch (err) {
-    throw new Error('Unable to scaned table . Error: ' + err.message)
+    throw new Error('CollectReceiverRemainderList: unable to scaned table . Error: ' + err.message)
+  }
+}
+
+async function updateReminderToReceiver (transactionDataTableName: string, transferId: string) {
+  const ts = moment().unix().toString()
+  const params = {
+    TableName: transactionDataTableName,
+    Key: {
+      'transferId': transferId
+    },
+    ConditionExpression: 'attribute_not_exists(#ctr) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate and #re.#artc > :zero',
+    UpdateExpression: 'SET #upt = :upt, #re.#artc = #re.#artc - :inc, #re.#rtrc = #re.#rtrc + :inc',
+    ExpressionAttributeNames: {
+      '#ctr': 'chainsferToReceiver',
+      '#cts': 'chainsferToSender',
+      '#stcTx': 'senderToChainsfer',
+      '#stcTxSate': 'txState',
+      '#upt': 'updated',
+      '#re': 'reminder',
+      '#artc': 'availableReminderToReceiver',
+      '#rtrc': 'reminderToReceiverCount'
+    },
+    ExpressionAttributeValues: {
+      ':stcTxSate': 'Confirmed',
+      ':upt': ts,
+      ':inc': 1,
+      ':zero': 0
+    },
+    ReturnValues: 'ALL_NEW'
+  }
+  try {
+    let data = await documentClient.update(params).promise()
+    console.log('ReminderToReceiver is updated successfully to be: ', data)
+  } catch (err) {
+    throw new Error('Unable to update ReminderToReceiver. Error: ' + err.message)
   }
 }
 
@@ -331,7 +409,9 @@ module.exports = {
   receiveTransfer: receiveTransfer,
   getTransfer: getTransfer,
   getBatchTransfers: getBatchTransfers,
-  validateExpiration: validateExpiration,
   setLastUsedAddress: setLastUsedAddress,
-  getLastUsedAddress: getLastUsedAddress
+  getLastUsedAddress: getLastUsedAddress,
+  collectPotentialExpirationRemainderList: collectPotentialExpirationRemainderList,
+  collectPotentialReceiverRemainderList: collectPotentialReceiverRemainderList,
+  updateReminderToReceiver: updateReminderToReceiver
 }

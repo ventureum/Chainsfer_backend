@@ -10,6 +10,7 @@ var sqs = new AWS.SQS({ region: 'us-east-1' })
 var moment = require('moment')
 var utils = require('./utils.js')
 var Config = require('./config.js')
+var dynamoDBTxOps = require('./dynamoDBTxOps.js')
 
 if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
 const transactionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
@@ -66,6 +67,9 @@ async function processTxConfirmation (retryCount: number, checkFunction: Functio
       } else {
         await updateTxState('Confirmed', item)
         await sendEmail(item)
+        if (item.transferStage.S === 'SenderToChainsfer') {
+          await dynamoDBTxOps.updateReminderToReceiver(transactionDataTableName, item.transferId.S)
+        }
         console.log('For %s, suceeded to confirm with RetryCount %d: transaction txHash %s and gasTxHash %s',
           cryptoType, retryCount, txHash, gasTxHash)
       }

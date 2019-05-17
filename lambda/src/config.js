@@ -44,7 +44,14 @@ const RootUrlConfig: { [key: string]: string } = {
 }
 
 const ExpirationLengthConfig: { [key: string]: number } = {
-  'prod': 2592000, // 1 month in seconds
+  'prod': 2419200, // 28 days
+  'staging': 600, // 10 mins
+  'test': 600, // 10 mins
+  'default': 600 // 10 mins
+}
+
+const ReminderIntervalConfig: { [key: string]: number } = {
+  'prod': 604800, // 7 days
   'staging': 300, // 5 mins
   'test': 300, // 5 mins
   'default': 300 // 5 mins
@@ -71,6 +78,7 @@ module.exports = {
   TxConfirmationConfig: TxConfirmationConfig,
   QueueURLPrefix: QueueURLPrefix,
   ExpirationLengthConfig: ExpirationLengthConfig,
+  ReminderIntervalConfig: ReminderIntervalConfig,
   BtcTxAPIConfig: BtcTxAPIConfig,
   EthTxAPIConfig: EthTxAPIConfig,
   getBtcTx: getBtcTx

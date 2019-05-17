@@ -8,7 +8,7 @@ Parameters:
   WalletAddressesDataTableName:
     Description: Table Name for Wallet Addresses Data
     Type: String
-    Default: ChainsferWalletAddressesData  
+    Default: ChainsferWalletAddressesData
   TransactionConfirmationSQSName:
     Description: Transaction Confirmation SQS Name
     Type: String
@@ -23,7 +23,7 @@ Parameters:
     Default: '2012-10-17'
   LambdaCheckTxExpirationRate:
     Description: The rate that triggers checkTxExpiration Lambda function
-    Default: rate(1 day)
+    Default: rate(2 minutes)
     Type: String
   LambdaValidateTxRate:
     Description: The rate that triggers validateTx Lambda function
@@ -49,7 +49,7 @@ Globals:
           'Fn::Join':
             - ''
             - - Ref: WalletAddressesDataTableName
-              - Ref: ENV      
+              - Ref: ENV
         ENV_VALUE:
           Ref: ENV
 Resources:

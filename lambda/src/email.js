@@ -188,10 +188,31 @@ module.exports = {
     sender: string,
     destination: string,
     transferAmount: string,
-    cryptoType: string) {
+    cryptoType: string,
+    isFirstExpirationReminder: boolean) {
+    if (isFirstExpirationReminder) {
+      return Promise.all([
+        ses.sendTemplatedEmail(this.expireActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType)).promise(),
+        ses.sendTemplatedEmail(this.expireActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType)).promise()
+      ])
+    } else {
+      return Promise.all([
+        ses.sendTemplatedEmail(this.expireActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType)).promise()
+      ])
+    }
+  },
+  receiverReminderAction: function (
+    ses: Object,
+    sendingId: string,
+    receivingId: string,
+    sender: string,
+    destination: string,
+    transferAmount: string,
+    cryptoType: string,
+    sendTxHash: string,
+    sendTimestamp: string) {
     return Promise.all([
-      ses.sendTemplatedEmail(this.expireActionSenderEmailParams(sendingId, sender, destination, transferAmount, cryptoType)).promise(),
-      ses.sendTemplatedEmail(this.expireActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType)).promise()
+      ses.sendTemplatedEmail(this.sendActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType, sendTimestamp)).promise()
     ])
   }
 }

@@ -1,12 +1,19 @@
 // @flow
 import type { Context, Callback } from 'flow-aws-lambda'
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
+var Config = require('./config.js')
 
 if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
 const transactionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
 
 if (!process.env.WALLET_ADDRESSES_DATA_TABLE_NAME) throw new Error('WALLET_ADDRESSES_DATA_TABLE_NAME missing')
 const walletAddressesDataTableName = process.env.WALLET_ADDRESSES_DATA_TABLE_NAME
+
+if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
+const deploymentStage = process.env.ENV_VALUE.toLowerCase()
+
+const expirationLength = Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
+const reminderInterval = Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
 
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   // parse request data
@@ -44,7 +51,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     } else if (request.action === 'BATCH_GET') {
       rv = await dynamoDBTxOps.getBatchTransfers(transactionDataTableName, request.sendingId, request.receivingId)
     } else if (request.action === 'SEND') {
-      rv = await dynamoDBTxOps.sendTransfer(transactionDataTableName, clientId, request.sender, request.destination, request.transferAmount, request.cryptoType, request.data, request.sendTxHash)
+      rv = await dynamoDBTxOps.sendTransfer(transactionDataTableName, clientId, request.sender, request.destination, request.transferAmount, request.cryptoType, request.data, request.sendTxHash, expirationLength, reminderInterval)
     } else if (request.action === 'RECEIVE') {
       rv = await dynamoDBTxOps.receiveTransfer(transactionDataTableName, request.receivingId, request.receiveTxHash)
     } else if (request.action === 'CANCEL') {

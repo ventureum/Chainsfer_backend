@@ -14,6 +14,7 @@ const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 
 const expirationLength = Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
 const reminderInterval = Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
+const googleAPIConfig = Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
 
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   // parse request data
@@ -57,9 +58,11 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     } else if (request.action === 'CANCEL') {
       rv = await dynamoDBTxOps.cancelTransfer(transactionDataTableName, request.sendingId, request.cancelTxHash)
     } else if (request.action === 'SET_LAST_USED_ADDRESS') {
-      await dynamoDBTxOps.setLastUsedAddress(walletAddressesDataTableName, request.googleId, request.walletType, request.cryptoType, request.address)
+      let googleId = await dynamoDBTxOps.verifyGoogleIdToken(googleAPIConfig['clientId'], request.idToken)
+      await dynamoDBTxOps.setLastUsedAddress(walletAddressesDataTableName, googleId, request.walletType, request.cryptoType, request.address)
     } else if (request.action === 'GET_LAST_USED_ADDRESS') {
-      rv = await dynamoDBTxOps.getLastUsedAddress(walletAddressesDataTableName, request.googleId)
+      let googleId = await dynamoDBTxOps.verifyGoogleIdToken(googleAPIConfig['clientId'], request.idToken)
+      rv = await dynamoDBTxOps.getLastUsedAddress(walletAddressesDataTableName, googleId)
     } else {
       throw new Error('Invalid command')
     }

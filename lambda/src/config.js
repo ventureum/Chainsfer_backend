@@ -71,6 +71,29 @@ const EthTxAPIConfig: { [key: string]: any } = {
   'default': ethProviderTest
 }
 
+const GoogleAPIConfig: { [key: string]: any} = {
+  'prod': {
+    'clientId': '754636752811-94f1mrkatm9vdbe22c56oiirr5gkkgme.apps.googleusercontent.com',
+    'apiScope': 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',
+    'apiDiscoveryDocs': 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
+  },
+  'staging': {
+    'clientId': '754636752811-94f1mrkatm9vdbe22c56oiirr5gkkgme.apps.googleusercontent.com',
+    'apiScope': 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',
+    'apiDiscoveryDocs': 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
+  },
+  'test': {
+    'clientId': '754636752811-j7123ts13jt3mnjt9bgee7101jq4ndfu.apps.googleusercontent.com',
+    'apiScope': 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',
+    'apiDiscoveryDocs': 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
+  },
+  'default': {
+    'clientId': '754636752811-j7123ts13jt3mnjt9bgee7101jq4ndfu.apps.googleusercontent.com',
+    'apiScope': 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',
+    'apiDiscoveryDocs': 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
+  }
+}
+
 const QueueURLPrefix = 'https://sqs.us-east-1.amazonaws.com/727151012682/'
 
 module.exports = {
@@ -81,5 +104,6 @@ module.exports = {
   ReminderIntervalConfig: ReminderIntervalConfig,
   BtcTxAPIConfig: BtcTxAPIConfig,
   EthTxAPIConfig: EthTxAPIConfig,
-  getBtcTx: getBtcTx
+  getBtcTx: getBtcTx,
+  GoogleAPIConfig: GoogleAPIConfig
 }

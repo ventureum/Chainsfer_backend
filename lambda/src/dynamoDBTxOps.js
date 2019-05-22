@@ -5,6 +5,22 @@ var UUID = require('uuid/v4')
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient()
+const { OAuth2Client } = require('google-auth-library')
+
+async function verifyGoogleIdToken (clientId: string, idToken: string) {
+  try {
+    const client = new OAuth2Client(clientId)
+    const ticket = await client.verifyIdToken({
+      idToken: idToken,
+      audience: clientId
+    })
+    const payload = ticket.getPayload()
+    return payload['sub']
+  } catch (err) {
+    console.error('Failed to verify Id Token: ' + err.message)
+    throw new Error('Failed to verify Id Token')
+  }
+}
 
 async function getLastUsedAddress (walletAddressTableName: string, googleId: string) {
   const params = {
@@ -413,5 +429,6 @@ module.exports = {
   getLastUsedAddress: getLastUsedAddress,
   collectPotentialExpirationRemainderList: collectPotentialExpirationRemainderList,
   collectPotentialReceiverRemainderList: collectPotentialReceiverRemainderList,
-  updateReminderToReceiver: updateReminderToReceiver
+  updateReminderToReceiver: updateReminderToReceiver,
+  verifyGoogleIdToken: verifyGoogleIdToken
 }

@@ -45,16 +45,16 @@ const RootUrlConfig: { [key: string]: string } = {
 
 const ExpirationLengthConfig: { [key: string]: number } = {
   'prod': 2419200, // 28 days
-  'staging': 600, // 10 mins
-  'test': 600, // 10 mins
-  'default': 600 // 10 mins
+  'staging': 864000, // 10 days
+  'test': 864000, // 10 days
+  'default': 864000 // 10 days
 }
 
 const ReminderIntervalConfig: { [key: string]: number } = {
   'prod': 604800, // 7 days
-  'staging': 300, // 5 mins
-  'test': 300, // 5 mins
-  'default': 300 // 5 mins
+  'staging': 432000, // 5 days
+  'test': 432000, // 5 days
+  'default': 432000 // 5 days
 }
 
 const BtcTxAPIConfig: { [key:string]: any } = {

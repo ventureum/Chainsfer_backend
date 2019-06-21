@@ -3,7 +3,7 @@
 import moment from 'moment'
 import Config from './config'
 
-const EMAIL_SOURCE = 'notify@chainsfer.io'
+const EMAIL_SOURCE = 'notify@chainsfr.com'
 
 const CRYPTO_SYMBOL = {
   'ethereum': 'ETH',

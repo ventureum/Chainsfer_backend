@@ -47,7 +47,7 @@ const sendActionSenderEmail = {
   Template: {
     TemplateName: 'sendActionSenderEmail',
     SubjectPart:
-      'Chainsfer: {{transferAmount}} {{cryptoSymbol}} has been sent to {{destination}}',
+      'Chainsfr: {{transferAmount}} {{cryptoSymbol}} has been sent to {{destination}}',
     HtmlPart: sendActionSenderStr
   }
 }
@@ -56,7 +56,7 @@ const sendActionReceiverEmail = {
   Template: {
     TemplateName: 'sendActionReceiverEmail',
     SubjectPart:
-      'Chainsfer: {{sender}} sent you {{transferAmount}} {{cryptoSymbol}}',
+      'Chainsfr: {{sender}} sent you {{transferAmount}} {{cryptoSymbol}}',
     HtmlPart: sendActionReceiverStr
   }
 }
@@ -65,7 +65,7 @@ const receiveActionSenderEmail = {
   Template: {
     TemplateName: 'receiveActionSenderEmail',
     SubjectPart:
-      'Chainsfer: {{destination}} accepted your transfer of {{transferAmount}} {{cryptoSymbol}}',
+      'Chainsfr: {{destination}} accepted your transfer of {{transferAmount}} {{cryptoSymbol}}',
     HtmlPart: receiveActionSenderStr
   }
 }
@@ -74,7 +74,7 @@ const receiveActionReceiverEmail = {
   Template: {
     TemplateName: 'receiveActionReceiverEmail',
     SubjectPart:
-      'Chainsfer: A transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been deposited',
+      'Chainsfr: A transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been deposited',
     HtmlPart: receiveActionReceiverStr
   }
 }
@@ -83,7 +83,7 @@ const cancelActionSenderEmail = {
   Template: {
     TemplateName: 'cancelActionSenderEmail',
     SubjectPart:
-      'Chainsfer: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has been cancelled',
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has been cancelled',
     HtmlPart: cancelActionSenderStr
   }
 }
@@ -92,7 +92,7 @@ const cancelActionReceiverEmail = {
   Template: {
     TemplateName: 'cancelActionReceiverEmail',
     SubjectPart:
-      'Chainsfer: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been cancelled',
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been cancelled',
     HtmlPart: cancelActionReceiverStr
   }
 }
@@ -101,7 +101,7 @@ const expireActionSenderEmail = {
   Template: {
     TemplateName: 'expireActionSenderEmail',
     SubjectPart:
-      'Chainsfer: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has expired',
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has expired',
     HtmlPart: expireActionSenderStr
   }
 }
@@ -110,7 +110,7 @@ const expireActionReceiverEmail = {
   Template: {
     TemplateName: 'expireActionReceiverEmail',
     SubjectPart:
-      'Chainsfer: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has expired',
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has expired',
     HtmlPart: expireActionReceiverStr
   }
 }

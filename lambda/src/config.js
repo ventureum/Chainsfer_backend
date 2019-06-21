@@ -37,10 +37,10 @@ const TxConfirmationConfig = {
 }
 
 const RootUrlConfig: { [key: string]: string } = {
-  'prod': 'chainsfer.io',
-  'staging': 'testnet.chainsfer.io',
-  'test': 'testnet.chainsfer.io',
-  'default': 'testnet.chainsfer.io'
+  'prod': 'app.chainsfr.com',
+  'staging': 'testnet.chainsfr.com',
+  'test': 'testnet.chainsfr.com',
+  'default': 'testnet.chainsfr.com'
 }
 
 const ExpirationLengthConfig: { [key: string]: number } = {

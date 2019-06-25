@@ -261,7 +261,9 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
             break
           default: // ERC20
             if (gasTxHash === null) {
-              throw new Error('Null gasTxHash for record ' + JSON.stringify(record, null, 2))
+              // assume gasTx is confirmed if it is null
+              // necessary for validating a single erc20 tx (without prepaid eth tx)
+              gasTxHashConfirmed = 1
             }
             await processTxConfirmation(retryCount, checkEthTxConfirmation, cryptoType, txHash, gasTxHash, txHashConfirmed, gasTxHashConfirmed, item, messageBody)
         }

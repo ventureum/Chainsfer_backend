@@ -8,7 +8,8 @@ const EMAIL_SOURCE = 'notify@chainsfr.com'
 const CRYPTO_SYMBOL = {
   'ethereum': 'ETH',
   'bitcoin': 'BTC',
-  'dai': 'DAI'
+  'dai': 'DAI',
+  'libra': 'LIBRA'
 }
 
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')

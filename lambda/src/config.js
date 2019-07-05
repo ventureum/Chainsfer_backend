@@ -33,6 +33,10 @@ const TxConfirmationConfig = {
   'bitcoin': {
     'delaySeconds': 600,
     'maxRetry': 6
+  },
+  'libra': {
+    'delaySeconds': 60,
+    'maxRetry': 6
   }
 }
 

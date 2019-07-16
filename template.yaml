@@ -104,6 +104,7 @@ Resources:
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
       Handler: dist/validateTx.handler
       MemorySize: 128
+      Timeout: 900
       Description: ''
     Type: 'AWS::Serverless::Function'
   LambdaValidateTxSchedule:
@@ -142,6 +143,7 @@ Resources:
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
       Handler: dist/checkTxExpiration.handler
       MemorySize: 128
+      Timeout: 900
       Description: ''
     Type: 'AWS::Serverless::Function'
   LambdaCheckTxExpirationSchedule:

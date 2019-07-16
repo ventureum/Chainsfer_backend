@@ -31,6 +31,8 @@ let cancelActionReceiverHtml = templatesDir + '/cancel_action_receiver_notificat
 let expireActionSenderHtml = templatesDir + '/expire_action_sender_notification.html'
 let expireActionReceiverHtml = templatesDir + '/expire_action_receiver_notification.html'
 
+let reminderActionReceiverHtml = templatesDir + '/reminder_action_receiver_notification.html'
+
 let sendActionSenderStr = fs.readFileSync(sendActionSenderHtml, 'utf8')
 let sendActionReceiverStr = fs.readFileSync(sendActionReceiverHtml, 'utf8')
 
@@ -42,6 +44,8 @@ let cancelActionReceiverStr = fs.readFileSync(cancelActionReceiverHtml, 'utf8')
 
 let expireActionSenderStr = fs.readFileSync(expireActionSenderHtml, 'utf8')
 let expireActionReceiverStr = fs.readFileSync(expireActionReceiverHtml, 'utf8')
+
+let reminderActionReceiverStr = fs.readFileSync(reminderActionReceiverHtml, 'utf8')
 
 const sendActionSenderEmail = {
   Template: {
@@ -115,6 +119,15 @@ const expireActionReceiverEmail = {
   }
 }
 
+const reminderActionReceiverEmail = {
+  Template: {
+    TemplateName: 'reminderActionReceiverEmail',
+    SubjectPart:
+      'Chainsfr: Remember to deposit your {{transferAmount}} {{cryptoSymbol}} from {{sender}}',
+    HtmlPart: reminderActionReceiverStr
+  }
+}
+
 var templates = [
   sendActionSenderEmail,
   sendActionReceiverEmail,
@@ -123,7 +136,8 @@ var templates = [
   cancelActionSenderEmail,
   cancelActionReceiverEmail,
   expireActionSenderEmail,
-  expireActionReceiverEmail
+  expireActionReceiverEmail,
+  reminderActionReceiverEmail
 ]
 
 async function main () {

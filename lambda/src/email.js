@@ -132,6 +132,21 @@ module.exports = {
       TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\"}`
     }
   },
+  reminderActionReceiverEmailParams: function (id: string, sender: string, destination: string, transferAmount: string, cryptoType: string, sendTimestamp: number) {
+    const cryptoSymbol = CRYPTO_SYMBOL[cryptoType]
+    const sendTimestampStr = moment.unix(sendTimestamp).format('MMM Do YYYY, HH:mm:ss a')
+    const { years, months, date, hours, minutes, seconds } = moment.unix(sendTimestamp).utc().toObject()
+    const sendTimestampParam = `day=${date}&month=${months + 1}&year=${years}&hour=${hours}&min=${minutes}&sec=${seconds}`
+    return {
+      Source: EMAIL_SOURCE,
+      ConfigurationSetName: 'email',
+      Destination: {
+        ToAddresses: [destination]
+      },
+      Template: 'reminderActionReceiverEmail',
+      TemplateData: `{\"id\": \"${id}\", \"rootUrl\": \"${rootUrl}\", \"sender\": \"${sender}\", \"destination\": \"${destination}\", \"transferAmount\": \"${transferAmount}\", \"cryptoSymbol\": \"${cryptoSymbol}\", \"sendTimestamp\": \"${sendTimestampStr}\", \"sendTimestampParam\": \"${sendTimestampParam}\"}`
+    }
+  },
   // ses utils
   sendAction: function (
     ses: Object,
@@ -213,7 +228,7 @@ module.exports = {
     sendTxHash: string,
     sendTimestamp: string) {
     return Promise.all([
-      ses.sendTemplatedEmail(this.sendActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType, sendTimestamp)).promise()
+      ses.sendTemplatedEmail(this.reminderActionReceiverEmailParams(receivingId, sender, destination, transferAmount, cryptoType, sendTimestamp)).promise()
     ])
   }
 }

@@ -144,8 +144,11 @@ async function getTransfer (transActionDataTableName: string, sendingId: string,
 }
 
 async function getBatchTransfers (transActionDataTableName: string, sendingIds: Array<string>, receivingIds: Array<string>) {
-  let rv = sendingIds ? (await batchQueryTransfersByIds(transActionDataTableName, sendingIds, false)) : (await batchQueryTransfersByIds(transActionDataTableName, receivingIds, true))
-  return rv
+  if (!sendingIds) sendingIds = []
+  if (!receivingIds) receivingIds = []
+  let sendTransfers = await batchQueryTransfersByIds(transActionDataTableName, sendingIds, false)
+  let receiveTransfers = await batchQueryTransfersByIds(transActionDataTableName, receivingIds, true)
+  return [...sendTransfers, ...receiveTransfers]
 }
 
 async function sendTransfer (transActionDataTableName: string, clientId: string, sender: string, destination: string, transferAmount: string, cryptoType: CryptoType, data: string, sendTxHash: string | Array<string>, expirationLength: number, reminderInterval: number) {

@@ -114,6 +114,7 @@ function formatQueriedTransfer (item, forReceiver) {
     'sender': item.sender,
     'destination': item.receiver,
     'transferAmount': item.transferAmount,
+    'message': item.message,
     'cryptoType': item.cryptoType,
     'data': item.data,
     'sendTxHash': senderToChainsfer.txHash,
@@ -151,7 +152,17 @@ async function getBatchTransfers (transActionDataTableName: string, sendingIds: 
   return [...sendTransfers, ...receiveTransfers]
 }
 
-async function sendTransfer (transActionDataTableName: string, clientId: string, sender: string, destination: string, transferAmount: string, cryptoType: CryptoType, data: string, sendTxHash: string | Array<string>, expirationLength: number, reminderInterval: number) {
+async function sendTransfer (
+  transActionDataTableName: string,
+  clientId: string, sender: string, destination: string,
+  transferAmount: string,
+  message: string,
+  cryptoType: CryptoType,
+  data: string,
+  sendTxHash: string | Array < string >,
+  expirationLength: number,
+  reminderInterval: number
+) {
   const ts = moment().unix()
   const timestamp = ts.toString()
   const transferId = UUID()
@@ -195,6 +206,7 @@ async function sendTransfer (transActionDataTableName: string, clientId: string,
       'sender': sender,
       'receiver': destination,
       'transferAmount': transferAmount,
+      'message': message,
       'cryptoType': cryptoType,
       'data': data,
       'senderToChainsfer': senderToChainsfer
@@ -207,6 +219,7 @@ async function sendTransfer (transActionDataTableName: string, clientId: string,
     sender: sender,
     destination: destination,
     transferAmount: transferAmount,
+    message: message,
     cryptoType: cryptoType,
     sendingId: transferId,
     sendTxHash: sendTxHash,

@@ -9,6 +9,10 @@ Parameters:
     Description: Table Name for Wallet Addresses Data
     Type: String
     Default: ChainsferWalletAddressesData
+  UserTableName:
+    Description: Table Name for user Data
+    Type: String
+    Default: UserTable
   TransactionConfirmationSQSName:
     Description: Transaction Confirmation SQS Name
     Type: String
@@ -49,6 +53,11 @@ Globals:
           'Fn::Join':
             - ''
             - - Ref: WalletAddressesDataTableName
+              - Ref: ENV
+        USER_TABLE_NAME:
+          'Fn::Join':
+            - ''
+            - - Ref: UserTableName
               - Ref: ENV
         ENV_VALUE:
           Ref: ENV
@@ -91,6 +100,33 @@ Resources:
       SourceArn:
         'Fn::Sub': >-
           arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/POST/transfer
+    DependsOn:
+      - ChainsferRestApi
+  userDataRequest:
+    Properties:
+      FunctionName:
+        'Fn::Join':
+          - ''
+          - - LambdaUserData
+            - Ref: ENV
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+      Handler: dist/user.handler
+      MemorySize: 128
+      Description: ''
+    Type: 'AWS::Serverless::Function'
+  UserDataRequestApiGatewayInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - userDataRequest
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        'Fn::Sub': >-
+          arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/POST/user
     DependsOn:
       - ChainsferRestApi
   validateTx:
@@ -221,6 +257,23 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+  UserTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName:
+        'Fn::Join':
+          - ''
+          - - Ref: UserTableName
+            - Ref: ENV
+      AttributeDefinitions:
+        - AttributeName: googleId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: googleId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
   TransactionDataStreamMapping:
     Type: 'AWS::Lambda::EventSourceMapping'
     Properties:
@@ -297,6 +350,7 @@ Resources:
     Type: 'AWS::ApiGateway::Deployment'
     DependsOn:
       - ChainsferRestApiRequestPOST
+      - ChainsferUserRestApiRequestPOST
     Properties:
       RestApiId:
         Ref: ChainsferRestApi
@@ -343,6 +397,74 @@ Resources:
     Properties:
       ResourceId:
         Ref: ChainsferRestApiResource
+      RestApiId:
+        Ref: ChainsferRestApi
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: >-
+                'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
+              method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS'''
+              method.response.header.Access-Control-Allow-Origin: '''*'''
+            ResponseTemplates:
+              application/json: ''
+            StatusCode: '200'
+        PassthroughBehavior: NEVER
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+          StatusCode: '200'
+  ChainsferUserRestApiResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId:
+        Ref: ChainsferRestApi
+      ParentId:
+        'Fn::GetAtt':
+          - ChainsferRestApi
+          - RootResourceId
+      PathPart: user
+  ChainsferUserRestApiRequestPOST:
+    DependsOn: UserDataRequestApiGatewayInvokePermission
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          'Fn::Sub':
+            - >-
+              arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+            - lambdaArn:
+                'Fn::GetAtt':
+                  - userDataRequest
+                  - Arn
+      ResourceId:
+        Ref: ChainsferUserRestApiResource
+      RestApiId:
+        Ref: ChainsferRestApi
+      MethodResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+          StatusCode: '200'
+  ChainsferUserRestApiCORSOptionMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      ResourceId:
+        Ref: ChainsferUserRestApiResource
       RestApiId:
         Ref: ChainsferRestApi
       AuthorizationType: NONE

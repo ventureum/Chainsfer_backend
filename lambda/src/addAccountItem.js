@@ -11,7 +11,8 @@ const faucetPrivateKey = Buffer.from('', 'hex') // remove 0x
 const faucetETHAmount = '0.01' // in ether
 const faucetTestTokenAmount = '100' // in ether
 const testTokenAddress = '0x4aacB7f0bA0A5CfF9A8a5e8C0F24626Ee9FDA4a6'
-function accountItemBuilder (address, privateKey) {
+// eslint-disable-next-line flowtype/no-weak-types
+function accountItemBuilder (address: string, privateKey: string): Object {
   return {
     ExpressionAttributeNames: {
       '#PK': 'privateKey'
@@ -32,13 +33,15 @@ function accountItemBuilder (address, privateKey) {
   }
 }
 
-function sendTxPromise (sendFunction, txObj) {
-  return new Promise((resolve, reject) => {
+// eslint-disable-next-line flowtype/no-weak-types
+function sendTxPromise (sendFunction: Function, txObj: Object): Promise<string> {
+  // eslint-disable-next-line flowtype/no-weak-types
+  return new Promise((resolve: Function, reject: Function) => {
     sendFunction(txObj)
-      .on('transactionHash', (hash) => {
+      .on('transactionHash', (hash: string) => {
         resolve(hash)
       })
-      .on('error', (err) => {
+      .on('error', (err: string) => {
         reject(err)
       })
   })

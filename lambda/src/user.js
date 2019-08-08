@@ -14,14 +14,19 @@ const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 
 const googleAPIConfig = Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
 
-type Recipient = {
+type RecipientType = {
   name: string,
   email: string,
   addedAt: number, // timestamp
   updatedAt: number // timestamp
 }
 
-async function getRecipients (userTableName: string, googleId: string) {
+type RecipientListType = {
+  googleId: string,
+  recipients: Array<RecipientType>
+}
+
+async function getRecipients (userTableName: string, googleId: string): Promise<RecipientListType> {
   const params = {
     TableName: userTableName,
     Key: {
@@ -40,10 +45,10 @@ async function getRecipients (userTableName: string, googleId: string) {
   }
 }
 
-async function removeRecipient (userTableName: string, googleId: string, recipient: Recipient) {
+async function removeRecipient (userTableName: string, googleId: string, recipient: RecipientType): Promise<RecipientListType> {
   let { recipients } = await getRecipients(userTableName, googleId)
 
-  recipients = recipients.filter((item: Recipient) => {
+  recipients = recipients.filter((item: RecipientType): boolean => {
     return item.name !== recipient.name
   })
 
@@ -66,9 +71,12 @@ async function removeRecipient (userTableName: string, googleId: string, recipie
   }
 }
 
-async function addRecipient (userTableName: string, googleId: string, recipient: Recipient) {
+async function addRecipient (userTableName: string, googleId: string, recipient: RecipientType): Promise<{
+  action: string,
+  ...$Exact<RecipientListType>
+}> {
   let { recipients } = await getRecipients(userTableName, googleId)
-  const index = recipients.findIndex((item: Recipient) => item.name === recipient.name)
+  const index = recipients.findIndex((item: RecipientType): boolean => item.name === recipient.name)
   const now = Math.floor(Date.now() / 1000)
   // replace if exist
   if (index !== -1) {
@@ -102,16 +110,20 @@ async function addRecipient (userTableName: string, googleId: string, recipient:
   }
 }
 
+// eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   let request = JSON.parse(event.body)
 
-  function handleResults (rv, err) {
-    let response: Object = {
+  // eslint-disable-next-line flowtype/no-weak-types
+  function handleResults (rv: Object, err: Object) {
+    let response = {
       headers: {
         'Access-Control-Allow-Origin': '*', // Required for CORS support to work
         'Access-Control-Allow-Credentials': true // Required for cookies, authorization headers with HTTPS
       },
-      isBase64Encoded: false
+      isBase64Encoded: false,
+      statusCode: 200,
+      body: ''
     }
 
     if (!err) {

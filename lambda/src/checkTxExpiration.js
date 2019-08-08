@@ -17,7 +17,7 @@ const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 
 const reminderInterval = Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
 
-async function insertExpiredState (transferId) {
+async function insertExpiredState (transferId: string) {
   const ts = moment().unix().toString()
   const params = {
     TableName: transactionDataTableName,
@@ -55,9 +55,10 @@ async function insertExpiredState (transferId) {
   }
 }
 
+// eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   const timestamp = moment().unix()
-  let potentialExpirationRemainderList = await dynamoDBTxOps.collectPotentialExpirationRemainderList(transactionDataTableName)
+  let potentialExpirationRemainderList = await dynamoDBTxOps.collectPotentialExpirationRemainderList()
   console.log(potentialExpirationRemainderList)
   for (let index = 0; index < potentialExpirationRemainderList.length; index++) {
     // conditions to send remiander for expirations:
@@ -74,20 +75,13 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       console.log(str)
       await insertExpiredState(item.transferId)
       await email.expireAction(
-        ses,
-        item.transferId,
-        item.receivingId,
-        item.senderName,
-        item.sender,
-        item.receiver,
-        item.transferAmount,
-        item.cryptoType,
+        AWS.DynamoDB.Converter.unmarshall(item),
         reminderToSenderCount === 0
       )
     }
   }
 
-  let potentialReceiverRemainderList = await dynamoDBTxOps.collectPotentialReceiverRemainderList(transactionDataTableName)
+  let potentialReceiverRemainderList = await dynamoDBTxOps.collectPotentialReceiverRemainderList()
   for (let index = 0; index < potentialReceiverRemainderList.length; index++) {
     // conditions to send remiander to receiver:
     // (1) ChainsferToSender dose not exist
@@ -103,18 +97,9 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       const str = `For tarnsfer ${item.transferId}, remiander is sent to receiver`
       console.log(str)
       await email.receiverReminderAction(
-        ses,
-        item.transferId,
-        item.receivingId,
-        item.senderName,
-        item.sender,
-        item.receiver,
-        item.transferAmount,
-        item.cryptoType,
-        item.senderToChainsfer.txHash,
-        item.created
+         AWS.DynamoDB.Converter.unmarshall(item)
       )
-      await dynamoDBTxOps.updateReminderToReceiver(transactionDataTableName, item.transferId)
+      await dynamoDBTxOps.updateReminderToReceiver(item.transferId)
     }
   }
   callback(null, 'message')

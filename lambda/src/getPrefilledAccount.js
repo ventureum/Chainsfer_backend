@@ -3,7 +3,12 @@ import type { Context, Callback, ProxyResult } from 'flow-aws-lambda'
 const AWS = require('aws-sdk')
 const dynamodb = new AWS.DynamoDB({ region: 'us-east-1' })
 
-function getItemBuilder () {
+function getItemBuilder (): {
+  ProjectionExpression: string,
+  TableName: string,
+  Limit: string,
+  ConsistentRead: boolean
+} {
   return {
     ProjectionExpression: 'ALL_ATTRIBUTES',
     TableName: 'AlphaTestEthereumAddress',
@@ -12,7 +17,15 @@ function getItemBuilder () {
   }
 }
 
-function deleteItemBuilder (address) {
+function deleteItemBuilder (address: string): {
+  Key: {
+    'address': {
+      S: string
+    }
+  },
+  TableName: string,
+  ReturnValues: string
+} {
   return {
     Key: {
       'address': {
@@ -24,6 +37,7 @@ function deleteItemBuilder (address) {
   }
 }
 
+// eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   let response: ProxyResult = {
     'headers': {

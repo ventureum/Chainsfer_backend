@@ -1,7 +1,9 @@
 // @flow
 import type { Context, Callback } from 'flow-aws-lambda'
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
+var btcOps = require('./btcOps.js')
 var Config = require('./config.js')
+var bitcoin = require('bitcoinjs-lib')
 
 if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
 const transactionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
@@ -12,9 +14,20 @@ const walletAddressesDataTableName = process.env.WALLET_ADDRESSES_DATA_TABLE_NAM
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
 const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 
+if (!process.env.CHAINSFER_BTC_XPUB_INDEX_DATA_TABLE_NAME) throw new Error('CHAINSFER_BTC_XPUB_INDEX_DATA_TABLE_NAME missing')
+const chainsferBtcXPubIndexDataTableName = process.env.CHAINSFER_BTC_XPUB_INDEX_DATA_TABLE_NAME
+
+if (!process.env.CHAINSFER_BTC_TRACKED_ADDRESS_DATA_TABLE_NAME) throw new Error('CHAINSFER_BTC_TRACKED_ADDRESS_DATA_TABLE_NAME missing')
+const chainsferBtcTrackedAddressDataTableName = process.env.CHAINSFER_BTC_TRACKED_ADDRESS_DATA_TABLE_NAME
+
 const expirationLength = Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
 const reminderInterval = Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
 const googleAPIConfig = Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
+
+const BtcNetworkName = Config.BtcNetworkConfig[deploymentStage] || Config.BtcNetworkConfig['default']
+const BtcNetworkConfig = BtcNetworkName === 'mainnet' ? bitcoin.networks.bitcoin : bitcoin.networks.testnet
+const BaseBtcPath = BtcNetworkName === 'mainnet' ? "m/49'/0'" : "m/49'/1'"
+const LedgerApiUrl = Config.LedgerApiUrlConfig[deploymentStage] || Config.LedgerApiUrlConfig['default']
 
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   // parse request data
@@ -63,7 +76,10 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     } else if (request.action === 'GET_LAST_USED_ADDRESS') {
       let googleId = await dynamoDBTxOps.verifyGoogleIdToken(googleAPIConfig['clientId'], request.idToken)
       rv = await dynamoDBTxOps.getLastUsedAddress(walletAddressesDataTableName, googleId)
-    } else {
+    } else if (request.action === 'UTXOS') {
+      const limit = request.limit || 1000
+      rv = await btcOps.getUtxosFromChainsferBtcXPubIndex(request.xpub, request.accountIndex, chainsferBtcXPubIndexDataTableName, limit, BaseBtcPath, BtcNetworkConfig, LedgerApiUrl, chainsferBtcTrackedAddressDataTableName)
+    }else {
       throw new Error('Invalid command')
     }
 

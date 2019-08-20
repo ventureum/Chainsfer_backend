@@ -9,10 +9,38 @@ Parameters:
     Description: Table Name for Wallet Addresses Data
     Type: String
     Default: ChainsferWalletAddressesData
+  ChainsferBtcXPubIndexDataTableName:
+    Description: Table Name for Chainsfer Btc XPub Index
+    Type: String
+    Default: ChainsferBtcXPubIndexData
+  ChainsferBtcTrackedAddressDataTableName:
+    Description: Table Name for Chainsfer Btc Tracked Address
+    Type: String
+    Default: ChainsferBtcTrackedAddressData
+  ChainsferBtcLastUpdatedBlockHashDataTableName:
+    Description: Table Name for Chainsfer Btc Last Updated Block Hash
+    Type: String
+    Default: ChainsferBtcLastUpdatedBlockHashData
+  BtcBlockHashDataTableName:
+    Description: Table Name for BTC Block Hash Data
+    Type: String
+    Default: BtcBlockHashData
   TransactionConfirmationSQSName:
     Description: Transaction Confirmation SQS Name
     Type: String
     Default: ChainsferTransactionConfirmationSQS
+  InitBlockHeight:
+    Description: Initialized Block Height
+    Type: Number
+    Default: 1572570
+  IntervalForUpdatingBtcXpubIndex:
+    Description: Interval For Updating Btc Xpub Index In Height
+    Type: Number
+    Default: 5
+  IntervalForUpdatingBtcBlockHashData:
+    Description: Interval For Updating Btc Block Hash Data In Height
+    Type: Number
+    Default: 100
   ENV:
     Description: Development ENV
     Type: String
@@ -28,6 +56,10 @@ Parameters:
   LambdaValidateTxRate:
     Description: The rate that triggers validateTx Lambda function
     Default: rate(2 minutes)
+    Type: String
+  LambdaUpdateBtcBlockHashDataRate:
+    Description: The rate that triggers updateBtcBlockHashData Lambda function
+    Default: rate(10 minutes)
     Type: String
 Globals:
   Function:
@@ -50,9 +82,88 @@ Globals:
             - ''
             - - Ref: WalletAddressesDataTableName
               - Ref: ENV
+        CHAINSFER_BTC_XPUB_INDEX_DATA_TABLE_NAME:
+          'Fn::Join':
+            - ''
+            - - Ref: ChainsferBtcXPubIndexDataTableName
+              - Ref: ENV
+        CHAINSFER_BTC_LAST_UPDATED_BLOCK_HASH_DATA_TABLE_NAME:
+          'Fn::Join':
+            - ''
+            - - Ref: ChainsferBtcLastUpdatedBlockHashDataTableName
+              - Ref: ENV
+        CHAINSFER_BTC_TRACKED_ADDRESS_DATA_TABLE_NAME:
+          'Fn::Join':
+            - ''
+            - - Ref: ChainsferBtcTrackedAddressDataTableName
+              - Ref: ENV
+        BTC_BLOCK_HASH_DATA_TABLE_NAME:
+          'Fn::Join':
+            - ''
+            - - Ref: BtcBlockHashDataTableName
+              - Ref: ENV
         ENV_VALUE:
           Ref: ENV
+        INIT_BLOCK_HEIGHT:
+          Ref: InitBlockHeight
+        INTERVAL_FOR_UPDATING_BTC_XPUB_INDEX:
+          Ref: IntervalForUpdatingBtcXpubIndex
+        INTERVAL_FOR_UPDATING_BTC_BLOCK_HASH_DATA:
+          Ref: IntervalForUpdatingBtcBlockHashData
 Resources:
+  updateBtcXpubIndex:
+    Properties:
+      Timeout: 900
+      FunctionName:
+        'Fn::Join':
+          - ''
+          - - LambdaUpdateBtcXpubIndex
+            - Ref: ENV
+      MemorySize: 128
+      Handler: dist/updateBtcXpubIndex.handler
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+      Description: ''
+    Type: 'AWS::Serverless::Function'
+  updateBtcBlockHashData:
+    Properties:
+      Timeout: 900
+      FunctionName:
+        'Fn::Join':
+          - ''
+          - - LambdaUpdateBtcBlockHashData
+            - Ref: ENV
+      MemorySize: 128
+      Handler: dist/updateBtcBlockHashData.handler
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+      Description: ''
+    Type: 'AWS::Serverless::Function'
+  LambdaUpdateBtcBlockHashDataSchedule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      ScheduleExpression:
+        Ref: LambdaUpdateBtcBlockHashDataRate
+      State: ENABLED
+      Targets:
+        - Arn:
+            'Fn::GetAtt':
+              - updateBtcBlockHashData
+              - Arn
+          Id: LambdaUpdateBtcBlockHashDataSchedule
+  LambdaUpdateBtcBlockHashDataSchedulePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - validateTx
+          - Arn
+      Principal: events.amazonaws.com
+      SourceArn:
+        'Fn::GetAtt':
+          - LambdaUpdateBtcBlockHashDataSchedule
+          - Arn
   stream:
     Properties:
       FunctionName:
@@ -68,6 +179,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
   transferRequest:
     Properties:
+      Timeout: 600
       FunctionName:
         'Fn::Join':
           - ''
@@ -245,6 +357,74 @@ Resources:
       VisibilityTimeout: 30
     DependsOn:
       - stream
+  ChainsferBtcXPubIndexData:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName:
+        'Fn::Join':
+          - ''
+          - - Ref: ChainsferBtcXPubIndexDataTableName
+            - Ref: ENV
+      AttributeDefinitions:
+        - AttributeName: xpub
+          AttributeType: S
+      KeySchema:
+        - AttributeName: xpub
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  ChainsferBtcTrackedAddressData:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName:
+        'Fn::Join':
+          - ''
+          - - Ref: ChainsferBtcTrackedAddressDataTableName
+            - Ref: ENV
+      AttributeDefinitions:
+        - AttributeName: address
+          AttributeType: S
+      KeySchema:
+        - AttributeName: address
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  ChainsferBtcLastUpdatedBlockHashData:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName:
+        'Fn::Join':
+          - ''
+          - - Ref: ChainsferBtcLastUpdatedBlockHashDataTableName
+            - Ref: ENV
+      AttributeDefinitions:
+        - AttributeName: network
+          AttributeType: S
+      KeySchema:
+        - AttributeName: network
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  BtcBlockHashData:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName:
+        'Fn::Join':
+          - ''
+          - - Ref: BtcBlockHashDataTableName
+            - Ref: ENV
+      AttributeDefinitions:
+        - AttributeName: height
+          AttributeType: 'N'
+      KeySchema:
+        - AttributeName: height
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
   ChainsferRestApi:
     Type: 'AWS::ApiGateway::RestApi'
     Properties:

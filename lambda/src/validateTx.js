@@ -22,7 +22,7 @@ if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
 const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 
 const ethProvider = Config.EthTxAPIConfig[deploymentStage] || Config.EthTxAPIConfig['default']
-const btcApiTxURL = Config.BtcTxAPIConfig[deploymentStage] || Config.BtcTxAPIConfig['default']
+const btcApiURL = Config.BtcAPIConfig[deploymentStage] || Config.BtcAPIConfig['default']
 
 async function checkEthTxConfirmation (txHash) {
   try {
@@ -38,7 +38,7 @@ async function checkEthTxConfirmation (txHash) {
 
 async function checkBtcTxConfirmation (txHash) {
   try {
-    let transactionReceipt = await Config.getBtcTx(txHash, btcApiTxURL)
+    let transactionReceipt = await Config.getBtcTx(txHash, btcApiURL)
     if (transactionReceipt.block_height !== undefined && transactionReceipt.block_height > 0) {
       return 1
     }

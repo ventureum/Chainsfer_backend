@@ -11,10 +11,10 @@ module.exports = {
 
   lowerCaseFirstLetter: function (str: string) {
     return str.charAt(0).toLowerCase() + str.slice(1)
-  }, 
+  },
 
-  sleep: function(delay: string) {
-      var start = new Date().getTime();
-      while (new Date().getTime() < start + delay);
+  sleep: function (delay: number) {
+    var start = new Date().getTime()
+    while (new Date().getTime() < start + delay);
   }
 }

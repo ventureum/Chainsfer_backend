@@ -1,13 +1,11 @@
 // @flow
+import * as bip32 from 'bip32'
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' })
-var Config = require('./config.js')
 var request = require('request-promise')
 var axios = require('axios')
 var bitcoin = require('bitcoinjs-lib')
-import * as bip32 from 'bip32'
-import * as bip39 from 'bip39'
 
 const GAP = 20
 
@@ -39,15 +37,14 @@ async function getLastUpdatedBlockHashData (network: string, chainsferBtcLastUpd
   }
 }
 
-
 async function insertLastUpdatedBlockHashData (network: string, lastUpdatedBlockHash: string, lastUpdatedBlockHeight: number, maxBufferedHeight: number, chainsferBtcLastUpdatedBlockHashDataTableName: string) {
   const params = {
     TableName: chainsferBtcLastUpdatedBlockHashDataTableName,
     Item: {
-     "network": network,
-     "lastUpdatedBlockHash": lastUpdatedBlockHash,
-     "lastUpdatedBlockHeight": lastUpdatedBlockHeight,
-     "maxBufferedHeight": maxBufferedHeight
+      'network': network,
+      'lastUpdatedBlockHash': lastUpdatedBlockHash,
+      'lastUpdatedBlockHeight': lastUpdatedBlockHeight,
+      'maxBufferedHeight': maxBufferedHeight
     },
     ReturnValues: 'NONE'
   }
@@ -60,7 +57,6 @@ async function insertLastUpdatedBlockHashData (network: string, lastUpdatedBlock
 }
 
 async function updateLastUpdatedBlockHashDataByLastUpdatedBlock (network: string, lastUpdatedBlockHash: string, lastUpdatedBlockHeight: number, chainsferBtcLastUpdatedBlockHashDataTableName: string) {
-
   const params = {
     TableName: chainsferBtcLastUpdatedBlockHashDataTableName,
     Key: {
@@ -69,7 +65,7 @@ async function updateLastUpdatedBlockHashDataByLastUpdatedBlock (network: string
     UpdateExpression: 'SET #lubh = :lubh, #lubht = :lubht',
     ExpressionAttributeNames: {
       '#lubh': 'lastUpdatedBlockHash',
-      '#lubht': 'lastUpdatedBlockHeight',
+      '#lubht': 'lastUpdatedBlockHeight'
     },
     ExpressionAttributeValues: {
       ':lubh': lastUpdatedBlockHash,
@@ -86,7 +82,6 @@ async function updateLastUpdatedBlockHashDataByLastUpdatedBlock (network: string
 }
 
 async function updateLastUpdatedBlockHashDataByMaxBufferedHeight (network: string, maxBufferedHeight: number, chainsferBtcLastUpdatedBlockHashDataTableName: string) {
-
   const params = {
     TableName: chainsferBtcLastUpdatedBlockHashDataTableName,
     Key: {
@@ -126,7 +121,7 @@ async function insertUtxoAndUpdateBalanceFromChainsferBtcXPubIndex (xpub: string
     UpdateExpression: 'SET #utxos.#key = :utxo, #lubh = :lubh, #bal = #bal + :inc',
     ExpressionAttributeNames: {
       '#utxos': 'utxos',
-      '#key' : `${txHash}_${outputIndex}`,
+      '#key': `${txHash}_${outputIndex}`,
       '#bal': 'balance',
       '#lubh': 'lastUpdatedBlockHash'
     },
@@ -171,7 +166,7 @@ async function removeUtxoAndUpdateBalanceFromChainsferBtcXPubIndex (xpub: string
   }
 }
 
-async function updateChainsferBtcXPubIndexByMaxIndex (xpub: string, maxIndex: Array<string>, chainsferBtcXPubIndexDataTableName:string) {
+async function updateChainsferBtcXPubIndexByMaxIndex (xpub: string, maxIndex: { [string]: number }, chainsferBtcXPubIndexDataTableName:string) {
   const params = {
     TableName: chainsferBtcXPubIndexDataTableName,
     Key: {
@@ -194,7 +189,6 @@ async function updateChainsferBtcXPubIndexByMaxIndex (xpub: string, maxIndex: Ar
     throw new Error('Unable to updated ChainsferBtcXPubIndex By MaxIndex. Error: ' + err.message)
   }
 }
-
 
 async function getItemFromChainsferBtcTrackedAddress (address: string, chainsferBtcTrackedAddressDataTableName: string) {
   const params = {
@@ -226,14 +220,14 @@ async function getItemFromBtcBlockHashData (height: number, btcBlockHashDataTabl
   }
 }
 
-async function putItemInChainsferBtcTrackedAddress (address: string, xpub: string, path: string, accountIndex: string, chainsferBtcTrackedAddressDataTableName: string) {
+async function putItemInChainsferBtcTrackedAddress (address: string, xpub: string, path: string, accountIndex: number, chainsferBtcTrackedAddressDataTableName: string) {
   const params = {
     TableName: chainsferBtcTrackedAddressDataTableName,
     Item: {
-     "address": address,
-     "xpub": xpub,
-     "path": path,
-     "accountIndex": accountIndex
+      'address': address,
+      'xpub': xpub,
+      'path': path,
+      'accountIndex': accountIndex
     },
     ReturnValues: 'NONE'
   }
@@ -245,15 +239,15 @@ async function putItemInChainsferBtcTrackedAddress (address: string, xpub: strin
   }
 }
 
-async function putItemInBtcBlockHashData(height: number, hash: string, txids: Array<string>, prevBlock: string, nextTxidsUrl: string, btcBlockHashDataTableName: string) {
+async function putItemInBtcBlockHashData (height: number, hash: string, txids: Array<string>, prevBlock: string, nextTxidsUrl: string, btcBlockHashDataTableName: string) {
   const params = {
     TableName: btcBlockHashDataTableName,
     Item: {
-     "height": height,
-     "hash": hash,
-     "txids":  txids,
-     "prev_block": prevBlock,
-     "next_txids": nextTxidsUrl
+      'height': height,
+      'hash': hash,
+      'txids': txids,
+      'prev_block': prevBlock,
+      'next_txids': nextTxidsUrl
     },
     ReturnValues: 'NONE'
   }
@@ -269,44 +263,44 @@ async function initItemInChainsferBtcXPubIndex (xpub: string, accountIndex: numb
   let maxExternalAddressIndex = await discoverAddress(xpub, accountIndex, 0, 0, baseBtcPath, btcNetworkConfig, ledgerApiUrl, chainsferBtcTrackedAddressDataTableName)
   let maxChangeAddressIndex = await discoverAddress(xpub, accountIndex, 1, 0, baseBtcPath, btcNetworkConfig, ledgerApiUrl, chainsferBtcTrackedAddressDataTableName)
   let maxIndex = {
-        'm/49/0/0/0': 0,  // max address index for external chain, mainnet, Segwit
-        'm/49/0/0/1': 0,  // max address index for change chain, mainnet, Segwit
-        'm/49/1/0/0': 0,  // max address index for external chain, testnet, Segwit
-        'm/49/1/0/1': 0,   // max address index for change chain, testnet, Segwit
+    'm/49/0/0/0': 0, // max address index for external chain, mainnet, Segwit
+    'm/49/0/0/1': 0, // max address index for change chain, mainnet, Segwit
+    'm/49/1/0/0': 0, // max address index for external chain, testnet, Segwit
+    'm/49/1/0/1': 0, // max address index for change chain, testnet, Segwit
 
-        'm/44/0/0/0': 0, // max address index for external chain, mainnet, Legacy
-        'm/44/0/0/1': 0, // max address index for change chain, mainnet, Legacy
-        'm/44/1/0/0': 0, // max address index for external chain, testnet, Legacy
-        'm/44/1/0/1': 0  // max address index for change chain, testnet, Legacy
+    'm/44/0/0/0': 0, // max address index for external chain, mainnet, Legacy
+    'm/44/0/0/1': 0, // max address index for change chain, mainnet, Legacy
+    'm/44/1/0/0': 0, // max address index for external chain, testnet, Legacy
+    'm/44/1/0/1': 0 // max address index for change chain, testnet, Legacy
   }
 
   if (btcNetworkConfig === bitcoin.networks.bitcoin) {
-    if(xpub.startsWith("L_")) {
-        maxIndex['m/49/0/0/0'] = maxExternalAddressIndex
-        maxIndex['m/49/0/0/1'] = maxChangeAddressIndex
-    } else if (xpub.startsWith("S_")) {
-        maxIndex['m/44/0/0/0'] = maxExternalAddressIndex
-        maxIndex['m/44/0/0/1'] = maxChangeAddressIndex
+    if (xpub.startsWith('L_')) {
+      maxIndex['m/49/0/0/0'] = maxExternalAddressIndex
+      maxIndex['m/49/0/0/1'] = maxChangeAddressIndex
+    } else if (xpub.startsWith('S_')) {
+      maxIndex['m/44/0/0/0'] = maxExternalAddressIndex
+      maxIndex['m/44/0/0/1'] = maxChangeAddressIndex
     }
   } else if (btcNetworkConfig === bitcoin.networks.testnet) {
-    if(xpub.startsWith("L_")) {
-        maxIndex['m/49/1/0/0'] = maxExternalAddressIndex
-        maxIndex['m/49/1/0/1'] = maxChangeAddressIndex
-    } else if (xpub.startsWith("S_")) {
-        maxIndex['m/44/1/0/0'] = maxExternalAddressIndex
-        maxIndex['m/44/1/0/1'] = maxChangeAddressIndex
+    if (xpub.startsWith('L_')) {
+      maxIndex['m/49/1/0/0'] = maxExternalAddressIndex
+      maxIndex['m/49/1/0/1'] = maxChangeAddressIndex
+    } else if (xpub.startsWith('S_')) {
+      maxIndex['m/44/1/0/0'] = maxExternalAddressIndex
+      maxIndex['m/44/1/0/1'] = maxChangeAddressIndex
     }
   }
 
   const params = {
     TableName: chainsferBtcXPubIndexDataTableName,
     Item: {
-     "xpub": xpub,
-     "accountIndex": accountIndex,
-     "lastUpdatedBlockHash": "-1",
-     "balance": 0,
-     "utxos": {},
-     "maxIndex": maxIndex
+      'xpub': xpub,
+      'accountIndex': accountIndex,
+      'lastUpdatedBlockHash': '-1',
+      'balance': 0,
+      'utxos': {},
+      'maxIndex': maxIndex
     },
     ReturnValues: 'NONE'
   }
@@ -328,9 +322,9 @@ async function getItemFromChainsferBtcXPubIndex (xpub: string, accountIndex: num
   }
   try {
     let data = await documentClient.get(params).promise()
-    console.log("getItemFromChainsferBtcXPubIndex data", data)
+    console.log('getItemFromChainsferBtcXPubIndex data', data)
     if (data.Item === undefined) {
-      data =  await initItemInChainsferBtcXPubIndex(xpub, accountIndex, chainsferBtcXPubIndexDataTableName, baseBtcPath, btcNetworkConfig, ledgerApiUrl, chainsferBtcTrackedAddressDataTableName)
+      data = await initItemInChainsferBtcXPubIndex(xpub, accountIndex, chainsferBtcXPubIndexDataTableName, baseBtcPath, btcNetworkConfig, ledgerApiUrl, chainsferBtcTrackedAddressDataTableName)
       return data
     }
     return data.Item
@@ -339,16 +333,16 @@ async function getItemFromChainsferBtcXPubIndex (xpub: string, accountIndex: num
   }
 }
 
-async function getUtxosFromChainsferBtcXPubIndex(xpub: string, accountIndex: number, chainsferBtcXPubIndexDataTableName: string, limit: number, baseBtcPath: string, btcNetworkConfig: any, ledgerApiUrl: string, chainsferBtcTrackedAddressDataTableName: string) {
+async function getUtxosFromChainsferBtcXPubIndex (xpub: string, accountIndex: number, chainsferBtcXPubIndexDataTableName: string, limit: number, baseBtcPath: string, btcNetworkConfig: any, ledgerApiUrl: string, chainsferBtcTrackedAddressDataTableName: string) {
   let result = {}
   let data = await getItemFromChainsferBtcXPubIndex(xpub, accountIndex, chainsferBtcXPubIndexDataTableName, baseBtcPath, btcNetworkConfig, ledgerApiUrl, chainsferBtcTrackedAddressDataTableName)
   if (data === undefined) {
     return result
   }
-  const utxos = data["utxos"]
+  const utxos = data['utxos']
 
   let counter = 0
-  console.log("utxos", utxos)
+  console.log('utxos', utxos)
   for (const key in utxos) {
     counter = counter + 1
     if (counter <= limit) {
@@ -363,8 +357,8 @@ async function getDerivedAddress (xpub: string, change: number, addressIdx: numb
   const root = bip32.fromBase58(xpub.substring(2), btcNetworkConfig)
   const child = root.derive(change).derive(addressIdx)
   const p2wpkh = bitcoin.payments.p2wpkh({
-      pubkey: child.publicKey,
-      network: btcNetworkConfig
+    pubkey: child.publicKey,
+    network: btcNetworkConfig
   })
 
   const { address } = bitcoin.payments.p2sh({
@@ -372,7 +366,7 @@ async function getDerivedAddress (xpub: string, change: number, addressIdx: numb
     network: btcNetworkConfig
   })
 
-  console.log("Derived Address", address, xpub, change, addressIdx)
+  console.log('Derived Address', address, xpub, change, addressIdx)
   return address
 }
 

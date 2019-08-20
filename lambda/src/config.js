@@ -25,7 +25,7 @@ async function getBtcBlockHashData (blockHash: string, txstart: number, limit: n
   try {
     const options = {
       method: 'GET',
-      uri: apiUrl + '/blocks/' + blockHash + '?txstart=' + txstart + '&limit=' +  limit
+      uri: apiUrl + '/blocks/' + blockHash + '?txstart=' + txstart + '&limit=' + limit
     }
     let response = await request(options).promise()
     return JSON.parse(response)
@@ -72,28 +72,32 @@ const TxConfirmationConfig = {
   'bitcoin': {
     'delaySeconds': 600,
     'maxRetry': 6
+  },
+  'libra': {
+    'delaySeconds': 60,
+    'maxRetry': 6
   }
 }
 
 const RootUrlConfig: { [key: string]: string } = {
-  'prod': 'chainsfer.io',
-  'staging': 'testnet.chainsfer.io',
-  'test': 'testnet.chainsfer.io',
-  'default': 'testnet.chainsfer.io'
+  'prod': 'app.chainsfr.com',
+  'staging': 'testnet.chainsfr.com',
+  'test': 'testnet.chainsfr.com',
+  'default': 'testnet.chainsfr.com'
 }
 
 const ExpirationLengthConfig: { [key: string]: number } = {
   'prod': 2419200, // 28 days
-  'staging': 600, // 10 mins
-  'test': 600, // 10 mins
-  'default': 600 // 10 mins
+  'staging': 864000, // 10 days
+  'test': 864000, // 10 days
+  'default': 864000 // 10 days
 }
 
 const ReminderIntervalConfig: { [key: string]: number } = {
   'prod': 604800, // 7 days
-  'staging': 300, // 5 mins
-  'test': 300, // 5 mins
-  'default': 300 // 5 mins
+  'staging': 432000, // 5 days
+  'test': 432000, // 5 days
+  'default': 432000 // 5 days
 }
 
 const BtcAPIConfig: { [key:string]: any } = {

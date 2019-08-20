@@ -48,6 +48,11 @@ async function checkBtcTxConfirmation (txHash) {
   }
 }
 
+async function checkLibraTxConfirmation (txHash) {
+  // libra tx is almost instant
+  return 1
+}
+
 async function processTxConfirmation (retryCount: number, checkFunction: Function, cryptoType: CryptoType, txHash: string, gasTxHash: ?string, txHashConfirmed: number, gasTxHashConfirmed: number, item: any, messageBody: any) {
   try {
     const maxRetry = Config.TxConfirmationConfig[cryptoType].maxRetry
@@ -184,6 +189,7 @@ async function sendEmail (item) {
         ses,
         item.transferId.S,
         item.receivingId.S,
+        item.senderName.S,
         item.sender.S,
         item.receiver.S,
         item.transferAmount.S,
@@ -196,6 +202,7 @@ async function sendEmail (item) {
         ses,
         item.transferId.S,
         item.receivingId.S,
+        item.senderName.S,
         item.sender.S,
         item.receiver.S,
         item.transferAmount.S,
@@ -210,6 +217,7 @@ async function sendEmail (item) {
         ses,
         item.transferId.S,
         item.receivingId.S,
+        item.senderName.S,
         item.sender.S,
         item.receiver.S,
         item.transferAmount.S,
@@ -259,11 +267,19 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
           case 'ethereum':
             await processTxConfirmation(retryCount, checkEthTxConfirmation, cryptoType, txHash, null, txHashConfirmed, 1, item, messageBody)
             break
-          default: // ERC20
+          case 'dai': // ERC20
             if (gasTxHash === null) {
-              throw new Error('Null gasTxHash for record ' + JSON.stringify(record, null, 2))
+              // assume gasTx is confirmed if it is null
+              // necessary for validating a single erc20 tx (without prepaid eth tx)
+              gasTxHashConfirmed = 1
             }
             await processTxConfirmation(retryCount, checkEthTxConfirmation, cryptoType, txHash, gasTxHash, txHashConfirmed, gasTxHashConfirmed, item, messageBody)
+            break
+          case 'libra':
+            processTxConfirmation(retryCount, checkLibraTxConfirmation, cryptoType, txHash, null, txHashConfirmed, 1, item, messageBody)
+            break
+          default:
+            throw new Error(`Invalid cryptoType: ${cryptoType}`)
         }
       } catch (err) {
         await updateTxState('Failed', item)

@@ -572,8 +572,8 @@
                 <td valign="top" style="padding:9px" class="mcnImageBlockInner">
                     <table align="left" width="100%" border="0" cellpadding="0" cellspacing="0" class="mcnImageContentContainer" style="min-width:100%;">
                         <tbody><tr>
-                            <td class="mcnImageContent" valign="top" style="padding-right: 9px; padding-left: 9px; padding-top: 0; padding-bottom: 0;">
-                                <img src='https://i.imgur.com/fbjRhlk.png' alt='logo' />
+							<td class="mcnImageContent" valign="top" style="padding-right: 9px; padding-left: 9px; padding-top: 0; padding-bottom: 0;">
+								<img src='https://i.imgur.com/fbjRhlk.png' alt='logo' />
                             </td>
                         </tr>
                     </tbody></table>
@@ -600,10 +600,13 @@
                         
                         <td valign="top" class="mcnTextContent" style="padding-top:0; padding-right:18px; padding-bottom:9px; padding-left:18px;">
                         
-                            <h1><span style="font-size:20px"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><strong>Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has been cancelled.</strong></span></span></h1>
+                            <h1><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">Hi {{destination}},</span></span><br>
+<br>
+<strong><span style="font-size:20px"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"> Remember to deposit your {{transferAmount}} {{cryptoSymbol}} from {{sender}}.</span></span></strong></h1>
 
 <p><br>
-<span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">The transfer was cancelled by <strong>{{sender}}</strong> on </span></span><a title="timestamp" href="https://www.timeanddate.com/worldclock/fixedtime.html?{{cancelTimestampParam}}">{{cancelTimestamp}}&nbsp;(UTC)</a></span></p>
+<span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">The transfer was sent by {{sender}} on <a title="timestamp" href="https://www.timeanddate.com/worldclock/fixedtime.html?{{sendTimestampParam}}">{{sendTimestamp}}&nbsp;(UTC)</a><br>
+To <strong>accept</strong> or review details of this transfer, please click on the button below to receive it.</span></span></p>
 
                         </td>
                     </tr>
@@ -619,7 +622,23 @@
             </td>
         </tr>
     </tbody>
-</td>
+</table><table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnButtonBlock" style="min-width:100%;">
+    <tbody class="mcnButtonBlockOuter">
+        <tr>
+            <td style="padding-top:0; padding-right:18px; padding-bottom:18px; padding-left:18px;" valign="top" align="center" class="mcnButtonBlockInner">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnButtonContentContainer" style="border-collapse: separate !important;border-radius: 7px;background-color: #4285F4;">
+                    <tbody>
+                        <tr>
+                            <td align="center" valign="middle" class="mcnButtonContent" style="font-family: Roboto, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif; font-size: 16px; padding: 15px;">
+                                <a class="mcnButton " title="Deposit your {{cryptoSymbol}}" href="https://{{rootUrl}}/receive?id={{id}}" target="_blank" style="font-weight: bold;letter-spacing: normal;line-height: 100%;text-align: center;text-decoration: none;color: #FFFFFF;">Deposite your {{cryptoSymbol}}</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table></td>
                             </tr>
                             <tr>
                                 <td valign="top" id="templateFooter"><table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnTextBlock" style="min-width:100%;">
@@ -638,8 +657,8 @@
                     <tbody><tr>
                         
                         <td valign="top" class="mcnTextContent" style="padding-top:0; padding-right:18px; padding-bottom:9px; padding-left:18px;">
-
-<div style="text-align: left;"><span style="font-size:12px">Email or text messages carry the notice while transfers are secured by existing cryptocurrency networks. To learn more, please check our <a href="http://chainsfr.com" target="_blank">FAQs</a> and social network pages below.</span></div>
+                        
+                            <div style="text-align: left;"><span style="font-size:12px">Email or text messages carry the notice while transfers are secured by existing cryptocurrency networks. To learn more, please check our <a href="http://chainsfr.com" target="_blank">FAQs</a> and social network pages below.</span></div>
 
                         </td>
                     </tr>
@@ -699,7 +718,7 @@
                                                         </tbody></table>
                                                     </td>
                                                 </tr>
-                                            </tbody></table>
+                                            </tbody></table>                 
                                         
                                         <!--[if mso]>
                                         </td>
@@ -744,7 +763,7 @@
                                         
                                             <table align="left" border="0" cellpadding="0" cellspacing="0" style="display:inline;">
                                                 <tbody><tr>
-                                                    <td valign="top" style="padding-right:10px; padding-bottom:9px;" class="mcnFollowContentItemContainer">
+                                                    <td valign="top" style="padding-right:0; padding-bottom:9px;" class="mcnFollowContentItemContainer">
                                                         <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowContentItem">
                                                             <tbody><tr>
                                                                 <td align="left" valign="middle" style="padding-top:5px; padding-right:10px; padding-bottom:5px; padding-left:9px;">
@@ -767,39 +786,35 @@
                                         
                                         <!--[if mso]>
                                         </td>
-                                        <![endif]-->
-                                    
+										<![endif]-->
+										
                                         <!--[if mso]>
                                         <td align="center" valign="top">
                                         <![endif]-->
                                         
                                         
-                                            <table align="left" border="0" cellpadding="0" cellspacing="0" style="display:inline;">
-                                                <tbody><tr>
-                                                    <td valign="top" style="padding-right:0; padding-bottom:9px;" class="mcnFollowContentItemContainer">
-                                                        <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowContentItem">
-                                                            <tbody><tr>
-                                                                <td align="left" valign="middle" style="padding-top:5px; padding-right:10px; padding-bottom:5px; padding-left:9px;">
-                                                                    <table align="left" border="0" cellpadding="0" cellspacing="0" width="">
-                                                                        <tbody><tr>
-                                                                            
-                                                                                <td align="center" valign="middle" width="24" class="mcnFollowIconContent">
-                                                                                    <a href="https://github.com/ventureum/Chainsfr" target="_blank"><img src="https://cdn-images.mailchimp.com/icons/social-block-v2/dark-github-48.png" style="display:block;" height="24" width="24" class="" alt="dark-github" ></a>
-                                                                                </td>
-                                                                            
-                                                                            
-                                                                        </tr>
-                                                                    </tbody></table>
-                                                                </td>
-                                                            </tr>
-                                                        </tbody></table>
-                                                    </td>
-                                                </tr>
-                                            </tbody></table>
-                                        
-                                        <!--[if mso]>
-                                        </td>
-                                        <![endif]-->
+										<table align="left" border="0" cellpadding="0" cellspacing="0" style="display:inline;">
+											<tbody><tr>
+												<td valign="top" style="padding-right:0; padding-bottom:9px;" class="mcnFollowContentItemContainer">
+													<table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowContentItem">
+														<tbody><tr>
+															<td align="left" valign="middle" style="padding-top:5px; padding-right:10px; padding-bottom:5px; padding-left:9px;">
+																<table align="left" border="0" cellpadding="0" cellspacing="0" width="">
+																	<tbody><tr>
+																		
+																			<td align="center" valign="middle" width="24" class="mcnFollowIconContent">
+																				<a href="https://github.com/ventureum/Chainsfr" target="_blank"><img src="https://cdn-images.mailchimp.com/icons/social-block-v2/dark-github-48.png" style="display:block;" height="24" width="24" class="" alt="dark-github" ></a>
+																			</td>
+																		
+																		
+																	</tr>
+																</tbody></table>
+															</td>
+														</tr>
+													</tbody></table>
+												</td>
+											</tr>
+										</tbody></table>
                                     
                                     <!--[if mso]>
                                     </tr>
@@ -855,7 +870,7 @@
                         
                             <p style="text-align: left;"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">Please do not reply to this e-mail, as it is auto-generated and you will not receive a response.<br>
 <br>
-This email was sent to you by&nbsp;<em>Ventureum Inc.</em>, the owner of the <em>Chainsfr</em>&nbsp;service, on behalf of&nbsp;</span>{{sender}}<span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">.<br>
+This email was sent to you by&nbsp;<em>Ventureum Inc.</em>, the owner of the <em>Chainsfr</em>&nbsp;service, on behalf of {{sender}}.<br>
 <br>
 Ventureum Inc.<br>
 Yonge-Eglinton Center,&nbsp;2300 Yonge&nbsp;Street, Suite 1600<br>

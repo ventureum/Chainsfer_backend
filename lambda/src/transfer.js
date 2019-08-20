@@ -65,7 +65,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     } else if (request.action === 'BATCH_GET') {
       rv = await dynamoDBTxOps.getBatchTransfers(transactionDataTableName, request.sendingId, request.receivingId)
     } else if (request.action === 'SEND') {
-      rv = await dynamoDBTxOps.sendTransfer(transactionDataTableName, clientId, request.sender, request.destination, request.transferAmount, request.cryptoType, request.data, request.sendTxHash, expirationLength, reminderInterval)
+      rv = await dynamoDBTxOps.sendTransfer(transactionDataTableName, clientId, request.senderName, request.sender, request.destination, request.transferAmount, request.message, request.cryptoType, request.data, request.sendTxHash, expirationLength, reminderInterval)
     } else if (request.action === 'RECEIVE') {
       rv = await dynamoDBTxOps.receiveTransfer(transactionDataTableName, request.receivingId, request.receiveTxHash)
     } else if (request.action === 'CANCEL') {
@@ -79,7 +79,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     } else if (request.action === 'UTXOS') {
       const limit = request.limit || 1000
       rv = await btcOps.getUtxosFromChainsferBtcXPubIndex(request.xpub, request.accountIndex, chainsferBtcXPubIndexDataTableName, limit, BaseBtcPath, BtcNetworkConfig, LedgerApiUrl, chainsferBtcTrackedAddressDataTableName)
-    }else {
+    } else {
       throw new Error('Invalid command')
     }
 

@@ -31,6 +31,8 @@ let cancelActionReceiverHtml = templatesDir + '/cancel_action_receiver_notificat
 let expireActionSenderHtml = templatesDir + '/expire_action_sender_notification.html'
 let expireActionReceiverHtml = templatesDir + '/expire_action_receiver_notification.html'
 
+let reminderActionReceiverHtml = templatesDir + '/reminder_action_receiver_notification.html'
+
 let sendActionSenderStr = fs.readFileSync(sendActionSenderHtml, 'utf8')
 let sendActionReceiverStr = fs.readFileSync(sendActionReceiverHtml, 'utf8')
 
@@ -43,11 +45,13 @@ let cancelActionReceiverStr = fs.readFileSync(cancelActionReceiverHtml, 'utf8')
 let expireActionSenderStr = fs.readFileSync(expireActionSenderHtml, 'utf8')
 let expireActionReceiverStr = fs.readFileSync(expireActionReceiverHtml, 'utf8')
 
+let reminderActionReceiverStr = fs.readFileSync(reminderActionReceiverHtml, 'utf8')
+
 const sendActionSenderEmail = {
   Template: {
     TemplateName: 'sendActionSenderEmail',
     SubjectPart:
-      'Chainsfer: {{transferAmount}} {{cryptoSymbol}} has been sent to {{destination}}',
+      'Chainsfr: {{transferAmount}} {{cryptoSymbol}} has been sent to {{destination}}',
     HtmlPart: sendActionSenderStr
   }
 }
@@ -56,7 +60,7 @@ const sendActionReceiverEmail = {
   Template: {
     TemplateName: 'sendActionReceiverEmail',
     SubjectPart:
-      'Chainsfer: {{sender}} sent you {{transferAmount}} {{cryptoSymbol}}',
+      'Chainsfr: {{sender}} sent you {{transferAmount}} {{cryptoSymbol}}',
     HtmlPart: sendActionReceiverStr
   }
 }
@@ -65,7 +69,7 @@ const receiveActionSenderEmail = {
   Template: {
     TemplateName: 'receiveActionSenderEmail',
     SubjectPart:
-      'Chainsfer: {{destination}} accepted your transfer of {{transferAmount}} {{cryptoSymbol}}',
+      'Chainsfr: {{destination}} accepted your transfer of {{transferAmount}} {{cryptoSymbol}}',
     HtmlPart: receiveActionSenderStr
   }
 }
@@ -74,7 +78,7 @@ const receiveActionReceiverEmail = {
   Template: {
     TemplateName: 'receiveActionReceiverEmail',
     SubjectPart:
-      'Chainsfer: A transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been deposited',
+      'Chainsfr: A transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been deposited',
     HtmlPart: receiveActionReceiverStr
   }
 }
@@ -83,7 +87,7 @@ const cancelActionSenderEmail = {
   Template: {
     TemplateName: 'cancelActionSenderEmail',
     SubjectPart:
-      'Chainsfer: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has been cancelled',
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has been cancelled',
     HtmlPart: cancelActionSenderStr
   }
 }
@@ -92,7 +96,7 @@ const cancelActionReceiverEmail = {
   Template: {
     TemplateName: 'cancelActionReceiverEmail',
     SubjectPart:
-      'Chainsfer: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been cancelled',
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been cancelled',
     HtmlPart: cancelActionReceiverStr
   }
 }
@@ -101,7 +105,7 @@ const expireActionSenderEmail = {
   Template: {
     TemplateName: 'expireActionSenderEmail',
     SubjectPart:
-      'Chainsfer: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has expired',
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has expired',
     HtmlPart: expireActionSenderStr
   }
 }
@@ -110,8 +114,17 @@ const expireActionReceiverEmail = {
   Template: {
     TemplateName: 'expireActionReceiverEmail',
     SubjectPart:
-      'Chainsfer: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has expired',
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has expired',
     HtmlPart: expireActionReceiverStr
+  }
+}
+
+const reminderActionReceiverEmail = {
+  Template: {
+    TemplateName: 'reminderActionReceiverEmail',
+    SubjectPart:
+      'Chainsfr: Remember to deposit your {{transferAmount}} {{cryptoSymbol}} from {{sender}}',
+    HtmlPart: reminderActionReceiverStr
   }
 }
 
@@ -123,7 +136,8 @@ var templates = [
   cancelActionSenderEmail,
   cancelActionReceiverEmail,
   expireActionSenderEmail,
-  expireActionReceiverEmail
+  expireActionReceiverEmail,
+  reminderActionReceiverEmail
 ]
 
 async function main () {

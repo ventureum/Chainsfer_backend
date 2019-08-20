@@ -111,9 +111,11 @@ function formatQueriedTransfer (item, forReceiver) {
 
   let result : { [key: string] : ?string } = {
     'sendingId': item.transferId,
+    'senderName': item.senderName,
     'sender': item.sender,
     'destination': item.receiver,
     'transferAmount': item.transferAmount,
+    'message': item.message,
     'cryptoType': item.cryptoType,
     'data': item.data,
     'sendTxHash': senderToChainsfer.txHash,
@@ -144,15 +146,34 @@ async function getTransfer (transActionDataTableName: string, sendingId: string,
 }
 
 async function getBatchTransfers (transActionDataTableName: string, sendingIds: Array<string>, receivingIds: Array<string>) {
-  let rv = sendingIds ? (await batchQueryTransfersByIds(transActionDataTableName, sendingIds, false)) : (await batchQueryTransfersByIds(transActionDataTableName, receivingIds, true))
-  return rv
+  if (!sendingIds) sendingIds = []
+  if (!receivingIds) receivingIds = []
+  let sendTransfers = await batchQueryTransfersByIds(transActionDataTableName, sendingIds, false)
+  let receiveTransfers = await batchQueryTransfersByIds(transActionDataTableName, receivingIds, true)
+  return [...sendTransfers, ...receiveTransfers]
 }
 
-async function sendTransfer (transActionDataTableName: string, clientId: string, sender: string, destination: string, transferAmount: string, cryptoType: CryptoType, data: string, sendTxHash: string | Array<string>, expirationLength: number, reminderInterval: number) {
+async function sendTransfer (
+  transActionDataTableName: string,
+  clientId: string,
+  senderName: string,
+  sender: string,
+  destination: string,
+  transferAmount: string,
+  message: ?string,
+  cryptoType: CryptoType,
+  data: string,
+  sendTxHash: string | Array < string >,
+  expirationLength: number,
+  reminderInterval: number
+) {
   const ts = moment().unix()
   const timestamp = ts.toString()
   const transferId = UUID()
   const receivingId = UUID()
+
+  // due to limitation of dynamodb, convert senderName is it is an empty string
+  message = (message && message.length > 0) ? message : null
 
   let senderToChainsfer: { [key: string] : string | Array<string> } = {
     'txState': 'Pending',
@@ -189,9 +210,11 @@ async function sendTransfer (transActionDataTableName: string, clientId: string,
       'updated': timestamp,
       'reminder': reminder,
       'transferStage': 'SenderToChainsfer',
+      'senderName': senderName,
       'sender': sender,
       'receiver': destination,
       'transferAmount': transferAmount,
+      'message': message,
       'cryptoType': cryptoType,
       'data': data,
       'senderToChainsfer': senderToChainsfer
@@ -200,10 +223,12 @@ async function sendTransfer (transActionDataTableName: string, clientId: string,
   await documentClient.put(params).promise()
 
   console.log('sendTransfer: transferId %s, receivingId %s', transferId, receivingId)
-  let result: { [key: string] : string | Array<string> } = {
+  let result: { [key: string] : ?string | Array<string> } = {
+    senderName: senderName,
     sender: sender,
     destination: destination,
     transferAmount: transferAmount,
+    message: message,
     cryptoType: cryptoType,
     sendingId: transferId,
     sendTxHash: sendTxHash,
@@ -252,6 +277,7 @@ async function receiveTransfer (transActionDataTableName: string, receivingId: s
   const senderToChainsfer = attributes.senderToChainsfer
 
   let result : { [key: string] : string } = {
+    senderName: attributes.senderName,
     sender: attributes.sender,
     destination: attributes.receiver,
     transferAmount: attributes.transferAmount,
@@ -305,6 +331,7 @@ async function cancelTransfer (transActionDataTableName: string, transferId: str
   const senderToChainsfer = attributes.senderToChainsfer
 
   let result: { [key: string] : string } = {
+    senderName: attributes.senderName,
     sender: attributes.sender,
     destination: attributes.receiver,
     transferAmount: attributes.transferAmount,

@@ -3,34 +3,33 @@ import type { Context, Callback } from 'flow-aws-lambda'
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
 var Config = require('./config.js')
 
-if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
-const transactionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
-
-if (!process.env.WALLET_ADDRESSES_DATA_TABLE_NAME) throw new Error('WALLET_ADDRESSES_DATA_TABLE_NAME missing')
-const walletAddressesDataTableName = process.env.WALLET_ADDRESSES_DATA_TABLE_NAME
-
-if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
-const deploymentStage = process.env.ENV_VALUE.toLowerCase()
-
-const expirationLength = Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
-const reminderInterval = Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
-const googleAPIConfig = Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
-
+// eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   // parse request data
   // for local testing, use request = event.body
   let request = JSON.parse(event.body)
 
-  // TODO reject invalid clientId
+  // TODO: reject invalid clientId
   const clientId = request.clientId
 
-  function handleResults (rv, err) {
-    let response: Object = {
+  // eslint-disable-next-line flowtype/no-weak-types
+  function handleResults (rv: any, err: any) {
+    let response: {
+      headers: {
+        'Access-Control-Allow-Origin': string,
+        'Access-Control-Allow-Credentials': boolean
+      },
+      'isBase64Encoded': boolean,
+      statusCode: number,
+      body: string
+    } = {
       'headers': {
         'Access-Control-Allow-Origin': '*', // Required for CORS support to work
         'Access-Control-Allow-Credentials': true // Required for cookies, authorization headers with HTTPS
       },
-      'isBase64Encoded': false
+      'isBase64Encoded': false,
+      statusCode: 200,
+      body: ''
     }
 
     if (!err) {
@@ -45,24 +44,25 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     }
   }
 
+  // keep the following part light weight
+  // heavy-lifting is done in dynamoDBTxOps
+  // types are defined in transfer.flow.js
   try {
     let rv = null
     if (request.action === 'GET') {
-      rv = await dynamoDBTxOps.getTransfer(transactionDataTableName, request.sendingId, request.receivingId)
+      rv = await dynamoDBTxOps.getTransfer(request)
     } else if (request.action === 'BATCH_GET') {
-      rv = await dynamoDBTxOps.getBatchTransfers(transactionDataTableName, request.sendingId, request.receivingId)
+      rv = await dynamoDBTxOps.getBatchTransfers(request)
     } else if (request.action === 'SEND') {
-      rv = await dynamoDBTxOps.sendTransfer(transactionDataTableName, clientId, request.senderName, request.sender, request.destination, request.transferAmount, request.message, request.cryptoType, request.data, request.sendTxHash, expirationLength, reminderInterval)
+      rv = await dynamoDBTxOps.sendTransfer(request)
     } else if (request.action === 'RECEIVE') {
-      rv = await dynamoDBTxOps.receiveTransfer(transactionDataTableName, request.receivingId, request.receiveTxHash)
+      rv = await dynamoDBTxOps.receiveTransfer(request)
     } else if (request.action === 'CANCEL') {
-      rv = await dynamoDBTxOps.cancelTransfer(transactionDataTableName, request.sendingId, request.cancelTxHash)
+      rv = await dynamoDBTxOps.cancelTransfer(request)
     } else if (request.action === 'SET_LAST_USED_ADDRESS') {
-      let googleId = await dynamoDBTxOps.verifyGoogleIdToken(googleAPIConfig['clientId'], request.idToken)
-      await dynamoDBTxOps.setLastUsedAddress(walletAddressesDataTableName, googleId, request.walletType, request.cryptoType, request.address)
+      await dynamoDBTxOps.setLastUsedAddress(request)
     } else if (request.action === 'GET_LAST_USED_ADDRESS') {
-      let googleId = await dynamoDBTxOps.verifyGoogleIdToken(googleAPIConfig['clientId'], request.idToken)
-      rv = await dynamoDBTxOps.getLastUsedAddress(walletAddressesDataTableName, googleId)
+      rv = await dynamoDBTxOps.getLastUsedAddress(request)
     } else {
       throw new Error('Invalid command')
     }

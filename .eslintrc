@@ -39,7 +39,7 @@
     "flowtype/require-valid-file-annotation": 2,
     "flowtype/semi": [
       2,
-      "always"
+      "never"
     ],
     "flowtype/space-after-type-colon": [
       2,
@@ -68,12 +68,16 @@
     "flowtype": {
       "onlyFilesWithFlowAnnotation": false
     }
-  }
+  },
   "parser": "babel-eslint",
   "extends": [
     "plugin:flowtype/recommended"
   ],
   "plugins": [
-    "flowtype"
+    "flowtype",
+    "standard",
+    "import",
+    "node",
+    "promise"
   ]
 }

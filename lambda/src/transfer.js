@@ -1,5 +1,6 @@
 // @flow
 import type { Context, Callback } from 'flow-aws-lambda'
+import axios from 'axios'
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
 var Config = require('./config.js')
 
@@ -48,7 +49,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
   // heavy-lifting is done in dynamoDBTxOps
   // types are defined in transfer.flow.js
   try {
-    let rv = null
+    let rv = {}
     if (request.action === 'GET') {
       rv = await dynamoDBTxOps.getTransfer(request)
     } else if (request.action === 'BATCH_GET') {
@@ -63,6 +64,10 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       await dynamoDBTxOps.setLastUsedAddress(request)
     } else if (request.action === 'GET_LAST_USED_ADDRESS') {
       rv = await dynamoDBTxOps.getLastUsedAddress(request)
+    } else if (request.action === 'MINT_LIBRA') {
+      // current faucet does not support http,  thus, frontend cannot mint
+      // move the minting part here temporarily
+      await axios.post(`http://faucet.testnet.libra.org?amount=${request.amount}&address=${request.address}`)
     } else {
       throw new Error('Invalid command')
     }

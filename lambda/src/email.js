@@ -63,7 +63,7 @@ module.exports = {
     if (!paramsEmailCompatible.cancelMessage) {
       paramsEmailCompatible.cancelMessage = ''
     }
-   
+
     // set root url
     paramsEmailCompatible.rootUrl = rootUrl
 
@@ -162,6 +162,11 @@ module.exports = {
   expireActionReceiverEmailParams: function(params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.destination, 'expireActionReceiverEmail', params)
   },
+  reminderActionSenderEmailParams: function(
+    params: TransferDataEmailCompatibleType
+  ): TemplateType {
+    return this.getTemplate(params.destination, 'reminderActionSenderEmail', params)
+  },
   reminderActionReceiverEmailParams: function(
     params: TransferDataEmailCompatibleType
   ): TemplateType {
@@ -188,22 +193,15 @@ module.exports = {
       ses.sendTemplatedEmail(this.cancelActionReceiverEmailParams(paramsEmailCompatible)).promise()
     ])
   },
-  expireAction: function(
-    params: TransferDataType,
-    isFirstExpirationReminder: boolean
-  ): Promise<Array<SendTemplatedEmailReturnType>> {
+  // only send once to both sender and receiver when the transfer is expired
+  expireAction: function(params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
     return Promise.all([
       ses.sendTemplatedEmail(this.expireActionSenderEmailParams(paramsEmailCompatible)).promise(),
-      ...(isFirstExpirationReminder
-        ? [
-            ses
-              .sendTemplatedEmail(this.expireActionReceiverEmailParams(paramsEmailCompatible))
-              .promise()
-          ]
-        : [])
+      ses.sendTemplatedEmail(this.expireActionReceiverEmailParams(paramsEmailCompatible)).promise()
     ])
   },
+  // sent to receiver before expiration
   receiverReminderAction: function(
     params: TransferDataType
   ): Promise<Array<SendTemplatedEmailReturnType>> {
@@ -212,6 +210,15 @@ module.exports = {
       ses
         .sendTemplatedEmail(this.reminderActionReceiverEmailParams(paramsEmailCompatible))
         .promise()
+    ])
+  },
+  // sent to sender after expiration
+  senderReminderAction: function(
+    params: TransferDataType
+  ): Promise<Array<SendTemplatedEmailReturnType>> {
+    const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
+    return Promise.all([
+      ses.sendTemplatedEmail(this.reminderActionSenderEmailParams(paramsEmailCompatible)).promise()
     ])
   }
 }

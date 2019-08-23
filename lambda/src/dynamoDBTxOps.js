@@ -36,7 +36,7 @@ const reminderInterval =
 const googleAPIConfig = Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
 
 // returns googleId given an idToken
-async function verifyGoogleIdToken(clientId: string, idToken: string): Promise<string> {
+async function verifyGoogleIdToken (clientId: string, idToken: string): Promise<string> {
   try {
     const client = new OAuth2Client(clientId)
     const ticket = await client.verifyIdToken({
@@ -51,7 +51,7 @@ async function verifyGoogleIdToken(clientId: string, idToken: string): Promise<s
   }
 }
 
-async function getLastUsedAddress(params: { idToken: string }): Promise<WalletAddressDataType> {
+async function getLastUsedAddress (params: { idToken: string }): Promise<WalletAddressDataType> {
   const googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], params.idToken)
   let data = await documentClient
     .get({
@@ -64,7 +64,7 @@ async function getLastUsedAddress(params: { idToken: string }): Promise<WalletAd
   return data.Item
 }
 
-async function setLastUsedAddress(params: {
+async function setLastUsedAddress (params: {
   idToken: string,
   walletType: WalletType,
   cryptoType: CryptoType,
@@ -110,7 +110,7 @@ async function setLastUsedAddress(params: {
   await documentClient.put(dbParams).promise()
 }
 
-async function batchQueryTransfersByIds(
+async function batchQueryTransfersByIds (
   ids: Array<string>,
   forReceiver: boolean
 ): Promise<Array<TransferDataType | { error: string }>> {
@@ -128,7 +128,7 @@ async function batchQueryTransfersByIds(
   return items
 }
 
-async function getTransferByReceivingId(receivingId: string): Promise<TransferDataType> {
+async function getTransferByReceivingId (receivingId: string): Promise<TransferDataType> {
   const params = {
     TableName: transActionDataTableName,
     IndexName: 'receivingId-index',
@@ -141,7 +141,7 @@ async function getTransferByReceivingId(receivingId: string): Promise<TransferDa
   return data.Items[0]
 }
 
-async function getTransferByTransferId(transferId: string): Promise<TransferDataType> {
+async function getTransferByTransferId (transferId: string): Promise<TransferDataType> {
   const params = {
     TableName: transActionDataTableName,
     Key: {
@@ -152,7 +152,7 @@ async function getTransferByTransferId(transferId: string): Promise<TransferData
   return data.Item
 }
 
-function formatQueriedTransfer(
+function formatQueriedTransfer (
   item: TransferDataType,
   forReceiver: boolean
 ): TransferDataType | { error: string } {
@@ -167,7 +167,7 @@ function formatQueriedTransfer(
   return item
 }
 
-async function getTransfer(params: {
+async function getTransfer (params: {
   transferId: string,
   receivingId: string
 }): Promise<TransferDataType | { error: string }> {
@@ -177,7 +177,7 @@ async function getTransfer(params: {
   return params.transferId ? formatQueriedTransfer(rv, false) : formatQueriedTransfer(rv, true)
 }
 
-async function getBatchTransfers(params: {
+async function getBatchTransfers (params: {
   transferIds: Array<string>,
   receivingIds: Array<string>
 }): Promise<Array<TransferDataType | { error: string }>> {
@@ -188,7 +188,7 @@ async function getBatchTransfers(params: {
   return [...sendTransfers, ...receiveTransfers]
 }
 
-async function sendTransfer(params: SendTransferParamsType): Promise<SendTransferReturnType> {
+async function sendTransfer (params: SendTransferParamsType): Promise<SendTransferReturnType> {
   // due to limitation of dynamodb, convert message to undefined if it is an empty string
   params.sendMessage =
     params.sendMessage && params.sendMessage.length > 0 ? params.sendMessage : null
@@ -284,7 +284,7 @@ async function sendTransfer(params: SendTransferParamsType): Promise<SendTransfe
   return result
 }
 
-async function receiveTransfer(
+async function receiveTransfer (
   params: ReceiveTransferParamsType
 ): Promise<ReceiveTransferReturnType> {
   // due to limitation of dynamodb, convert message to undefined if it is an empty string
@@ -336,7 +336,7 @@ async function receiveTransfer(
   return result
 }
 
-async function cancelTransfer(params: CancelTransferParamsType): Promise<CancelTransferReturnType> {
+async function cancelTransfer (params: CancelTransferParamsType): Promise<CancelTransferReturnType> {
   // due to limitation of dynamodb, convert message to undefined if it is an empty string
   params.cancelMessage =
     params.cancelMessage && params.cancelMessage.length > 0 ? params.cancelMessage : null
@@ -389,7 +389,7 @@ async function cancelTransfer(params: CancelTransferParamsType): Promise<CancelT
 }
 
 // eslint-disable-next-line flowtype/no-weak-types
-async function collectPotentialExpirationRemainderList(): Promise<Array<Object>> {
+async function collectPotentialExpirationRemainderList (): Promise<Array<Object>> {
   const timestamp = moment().unix()
 
   try {
@@ -427,7 +427,7 @@ async function collectPotentialExpirationRemainderList(): Promise<Array<Object>>
 }
 
 // eslint-disable-next-line flowtype/no-weak-types
-async function collectPotentialReceiverRemainderList(): Promise<Array<Object>> {
+async function collectPotentialReceiverRemainderList (): Promise<Array<Object>> {
   const timestamp = moment().unix()
 
   try {
@@ -463,7 +463,7 @@ async function collectPotentialReceiverRemainderList(): Promise<Array<Object>> {
   }
 }
 
-async function updateReminderToReceiver(transferId: string) {
+async function updateReminderToReceiver (transferId: string) {
   const ts = moment()
     .unix()
     .toString()

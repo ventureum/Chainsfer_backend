@@ -1,13 +1,42 @@
 // @flow
 import type { CryptoType, WalletType } from './typeConst'
+import type {
+  WalletLastUsedAddressType,
+  WalletAddressDataType,
+  TransferDataType,
+  SendTransferParamsType,
+  SendTransferReturnType,
+  ReceiveTransferParamsType,
+  ReceiveTransferReturnType,
+  CancelTransferParamsType,
+  CancelTransferReturnType
+} from './transfer.flow'
 var moment = require('moment')
 var UUID = require('uuid/v4')
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient()
+var Config = require('./config.js')
 const { OAuth2Client } = require('google-auth-library')
 
-async function verifyGoogleIdToken (clientId: string, idToken: string) {
+if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
+const transActionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
+
+if (!process.env.WALLET_ADDRESSES_DATA_TABLE_NAME)
+  throw new Error('WALLET_ADDRESSES_DATA_TABLE_NAME missing')
+const walletAddressTableName = process.env.WALLET_ADDRESSES_DATA_TABLE_NAME
+
+if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
+const deploymentStage = process.env.ENV_VALUE.toLowerCase()
+
+const expirationLength =
+  Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
+const reminderInterval =
+  Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
+const googleAPIConfig = Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
+
+// returns googleId given an idToken
+async function verifyGoogleIdToken(clientId: string, idToken: string): Promise<string> {
   try {
     const client = new OAuth2Client(clientId)
     const ticket = await client.verifyIdToken({
@@ -22,62 +51,84 @@ async function verifyGoogleIdToken (clientId: string, idToken: string) {
   }
 }
 
-async function getLastUsedAddress (walletAddressTableName: string, googleId: string) {
-  const params = {
-    TableName: walletAddressTableName,
-    Key: {
-      'googleId': googleId
-    }
-  }
-  let data = await documentClient.get(params).promise()
+async function getLastUsedAddress(params: { idToken: string }): Promise<WalletAddressDataType> {
+  const googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], params.idToken)
+  let data = await documentClient
+    .get({
+      TableName: walletAddressTableName,
+      Key: {
+        googleId: googleId
+      }
+    })
+    .promise()
   return data.Item
 }
 
-async function setLastUsedAddress (walletAddressTableName: string, googleId: string, walletType: WalletType, cryptoType: CryptoType, address: string) {
-  const timestamp = moment().unix().toString()
+async function setLastUsedAddress(params: {
+  idToken: string,
+  walletType: WalletType,
+  cryptoType: CryptoType,
+  address: string
+}) {
+  const googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], params.idToken)
+  const timestamp = moment()
+    .unix()
+    .toString()
 
-  const wallet : { [key: string] : string } = {
-    'address': address,
-    'timestamp': timestamp
+  const wallet: WalletLastUsedAddressType = {
+    address: params.address,
+    timestamp: timestamp
   }
 
-  let params : { [key: string] : any } = {
-    TableName: walletAddressTableName
-  }
-
-  params['Item'] = await getLastUsedAddress(walletAddressTableName, googleId)
-  if (!params['Item']) {
-    params['Item'] = {
-      'googleId': googleId
+  let dbParams: {
+    TableName: string,
+    Item: WalletAddressDataType
+  } = {
+    TableName: walletAddressTableName,
+    Item: {
+      googleId: googleId,
+      lastUpdatedWalletType: '',
+      lastUpdatedCryptoType: ''
     }
   }
 
-  if (!params['Item'][walletType]) {
-    params['Item'][walletType] = {}
+  dbParams['Item'] = await getLastUsedAddress(params)
+  if (!dbParams['Item']) {
+    dbParams['Item'] = {
+      googleId: googleId,
+      lastUpdatedWalletType: '',
+      lastUpdatedCryptoType: ''
+    }
   }
-  params['Item'][walletType][cryptoType] = wallet
-  params['Item']['lastUpdatedWalletType'] = walletType
-  params['Item']['lastUpdatedCryptoType'] = cryptoType
 
-  await documentClient.put(params).promise()
+  if (!dbParams['Item'][params.walletType]) {
+    dbParams['Item'][params.walletType] = {}
+  }
+  dbParams['Item'][params.walletType][params.cryptoType] = wallet
+  dbParams['Item'].lastUpdatedWalletType = params.walletType
+  dbParams['Item'].lastUpdatedCryptoType = params.cryptoType
+  await documentClient.put(dbParams).promise()
 }
 
-async function batchQueryTransfersByIds (transActionDataTableName: string, ids: Array<string>, forReceiver: boolean) {
+async function batchQueryTransfersByIds(
+  ids: Array<string>,
+  forReceiver: boolean
+): Promise<Array<TransferDataType | { error: string }>> {
   let items = []
   for (let index = 0; index < ids.length; index++) {
     const id = ids[index]
     let item
     if (forReceiver === false) {
-      item = await getTransferByTransferId(transActionDataTableName, id)
+      item = await getTransferByTransferId(id)
     } else {
-      item = await getTransferByReceivingId(transActionDataTableName, id)
+      item = await getTransferByReceivingId(id)
     }
     items.push(formatQueriedTransfer(item, forReceiver))
   }
   return items
 }
 
-async function getTransferByReceivingId (transActionDataTableName: string, receivingId: string) {
+async function getTransferByReceivingId(receivingId: string): Promise<TransferDataType> {
   const params = {
     TableName: transActionDataTableName,
     IndexName: 'receivingId-index',
@@ -90,335 +141,339 @@ async function getTransferByReceivingId (transActionDataTableName: string, recei
   return data.Items[0]
 }
 
-async function getTransferByTransferId (transActionDataTableName: string, transferId: string) {
+async function getTransferByTransferId(transferId: string): Promise<TransferDataType> {
   const params = {
     TableName: transActionDataTableName,
     Key: {
-      'transferId': transferId
+      transferId: transferId
     }
   }
   let data = await documentClient.get(params).promise()
   return data.Item
 }
 
-function formatQueriedTransfer (item, forReceiver) {
+function formatQueriedTransfer(
+  item: TransferDataType,
+  forReceiver: boolean
+): TransferDataType | { error: string } {
   if (!item) {
-    return { 'error': 'Not Found' }
+    return { error: 'Not Found' }
   }
-  const senderToChainsfer = item.senderToChainsfer
-  const chainsferToReceiver = item.chainsferToReceiver
-  const chainsferToSender = item.chainsferToSender
-
-  let result : { [key: string] : ?string } = {
-    'sendingId': item.transferId,
-    'senderName': item.senderName,
-    'sender': item.sender,
-    'destination': item.receiver,
-    'transferAmount': item.transferAmount,
-    'message': item.message,
-    'cryptoType': item.cryptoType,
-    'data': item.data,
-    'sendTxHash': senderToChainsfer.txHash,
-    'sendTimestamp': senderToChainsfer.txTimestamp,
-    'sendTxState': senderToChainsfer.txState,
-    'receiveTxHash': chainsferToReceiver ? chainsferToReceiver.txHash : null,
-    'receiveTimestamp': chainsferToReceiver ? chainsferToReceiver.txTimestamp : null,
-    'receiveTxState': chainsferToReceiver ? chainsferToReceiver.txState : null,
-    'cancelTxHash': chainsferToSender ? chainsferToSender.txHash : null,
-    'cancelTimestamp': chainsferToSender ? chainsferToSender.txTimestamp : null,
-    'cancelTxState': chainsferToSender ? chainsferToSender.txState : null
-  }
-
-  if (senderToChainsfer.gasTxHash != null) {
-    result.gasTxHash = senderToChainsfer.gasTxHash
-  }
-
   if (forReceiver === true) {
-    result.receivingId = item.receivingId
-    result.sendingId = null
+    item.receivingId = item.receivingId
+    // mask out transferId for receiver
+    item.transferId = ''
   }
-  return result
+  return item
 }
 
-async function getTransfer (transActionDataTableName: string, sendingId: string, receivingId: string) {
-  let rv = sendingId ? (await getTransferByTransferId(transActionDataTableName, sendingId)) : (await getTransferByReceivingId(transActionDataTableName, receivingId))
-  return sendingId ? formatQueriedTransfer(rv, false) : formatQueriedTransfer(rv, true)
+async function getTransfer(params: {
+  transferId: string,
+  receivingId: string
+}): Promise<TransferDataType | { error: string }> {
+  let rv = params.transferId
+    ? await getTransferByTransferId(params.transferId)
+    : await getTransferByReceivingId(params.receivingId)
+  return params.transferId ? formatQueriedTransfer(rv, false) : formatQueriedTransfer(rv, true)
 }
 
-async function getBatchTransfers (transActionDataTableName: string, sendingIds: Array<string>, receivingIds: Array<string>) {
-  if (!sendingIds) sendingIds = []
-  if (!receivingIds) receivingIds = []
-  let sendTransfers = await batchQueryTransfersByIds(transActionDataTableName, sendingIds, false)
-  let receiveTransfers = await batchQueryTransfersByIds(transActionDataTableName, receivingIds, true)
+async function getBatchTransfers(params: {
+  transferIds: Array<string>,
+  receivingIds: Array<string>
+}): Promise<Array<TransferDataType | { error: string }>> {
+  if (!params.transferIds) params.transferIds = []
+  if (!params.receivingIds) params.receivingIds = []
+  let sendTransfers = await batchQueryTransfersByIds(params.transferIds, false)
+  let receiveTransfers = await batchQueryTransfersByIds(params.receivingIds, true)
   return [...sendTransfers, ...receiveTransfers]
 }
 
-async function sendTransfer (
-  transActionDataTableName: string,
-  clientId: string,
-  senderName: string,
-  sender: string,
-  destination: string,
-  transferAmount: string,
-  message: ?string,
-  cryptoType: CryptoType,
-  data: string,
-  sendTxHash: string | Array < string >,
-  expirationLength: number,
-  reminderInterval: number
-) {
+async function sendTransfer(params: SendTransferParamsType): Promise<SendTransferReturnType> {
+  // due to limitation of dynamodb, convert message to undefined if it is an empty string
+  params.sendMessage =
+    params.sendMessage && params.sendMessage.length > 0 ? params.sendMessage : null
+
   const ts = moment().unix()
   const timestamp = ts.toString()
   const transferId = UUID()
   const receivingId = UUID()
 
-  // due to limitation of dynamodb, convert senderName is it is an empty string
-  message = (message && message.length > 0) ? message : null
-
-  let senderToChainsfer: { [key: string] : string | Array<string> } = {
-    'txState': 'Pending',
-    'txTimestamp': timestamp
+  let senderToChainsfer: { [key: string]: string | Array<string> } = {
+    txState: 'Pending',
+    txTimestamp: timestamp
   }
 
-  let reminder: { [key: string] : number} = {
-    'expirationTime': ts + expirationLength,
-    'availableReminderToReceiver': Math.floor(expirationLength / reminderInterval),
-    'reminderToSenderCount': 0,
-    'reminderToReceiverCount': 0
+  let reminder: { [key: string]: number } = {
+    expirationTime: ts + expirationLength,
+    availableReminderToReceiver: Math.floor(expirationLength / reminderInterval),
+    reminderToSenderCount: 0,
+    reminderToReceiverCount: 0
   }
 
-  if (Array.isArray(sendTxHash)) {
-    if (sendTxHash.length === 2) {
-      senderToChainsfer.txHash = sendTxHash[0]
-      senderToChainsfer.gasTxHash = sendTxHash[1]
-    } else if (sendTxHash.length === 1) {
-      senderToChainsfer.txHash = sendTxHash[0]
+  if (Array.isArray(params.sendTxHash)) {
+    if (params.sendTxHash.length === 2) {
+      senderToChainsfer.txHash = params.sendTxHash[0]
+      senderToChainsfer.gasTxHash = params.sendTxHash[1]
+    } else if (params.sendTxHash.length === 1) {
+      senderToChainsfer.txHash = params.sendTxHash[0]
     } else {
       throw new Error('sendTxHash array length is limited to 1 or 2')
     }
   } else {
-    senderToChainsfer.txHash = sendTxHash
+    senderToChainsfer.txHash = params.sendTxHash
   }
+  let {
+    // sender
+    senderName,
+    senderAvatar,
+    sender,
+    // receiver
+    receiverName,
+    destination,
+    // crypto
+    cryptoType,
+    cryptoSymbol,
+    transferAmount,
+    transferFiatAmountSpot,
+    fiatType,
+    data,
+    // others
+    sendMessage,
+    sendTxHash
+  } = params
 
-  const params = {
-    TableName: transActionDataTableName,
-    Item: {
-      'clientId': clientId,
-      'transferId': transferId,
-      'receivingId': receivingId,
-      'created': timestamp,
-      'updated': timestamp,
-      'reminder': reminder,
-      'transferStage': 'SenderToChainsfer',
-      'senderName': senderName,
-      'sender': sender,
-      'receiver': destination,
-      'transferAmount': transferAmount,
-      'message': message,
-      'cryptoType': cryptoType,
-      'data': data,
-      'senderToChainsfer': senderToChainsfer
-    }
-  }
-  await documentClient.put(params).promise()
+  await documentClient
+    .put({
+      TableName: transActionDataTableName,
+      Item: {
+        // sender
+        senderName,
+        senderAvatar,
+        sender,
+        // receiver
+        receiverName,
+        destination,
+        // crypto
+        cryptoType,
+        cryptoSymbol,
+        transferAmount,
+        transferFiatAmountSpot,
+        fiatType,
+        data,
+        // others
+        sendMessage,
+        sendTxHash,
+        // auto generated
+        transferId: transferId,
+        receivingId: receivingId,
+        created: timestamp,
+        updated: timestamp,
+        reminder: reminder,
+        transferStage: 'SenderToChainsfer',
+        senderToChainsfer: senderToChainsfer
+      }
+    })
+    .promise()
 
   console.log('sendTransfer: transferId %s, receivingId %s', transferId, receivingId)
-  let result: { [key: string] : ?string | Array<string> } = {
-    senderName: senderName,
-    sender: sender,
-    destination: destination,
-    transferAmount: transferAmount,
-    message: message,
-    cryptoType: cryptoType,
-    sendingId: transferId,
-    sendTxHash: sendTxHash,
+  let result: SendTransferReturnType = {
+    transferId: transferId,
     sendTimestamp: timestamp
   }
 
-  if (senderToChainsfer.gasTxHash != null) {
-    result.gasTxHash = senderToChainsfer.gasTxHash
-  }
   return result
 }
 
-async function receiveTransfer (transActionDataTableName: string, receivingId: string, receiveTxHash: string) {
-  let transfer = await getTransferByReceivingId(transActionDataTableName, receivingId)
-  const receiveTimestamp = moment().unix().toString()
-  const params = {
-    TableName: transActionDataTableName,
-    Key: {
-      'transferId': transfer.transferId
-    },
-    ConditionExpression: 'attribute_not_exists(#ctr) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
-    UpdateExpression: 'SET #ctr = :ctr, #tstage = :tstage, #upt = :upt',
-    ExpressionAttributeNames: {
-      '#ctr': 'chainsferToReceiver',
-      '#cts': 'chainsferToSender',
-      '#stcTx': 'senderToChainsfer',
-      '#stcTxSate': 'txState',
-      '#tstage': 'transferStage',
-      '#upt': 'updated'
-    },
-    ExpressionAttributeValues: {
-      ':ctr': {
-        'txHash': receiveTxHash,
-        'txState': 'Pending',
-        'txTimestamp': receiveTimestamp
+async function receiveTransfer(
+  params: ReceiveTransferParamsType
+): Promise<ReceiveTransferReturnType> {
+  // due to limitation of dynamodb, convert message to undefined if it is an empty string
+  params.receiveMessage =
+    params.receiveMessage && params.receiveMessage.length > 0 ? params.receiveMessage : null
+
+  let transfer = await getTransferByReceivingId(params.receivingId)
+  const receiveTimestamp = moment()
+    .unix()
+    .toString()
+
+  let data = await documentClient
+    .update({
+      TableName: transActionDataTableName,
+      Key: {
+        transferId: transfer.transferId
       },
-      ':stcTxSate': 'Confirmed',
-      ':tstage': 'ChainsferToReceiver',
-      ':upt': receiveTimestamp
-    },
-    ReturnValues: 'ALL_NEW'
-  }
+      ConditionExpression:
+        'attribute_not_exists(#ctr) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
+      UpdateExpression: 'SET #ctr = :ctr, #tstage = :tstage, #upt = :upt, #rMsg = :rMsgValue',
+      ExpressionAttributeNames: {
+        '#ctr': 'chainsferToReceiver',
+        '#cts': 'chainsferToSender',
+        '#stcTx': 'senderToChainsfer',
+        '#stcTxSate': 'txState',
+        '#tstage': 'transferStage',
+        '#rMsg': 'receiveMessage',
+        '#upt': 'updated'
+      },
+      ExpressionAttributeValues: {
+        ':ctr': {
+          txHash: params.receiveTxHash,
+          txState: 'Pending',
+          txTimestamp: receiveTimestamp
+        },
+        ':stcTxSate': 'Confirmed',
+        ':tstage': 'ChainsferToReceiver',
+        ':rMsgValue': params.receiveMessage,
+        ':upt': receiveTimestamp
+      },
+      ReturnValues: 'ALL_NEW'
+    })
+    .promise()
 
-  let data = await documentClient.update(params).promise()
-  const attributes = data.Attributes
-  const senderToChainsfer = attributes.senderToChainsfer
-
-  let result : { [key: string] : string } = {
-    senderName: attributes.senderName,
-    sender: attributes.sender,
-    destination: attributes.receiver,
-    transferAmount: attributes.transferAmount,
-    cryptoType: attributes.cryptoType,
-    sendTxHash: senderToChainsfer.txHash,
-    sendTimestamp: senderToChainsfer.txTimestamp,
-    receivingId: receivingId,
-    receiveTxHash: receiveTxHash,
+  let result: ReceiveTransferReturnType = {
     receiveTimestamp: receiveTimestamp
   }
 
-  if (senderToChainsfer.gasTxHash != null) {
-    result.gasTxHash = senderToChainsfer.gasTxHash
-  }
   return result
 }
 
-async function cancelTransfer (transActionDataTableName: string, transferId: string, cancelTxHash: string) {
-  const cancelTimestamp = moment().unix().toString()
-  const params = {
-    TableName: transActionDataTableName,
-    Key: {
-      'transferId': transferId
-    },
-    ConditionExpression: '(attribute_not_exists(#ctr) or attribute_not_exists(#ctr.#ctrTxHash)) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
-    UpdateExpression: 'SET #cts = :cts, #tstage = :tstage, #upt = :upt',
-    ExpressionAttributeNames: {
-      '#ctr': 'chainsferToReceiver',
-      '#cts': 'chainsferToSender',
-      '#stcTx': 'senderToChainsfer',
-      '#stcTxSate': 'txState',
-      '#ctrTxHash': 'txHash',
-      '#tstage': 'transferStage',
-      '#upt': 'updated'
-    },
-    ExpressionAttributeValues: {
-      ':cts': {
-        'txHash': cancelTxHash,
-        'txState': 'Pending',
-        'txTimestamp': cancelTimestamp
-      },
-      ':stcTxSate': 'Confirmed',
-      ':tstage': 'ChainsferToSender',
-      ':upt': cancelTimestamp
-    },
-    ReturnValues: 'ALL_NEW'
-  }
+async function cancelTransfer(params: CancelTransferParamsType): Promise<CancelTransferReturnType> {
+  // due to limitation of dynamodb, convert message to undefined if it is an empty string
+  params.cancelMessage =
+    params.cancelMessage && params.cancelMessage.length > 0 ? params.cancelMessage : null
 
-  let data = await documentClient.update(params).promise()
+  const cancelTimestamp = moment()
+    .unix()
+    .toString()
+
+  let data = await documentClient
+    .update({
+      TableName: transActionDataTableName,
+      Key: {
+        transferId: params.transferId
+      },
+      ConditionExpression:
+        '(attribute_not_exists(#ctr) or attribute_not_exists(#ctr.#ctrTxHash)) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
+      UpdateExpression: 'SET #cts = :cts, #tstage = :tstage, #upt = :upt, #cMsg = :cMsgValue',
+      ExpressionAttributeNames: {
+        '#ctr': 'chainsferToReceiver',
+        '#cts': 'chainsferToSender',
+        '#stcTx': 'senderToChainsfer',
+        '#stcTxSate': 'txState',
+        '#ctrTxHash': 'txHash',
+        '#tstage': 'transferStage',
+        '#cMsg': 'cancelMessage',
+        '#upt': 'updated'
+      },
+      ExpressionAttributeValues: {
+        ':cts': {
+          txHash: params.cancelTxHash,
+          txState: 'Pending',
+          txTimestamp: cancelTimestamp
+        },
+        ':stcTxSate': 'Confirmed',
+        ':tstage': 'ChainsferToSender',
+        ':cMsgValue': params.cancelMessage,
+        ':upt': cancelTimestamp
+      },
+      ReturnValues: 'ALL_NEW'
+    })
+    .promise()
   const attributes = data.Attributes
   const senderToChainsfer = attributes.senderToChainsfer
 
-  let result: { [key: string] : string } = {
-    senderName: attributes.senderName,
-    sender: attributes.sender,
-    destination: attributes.receiver,
-    transferAmount: attributes.transferAmount,
-    cryptoType: attributes.cryptoType,
-    sendingId: transferId,
-    sendTxHash: senderToChainsfer.txHash,
-    sendTimestamp: senderToChainsfer.txTimestamp,
-    cancelTxHash: cancelTxHash,
+  let result: CancelTransferReturnType = {
     cancelTimestamp: cancelTimestamp
   }
 
-  if (senderToChainsfer.gasTxHash != null) {
-    result.gasTxHash = senderToChainsfer.gasTxHash
-  }
   return result
 }
 
-async function collectPotentialExpirationRemainderList (
-  transActionDataTableName: string) {
+// eslint-disable-next-line flowtype/no-weak-types
+async function collectPotentialExpirationRemainderList(): Promise<Array<Object>> {
   const timestamp = moment().unix()
 
-  const params = {
-    ExpressionAttributeValues: {
-      ':ts': timestamp,
-      ':confirmed': 'Confirmed',
-      ':expired': 'Expired'
-    },
-    ExpressionAttributeNames: {
-      '#ctr': 'chainsferToReceiver',
-      '#cts': 'chainsferToSender',
-      '#stc': 'senderToChainsfer',
-      '#txState': 'txState',
-      '#reminder': 'reminder',
-      '#exp': 'expirationTime'
-    },
-    FilterExpression: '(attribute_not_exists(#ctr) or (attribute_exists(#ctr.#txState) and #ctr.#txState = :expired)) and attribute_not_exists(#cts) and (#stc.#txState = :confirmed) and (#reminder.#exp <= :ts)',
-    TableName: transActionDataTableName
-  }
-
   try {
-    let response = await documentClient.scan(params).promise()
-    console.log('CollectPotentialExpirationRemainderList: scaned table successfully with valid count %d and total ScannedCount %s', response.Count, response.ScannedCount)
+    let response = await documentClient
+      .scan({
+        ExpressionAttributeValues: {
+          ':ts': timestamp,
+          ':confirmed': 'Confirmed',
+          ':expired': 'Expired'
+        },
+        ExpressionAttributeNames: {
+          '#ctr': 'chainsferToReceiver',
+          '#cts': 'chainsferToSender',
+          '#stc': 'senderToChainsfer',
+          '#txState': 'txState',
+          '#reminder': 'reminder',
+          '#exp': 'expirationTime'
+        },
+        FilterExpression:
+          '(attribute_not_exists(#ctr) or (attribute_exists(#ctr.#txState) and #ctr.#txState = :expired)) and attribute_not_exists(#cts) and (#stc.#txState = :confirmed) and (#reminder.#exp <= :ts)',
+        TableName: transActionDataTableName
+      })
+      .promise()
+    console.log(
+      'CollectPotentialExpirationRemainderList: scaned table successfully with valid count %d and total ScannedCount %s',
+      response.Count,
+      response.ScannedCount
+    )
     return response.Items
   } catch (err) {
-    throw new Error('CollectPotentialExpirationRemainderList: unable to scaned table . Error: ' + err.message)
+    throw new Error(
+      'CollectPotentialExpirationRemainderList: unable to scaned table . Error: ' + err.message
+    )
   }
 }
 
-async function collectPotentialReceiverRemainderList (transActionDataTableName: string) {
+// eslint-disable-next-line flowtype/no-weak-types
+async function collectPotentialReceiverRemainderList(): Promise<Array<Object>> {
   const timestamp = moment().unix()
 
-  const params = {
-    ExpressionAttributeValues: {
-      ':ts': timestamp,
-      ':confirmed': 'Confirmed',
-      ':zero': 0
-    },
-    ExpressionAttributeNames: {
-      '#ctrTx': 'chainsferToReceiver',
-      '#ctsTx': 'chainsferToSender',
-      '#stcTx': 'senderToChainsfer',
-      '#txState': 'txState',
-      '#reminder': 'reminder',
-      '#exp': 'expirationTime',
-      '#artc': 'availableReminderToReceiver'
-    },
-    FilterExpression: '#stcTx.#txState = :confirmed and attribute_not_exists(#ctrTx) and attribute_not_exists(#ctsTx) and (#reminder.#exp > :ts) and (#reminder.#artc > :zero)',
-    TableName: transActionDataTableName
-  }
-
   try {
-    let response = await documentClient.scan(params).promise()
-    console.log('CollectReceiverRemainderList: scaned table successfully with valid count %d and total ScannedCount %s', response.Count, response.ScannedCount)
+    let response = await documentClient
+      .scan({
+        ExpressionAttributeValues: {
+          ':ts': timestamp,
+          ':confirmed': 'Confirmed',
+          ':zero': 0
+        },
+        ExpressionAttributeNames: {
+          '#ctrTx': 'chainsferToReceiver',
+          '#ctsTx': 'chainsferToSender',
+          '#stcTx': 'senderToChainsfer',
+          '#txState': 'txState',
+          '#reminder': 'reminder',
+          '#exp': 'expirationTime',
+          '#artc': 'availableReminderToReceiver'
+        },
+        FilterExpression:
+          '#stcTx.#txState = :confirmed and attribute_not_exists(#ctrTx) and attribute_not_exists(#ctsTx) and (#reminder.#exp > :ts) and (#reminder.#artc > :zero)',
+        TableName: transActionDataTableName
+      })
+      .promise()
+    console.log(
+      'CollectReceiverRemainderList: scaned table successfully with valid count %d and total ScannedCount %s',
+      response.Count,
+      response.ScannedCount
+    )
     return response.Items
   } catch (err) {
     throw new Error('CollectReceiverRemainderList: unable to scaned table . Error: ' + err.message)
   }
 }
 
-async function updateReminderToReceiver (transactionDataTableName: string, transferId: string) {
-  const ts = moment().unix().toString()
+async function updateReminderToReceiver(transferId: string) {
+  const ts = moment()
+    .unix()
+    .toString()
   const params = {
-    TableName: transactionDataTableName,
+    TableName: transActionDataTableName,
     Key: {
-      'transferId': transferId
+      transferId: transferId
     },
-    ConditionExpression: 'attribute_not_exists(#ctr) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate and #re.#artc > :zero',
+    ConditionExpression:
+      'attribute_not_exists(#ctr) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate and #re.#artc > :zero',
     UpdateExpression: 'SET #upt = :upt, #re.#artc = #re.#artc - :inc, #re.#rtrc = #re.#rtrc + :inc',
     ExpressionAttributeNames: {
       '#ctr': 'chainsferToReceiver',

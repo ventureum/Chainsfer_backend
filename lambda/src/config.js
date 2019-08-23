@@ -8,7 +8,8 @@ var request = require('request-promise')
 const BlockcypherMainTxURL = 'https://api.blockcypher.com/v1/btc/main/txs/'
 const BlockcypherTest3TxURL = 'https://api.blockcypher.com/v1/btc/test3/txs/'
 
-async function getBtcTx (txHash: string, apiUrl: string) {
+// eslint-disable-next-line flowtype/no-weak-types
+async function getBtcTx (txHash: string, apiUrl: string): Promise<Object> {
   try {
     const options = {
       method: 'GET',
@@ -61,21 +62,27 @@ const ReminderIntervalConfig: { [key: string]: number } = {
   'default': 432000 // 5 days
 }
 
-const BtcTxAPIConfig: { [key:string]: any } = {
+// eslint-disable-next-line flowtype/no-weak-types
+const BtcTxAPIConfig: { [key: string]: any } = {
   'prod': BlockcypherMainTxURL,
   'staging': BlockcypherTest3TxURL,
   'test': BlockcypherTest3TxURL,
   'default': BlockcypherTest3TxURL
 }
 
-const EthTxAPIConfig: { [key: string]: any } = {
+// eslint-disable-next-line flowtype/no-weak-types
+const EthTxAPIConfig: { [key: string]: any} = {
   'prod': ethProviderMain,
   'staging': ethProviderTest,
   'test': ethProviderTest,
   'default': ethProviderTest
 }
 
-const GoogleAPIConfig: { [key: string]: any} = {
+const GoogleAPIConfig: { [key: string]: {
+  clientId: string,
+  apiScope: string,
+  apiDiscoveryDocs: string
+}} = {
   'prod': {
     'clientId': '754636752811-94f1mrkatm9vdbe22c56oiirr5gkkgme.apps.googleusercontent.com',
     'apiScope': 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',

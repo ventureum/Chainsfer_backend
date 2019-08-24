@@ -2,6 +2,7 @@
 import type { TransferDataType } from './transfer.flow'
 export type TransferDataEmailCompatibleType = {
   ...$Exact<TransferDataType>,
+  isDemo?: boolean,
   rootUrl?: string,
   cryptoSymbol?: string,
   // send

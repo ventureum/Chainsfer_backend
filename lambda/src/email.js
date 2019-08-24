@@ -53,6 +53,11 @@ module.exports = {
     // must use spread, otherwise types are incompatiable due to object reference
     let paramsEmailCompatible: TransferDataEmailCompatibleType = { ...params }
 
+    // set isDemo value
+    paramsEmailCompatible.isDemo = false
+    if (!['staging', 'prod'].includes(deploymentStage)) {
+      paramsEmailCompatible.isDemo = true
+    }
     // set messages
     if (!paramsEmailCompatible.sendMessage) {
       paramsEmailCompatible.sendMessage = ''
@@ -124,7 +129,7 @@ module.exports = {
       Destination: {
         ToAddresses: [toAddress]
       },
-      Template: templateName,
+      Template: params.isDemo ? templateName+'Demo' : templateName,
       TemplateData: JSON.stringify(params)
     }
   },

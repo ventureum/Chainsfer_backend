@@ -622,8 +622,8 @@
                                 <td valign="top" class="mcnTextContent" style="padding:0px 40px 12px;font-family:Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;">
                                   <div style="text-align:center;">
                                     <span style="font-size:16px;line-height:30px"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">
-                                      {{receiverFullName}} just accepted your transfer of
-                                      {{transferAmount}} {{cryptoType}} ({{fiatAmountSpot}} {{fiatType}}).<br></span></span>
+                                      {{receiverName}} just accepted your transfer of
+                                      {{transferAmount}} {{cryptoSymbol}} ({{transferFiatAmountSpot}} {{fiatType}}).<br></span></span>
                                       
                                     </div>
                                   </td>
@@ -680,7 +680,7 @@
                                     <div style="text-align:left;">
                                       <span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">
                                         The transfer
-                                        is now completed. To review it, please <a href="https://{{rootUrl}}/cancel?id=%7B%7Bid%7D%7D" target="_blank">view
+                                        is now completed. To review it, please <a href="https://{{rootUrl}}/cancel?id={{transferId}}" target="_blank">view
                                         details</a> here.
                                         </span></span>
                                       </div>

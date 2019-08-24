@@ -623,9 +623,9 @@
                                   <div style="text-align:center;">
                                     <span style="font-size:16px;line-height:30px"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">
                                       You just sent
-                                      {{transferAmount}} {{cryptoType}} ({{fiatAmountSpot}} {{fiatType}})
-                                      to {{receiverFullName}} at {{destination}}.<br>
-                                      Message: {{transferMessage}}
+                                      {{transferAmount}} {{cryptoSymbol}} ({{transferFiatAmountSpot}} {{fiatType}})
+                                      to {{receiverName}} at {{destination}}.<br>
+                                      Message: {{sendMessage}}
                                       </span></span>
                                       
                                     </div>
@@ -692,7 +692,7 @@
                                             <li style="text-align:left;"><span style="font-size:14px"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">
                                               To cancel
                                               or check status of your
-                                              transfer, please <a href="https://{{rootUrl}}/cancel?id=%7B%7Bid%7D%7D" target="_blank">view
+                                              transfer, please <a href="https://{{rootUrl}}/cancel?id={{transferId}}" target="_blank">view
                                               details</a>
                                               here.</span></span>
                                             </li>

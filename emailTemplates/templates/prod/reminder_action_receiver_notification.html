@@ -622,9 +622,9 @@
                                 <td valign="top" class="mcnTextContent" style="padding:0px 40px 9px;font-family:Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;">
                                   <div style="text-align:center;">
                                     <span style="font-size:16px;line-height:30px"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">
-                                      Remember to deposit your {{transferAmount}} {{cryptoType}} ({{fiatAmountSpot}} {{fiatType}})
-                                      from {{senderFullName}}.<br>
-                                      Message: {{transferMessage}}
+                                      Remember to deposit your {{transferAmount}} {{cryptoSymbol}} ({{transferFiatAmountSpot}} {{fiatType}})
+                                      from {{senderName}}.<br>
+                                      Message: {{sendMessage}}
                                       </span></span>
                                     </div>
                                   </td>
@@ -643,7 +643,7 @@
                               <tbody>
                                 <tr>
                                   <td align="center" valign="middle" class="mcnButtonContent" style="font-family:Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:16px;padding:16px;">
-                                    <a class="mcnButton" title="Sign in to Deposit" href="https://{{rootUrl}}/receive?id=%7B%7Bid%7D%7D" target="_blank" style="font-weight:normal;letter-spacing:normal;line-height:100%;text-align:center;text-decoration:none;color:#FFFFFF;">Sign
+                                    <a class="mcnButton" title="Sign in to Deposit" href="https://{{rootUrl}}/receive?id={{receivingId}}" target="_blank" style="font-weight:normal;letter-spacing:normal;line-height:100%;text-align:center;text-decoration:none;color:#FFFFFF;">Sign
                                       in to Deposit</a>
                                     </td>
                                   </tr>

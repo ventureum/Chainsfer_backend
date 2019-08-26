@@ -623,8 +623,8 @@
                                   <div style="text-align:center;">
                                     <span style="font-size:16px;line-height:30px"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">
                                       You just cancelled the transfer of
-                                      {{transferAmount}} {{cryptoType}} ({{fiatAmountSpot}} {{fiatType}})
-                                      to {{receiverFullName}} at
+                                      {{transferAmount}} {{cryptoSymbol}} ({{transferFiatAmountSpot}} {{fiatType}})
+                                      to {{receiverName}} at
                                       {{destination}}.<br>
                                       Message: {{cancelMessage}}
                                       </span></span>
@@ -683,7 +683,7 @@
                                     <div style="text-align:left;">
                                       <span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">
                                         The cancellation is now completed. To review it,
-                                        please <a href="https://{{rootUrl}}/cancel?id=%7B%7Bid%7D%7D" target="_blank">view
+                                        please <a href="https://{{rootUrl}}/cancel?id={{transferId}}" target="_blank">view
                                         details</a> here.
                                         </span></span>
                                       </div>

@@ -623,8 +623,8 @@
                                   <div style="text-align:center;">
                                     <span style="font-size:16px;line-height:30px"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">
                                       The transfer of
-                                      {{transferAmount}} {{cryptoType}} ({{fiatAmountSpot}} {{fiatType}}
-                                      from {{senderFullName}} has just
+                                      {{transferAmount}} {{cryptoSymbol}} ({{transferFiatAmountSpot}} {{fiatType}}
+                                      from {{senderName}} has just
                                       expired.<br></span></span>
                                     </div>
                                   </td>
@@ -674,7 +674,7 @@
                                     <div style="text-align:left;">
                                       <span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">
 																				This transfer expired because it has not been deposited in {{expirePeriod}} days.
-																				If you have questions about this expiration, please <a href="https://{{rootUrl}}/receive?id=%7B%7Bid%7D%7D" target="_blank">view
+																				If you have questions about this expiration, please <a href="https://{{rootUrl}}/receive?id={{receivingId}}" target="_blank">view
 																				details</a> here and
 																				check out the <a href="http://help.chainsfr.com/en/articles/3222012" target="_blank">expiration policy</a>.
                                         </span></span>

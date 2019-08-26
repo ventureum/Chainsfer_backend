@@ -19,132 +19,87 @@ const path = require('path')
 const fs = require('fs')
 
 let templatesDir = path.resolve(__dirname, '../emailTemplates/templates')
-let sendActionSenderHtml = templatesDir + '/send_action_sender_notification.html'
-let sendActionReceiverHtml = templatesDir + '/send_action_receiver_notification.html'
 
-let receiveActionSenderHtml = templatesDir + '/receive_action_sender_notification.html'
-let receiveActionReceiverHtml = templatesDir + '/receive_action_receiver_notification.html'
-
-let cancelActionSenderHtml = templatesDir + '/cancel_action_sender_notification.html'
-let cancelActionReceiverHtml = templatesDir + '/cancel_action_receiver_notification.html'
-
-let expireActionSenderHtml = templatesDir + '/expire_action_sender_notification.html'
-let expireActionReceiverHtml = templatesDir + '/expire_action_receiver_notification.html'
-
-let reminderActionReceiverHtml = templatesDir + '/reminder_action_receiver_notification.html'
-
-let sendActionSenderStr = fs.readFileSync(sendActionSenderHtml, 'utf8')
-let sendActionReceiverStr = fs.readFileSync(sendActionReceiverHtml, 'utf8')
-
-let receiveActionSenderStr = fs.readFileSync(receiveActionSenderHtml, 'utf8')
-let receiveActionReceiverStr = fs.readFileSync(receiveActionReceiverHtml, 'utf8')
-
-let cancelActionSenderStr = fs.readFileSync(cancelActionSenderHtml, 'utf8')
-let cancelActionReceiverStr = fs.readFileSync(cancelActionReceiverHtml, 'utf8')
-
-let expireActionSenderStr = fs.readFileSync(expireActionSenderHtml, 'utf8')
-let expireActionReceiverStr = fs.readFileSync(expireActionReceiverHtml, 'utf8')
-
-let reminderActionReceiverStr = fs.readFileSync(reminderActionReceiverHtml, 'utf8')
-
-const sendActionSenderEmail = {
-  Template: {
-    TemplateName: 'sendActionSenderEmail',
-    SubjectPart:
-      'Chainsfr: {{transferAmount}} {{cryptoSymbol}} has been sent to {{destination}}',
-    HtmlPart: sendActionSenderStr
+const EMAIL_META = [
+  {
+    filename: 'send_action_sender_notification.html',
+    name: 'sendActionSenderEmail',
+    subject: 'Chainsfr: {{transferAmount}} {{cryptoSymbol}} has been sent to {{destination}}'
+  },
+  {
+    filename: 'send_action_receiver_notification.html',
+    name: 'sendActionReceiverEmail',
+    subject: 'Chainsfr: {{sender}} sent you {{transferAmount}} {{cryptoSymbol}}'
+  },
+  {
+    filename: 'receive_action_sender_notification.html',
+    name: 'receiveActionSenderEmail',
+    subject:
+      'Chainsfr: {{destination}} accepted your transfer of {{transferAmount}} {{cryptoSymbol}}'
+  },
+  {
+    filename: 'receive_action_receiver_notification.html',
+    name: 'receiveActionReceiverEmail',
+    subject:
+      'Chainsfr: A transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been deposited'
+  },
+  {
+    filename: 'cancel_action_sender_notification.html',
+    name: 'cancelActionSenderEmail',
+    subject:
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has been cancelled'
+  },
+  {
+    filename: 'cancel_action_receiver_notification.html',
+    name: 'cancelActionReceiverEmail',
+    subject:
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been cancelled'
+  },
+  {
+    filename: 'expire_action_sender_notification.html',
+    name: 'expireActionSenderEmail',
+    subject:
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has expired'
+  },
+  {
+    filename: 'expire_action_receiver_notification.html',
+    name: 'expireActionReceiverEmail',
+    subject:
+      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has expired'
+  },
+  {
+    filename: 'reminder_action_receiver_notification.html',
+    name: 'reminderActionReceiverEmail',
+    subject:
+      'Chainsfr: Remember to deposit your {{transferAmount}} {{cryptoSymbol}} from {{sender}}'
+  },
+  {
+    filename: 'reminder_action_sender_notification.html',
+    name: 'reminderActionSenderEmail',
+    subject:
+      'Chainsfr: Remember to reclaim your {{transferAmount}} {{cryptoSymbol}} to {{destination}}'
   }
-}
-
-const sendActionReceiverEmail = {
-  Template: {
-    TemplateName: 'sendActionReceiverEmail',
-    SubjectPart:
-      'Chainsfr: {{sender}} sent you {{transferAmount}} {{cryptoSymbol}}',
-    HtmlPart: sendActionReceiverStr
-  }
-}
-
-const receiveActionSenderEmail = {
-  Template: {
-    TemplateName: 'receiveActionSenderEmail',
-    SubjectPart:
-      'Chainsfr: {{destination}} accepted your transfer of {{transferAmount}} {{cryptoSymbol}}',
-    HtmlPart: receiveActionSenderStr
-  }
-}
-
-const receiveActionReceiverEmail = {
-  Template: {
-    TemplateName: 'receiveActionReceiverEmail',
-    SubjectPart:
-      'Chainsfr: A transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been deposited',
-    HtmlPart: receiveActionReceiverStr
-  }
-}
-
-const cancelActionSenderEmail = {
-  Template: {
-    TemplateName: 'cancelActionSenderEmail',
-    SubjectPart:
-      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has been cancelled',
-    HtmlPart: cancelActionSenderStr
-  }
-}
-
-const cancelActionReceiverEmail = {
-  Template: {
-    TemplateName: 'cancelActionReceiverEmail',
-    SubjectPart:
-      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has been cancelled',
-    HtmlPart: cancelActionReceiverStr
-  }
-}
-
-const expireActionSenderEmail = {
-  Template: {
-    TemplateName: 'expireActionSenderEmail',
-    SubjectPart:
-      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has expired',
-    HtmlPart: expireActionSenderStr
-  }
-}
-
-const expireActionReceiverEmail = {
-  Template: {
-    TemplateName: 'expireActionReceiverEmail',
-    SubjectPart:
-      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{sender}} has expired',
-    HtmlPart: expireActionReceiverStr
-  }
-}
-
-const reminderActionReceiverEmail = {
-  Template: {
-    TemplateName: 'reminderActionReceiverEmail',
-    SubjectPart:
-      'Chainsfr: Remember to deposit your {{transferAmount}} {{cryptoSymbol}} from {{sender}}',
-    HtmlPart: reminderActionReceiverStr
-  }
-}
-
-var templates = [
-  sendActionSenderEmail,
-  sendActionReceiverEmail,
-  receiveActionSenderEmail,
-  receiveActionReceiverEmail,
-  cancelActionSenderEmail,
-  cancelActionReceiverEmail,
-  expireActionSenderEmail,
-  expireActionReceiverEmail,
-  reminderActionReceiverEmail
 ]
 
-async function main () {
-  let listTemplatesPromise = new AWS.SES({ apiVersion: '2010-12-01' })
-    .listTemplates()
-    .promise()
+async function main() {
+  let listTemplatesPromise = new AWS.SES({ apiVersion: '2010-12-01' }).listTemplates().promise()
   console.log('Existing templates: ', await listTemplatesPromise)
+
+  var templates = []
+  for (let meta of EMAIL_META) {
+    // prod
+    templates.push({ Template: {
+      TemplateName: meta.name,
+      SubjectPart: meta.subject,
+      HtmlPart: fs.readFileSync(`${templatesDir}/prod/${meta.filename}`, 'utf8')
+    }})
+    // demo
+    templates.push({ Template: {
+      TemplateName: meta.name + 'Demo',
+      SubjectPart: meta.subject,
+      HtmlPart: fs.readFileSync(`${templatesDir}/demo/${meta.filename}`, 'utf8')
+    }})
+  }
 
   for (let _template of templates) {
     // Create the promise and SES service object
@@ -163,6 +118,8 @@ async function main () {
 
         let rv = await updateTemplatePromise
         console.log(`Updated ${_template.Template.TemplateName}`, rv)
+      } else {
+        console.log(error)
       }
     }
   }

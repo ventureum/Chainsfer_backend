@@ -74,10 +74,13 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       const str = `For tarnsfer ${item.transferId}, expiration remiander is sent to sender`
       console.log(str)
       await insertExpiredState(item.transferId)
-      await email.expireAction(
-        AWS.DynamoDB.Converter.unmarshall(item),
-        reminderToSenderCount === 0
-      )
+      if (reminderToSenderCount === 0) {
+        // just expired, sent expiration notice
+        await email.expireAction(AWS.DynamoDB.Converter.unmarshall(item))
+      } else {
+        // has already expired, send notice to sender to cancel the transfer
+        await email.senderReminderAction(AWS.DynamoDB.Converter.unmarshall(item))
+      }
     }
   }
 

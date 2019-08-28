@@ -38,10 +38,10 @@ const rootUrl = Config.RootUrlConfig[deploymentStage] || Config.RootUrlConfig['d
 
 module.exports = {
   // ses utils
-  getHumanReadbleTimestamp: function(timestamp: number): string {
+  getHumanReadbleTimestamp: function (timestamp: number): string {
     return moment.unix(timestamp).format('MMM Do YYYY, HH:mm:ss a')
   },
-  getTimestampLinkParams: function(timestamp: number): string {
+  getTimestampLinkParams: function (timestamp: number): string {
     const { years, months, date, hours, minutes, seconds } = moment
       .unix(timestamp)
       .utc()
@@ -49,7 +49,7 @@ module.exports = {
     return `day=${date}&month=${months +
       1}&year=${years}&hour=${hours}&min=${minutes}&sec=${seconds}`
   },
-  toEmailCompatible: function(params: TransferDataType): TransferDataEmailCompatibleType {
+  toEmailCompatible: function (params: TransferDataType): TransferDataEmailCompatibleType {
     // must use spread, otherwise types are incompatiable due to object reference
     let paramsEmailCompatible: TransferDataEmailCompatibleType = { ...params }
 
@@ -118,7 +118,7 @@ module.exports = {
 
     return paramsEmailCompatible
   },
-  getTemplate: function(
+  getTemplate: function (
     toAddress: string,
     templateName: string,
     params: TransferDataEmailCompatibleType
@@ -129,7 +129,7 @@ module.exports = {
       Destination: {
         ToAddresses: [toAddress]
       },
-      Template: params.isDemo ? templateName+'Demo' : templateName,
+      Template: params.isDemo ? templateName + 'Demo' : templateName,
       TemplateData: JSON.stringify(params)
     }
   },
@@ -141,57 +141,55 @@ module.exports = {
    *
    * this file should be light-weight and should not be modified often
    */
-  sendActionSenderEmailParams: function(params: TransferDataEmailCompatibleType): TemplateType {
+  sendActionSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.sender, 'sendActionSenderEmail', params)
   },
-  sendActionReceiverEmailParams: function(params: TransferDataEmailCompatibleType): TemplateType {
+  sendActionReceiverEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.destination, 'sendActionReceiverEmail', params)
   },
-  receiveActionSenderEmailParams: function(params: TransferDataEmailCompatibleType): TemplateType {
+  receiveActionSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.sender, 'receiveActionSenderEmail', params)
   },
-  receiveActionReceiverEmailParams: function(
+  receiveActionReceiverEmailParams: function (
     params: TransferDataEmailCompatibleType
   ): TemplateType {
     return this.getTemplate(params.destination, 'receiveActionReceiverEmail', params)
   },
-  cancelActionSenderEmailParams: function(params: TransferDataEmailCompatibleType): TemplateType {
+  cancelActionSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.sender, 'cancelActionSenderEmail', params)
   },
-  cancelActionReceiverEmailParams: function(params: TransferDataEmailCompatibleType): TemplateType {
+  cancelActionReceiverEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.destination, 'cancelActionReceiverEmail', params)
   },
-  expireActionSenderEmailParams: function(params: TransferDataEmailCompatibleType): TemplateType {
+  expireActionSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.sender, 'expireActionSenderEmail', params)
   },
-  expireActionReceiverEmailParams: function(params: TransferDataEmailCompatibleType): TemplateType {
+  expireActionReceiverEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.destination, 'expireActionReceiverEmail', params)
   },
-  reminderActionSenderEmailParams: function(
-    params: TransferDataEmailCompatibleType
-  ): TemplateType {
+  reminderActionSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.destination, 'reminderActionSenderEmail', params)
   },
-  reminderActionReceiverEmailParams: function(
+  reminderActionReceiverEmailParams: function (
     params: TransferDataEmailCompatibleType
   ): TemplateType {
     return this.getTemplate(params.destination, 'reminderActionReceiverEmail', params)
   },
-  sendAction: function(params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
+  sendAction: function (params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
     return Promise.all([
       ses.sendTemplatedEmail(this.sendActionSenderEmailParams(paramsEmailCompatible)).promise(),
       ses.sendTemplatedEmail(this.sendActionReceiverEmailParams(paramsEmailCompatible)).promise()
     ])
   },
-  receiveAction: function(params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
+  receiveAction: function (params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
     return Promise.all([
       ses.sendTemplatedEmail(this.receiveActionSenderEmailParams(paramsEmailCompatible)).promise(),
       ses.sendTemplatedEmail(this.receiveActionReceiverEmailParams(paramsEmailCompatible)).promise()
     ])
   },
-  cancelAction: function(params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
+  cancelAction: function (params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
     return Promise.all([
       ses.sendTemplatedEmail(this.cancelActionSenderEmailParams(paramsEmailCompatible)).promise(),
@@ -199,7 +197,7 @@ module.exports = {
     ])
   },
   // only send once to both sender and receiver when the transfer is expired
-  expireAction: function(params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
+  expireAction: function (params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
     return Promise.all([
       ses.sendTemplatedEmail(this.expireActionSenderEmailParams(paramsEmailCompatible)).promise(),
@@ -207,7 +205,7 @@ module.exports = {
     ])
   },
   // sent to receiver before expiration
-  receiverReminderAction: function(
+  receiverReminderAction: function (
     params: TransferDataType
   ): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
@@ -218,7 +216,7 @@ module.exports = {
     ])
   },
   // sent to sender after expiration
-  senderReminderAction: function(
+  senderReminderAction: function (
     params: TransferDataType
   ): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)

@@ -45,11 +45,15 @@ async function getRecipients (userTableName: string, googleId: string): Promise<
   }
 }
 
-async function removeRecipient (userTableName: string, googleId: string, recipient: RecipientType): Promise<RecipientListType> {
+async function removeRecipient (
+  userTableName: string,
+  googleId: string,
+  recipient: RecipientType
+): Promise<RecipientListType> {
   let { recipients } = await getRecipients(userTableName, googleId)
 
   recipients = recipients.filter((item: RecipientType): boolean => {
-    return item.name !== recipient.name
+    return item.email !== recipient.email
   })
 
   const params = {
@@ -71,12 +75,18 @@ async function removeRecipient (userTableName: string, googleId: string, recipie
   }
 }
 
-async function addRecipient (userTableName: string, googleId: string, recipient: RecipientType): Promise<{
+async function addRecipient (
+  userTableName: string,
+  googleId: string,
+  recipient: RecipientType
+): Promise<{
   action: string,
   ...$Exact<RecipientListType>
 }> {
   let { recipients } = await getRecipients(userTableName, googleId)
-  const index = recipients.findIndex((item: RecipientType): boolean => item.name === recipient.name)
+  const index = recipients.findIndex(
+    (item: RecipientType): boolean => item.email === recipient.email
+  )
   const now = Math.floor(Date.now() / 1000)
   // replace if exist
   if (index !== -1) {

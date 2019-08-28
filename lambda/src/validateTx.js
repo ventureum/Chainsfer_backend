@@ -41,7 +41,7 @@ const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 const ethProvider = Config.EthTxAPIConfig[deploymentStage] || Config.EthTxAPIConfig['default']
 const btcApiTxURL = Config.BtcTxAPIConfig[deploymentStage] || Config.BtcTxAPIConfig['default']
 
-async function checkEthTxConfirmation(txHash: string): Promise<number> {
+async function checkEthTxConfirmation (txHash: string): Promise<number> {
   try {
     let transactionReceipt = await ethProvider.getTransactionReceipt(txHash)
     if (transactionReceipt !== null && transactionReceipt.status === 1) {
@@ -53,7 +53,7 @@ async function checkEthTxConfirmation(txHash: string): Promise<number> {
   }
 }
 
-async function checkBtcTxConfirmation(txHash: string): Promise<number> {
+async function checkBtcTxConfirmation (txHash: string): Promise<number> {
   try {
     let transactionReceipt = await Config.getBtcTx(txHash, btcApiTxURL)
     if (transactionReceipt.block_height !== undefined && transactionReceipt.block_height > 0) {
@@ -65,12 +65,12 @@ async function checkBtcTxConfirmation(txHash: string): Promise<number> {
   }
 }
 
-async function checkLibraTxConfirmation(txHash: string): Promise<number> {
+async function checkLibraTxConfirmation (txHash: string): Promise<number> {
   // libra tx is almost instant
   return 1
 }
 
-async function processTxConfirmation(
+async function processTxConfirmation (
   retryCount: number,
   checkFunction: (txHash: string) => Promise<number>,
   cryptoType: CryptoType,
@@ -140,7 +140,7 @@ async function processTxConfirmation(
   }
 }
 
-async function updateTxState(state: string, item: TransferDataType) {
+async function updateTxState (state: string, item: TransferDataType) {
   const ts = moment()
     .unix()
     .toString()
@@ -172,7 +172,7 @@ async function updateTxState(state: string, item: TransferDataType) {
   }
 }
 
-async function sendMessageBackToSQS(
+async function sendMessageBackToSQS (
   messageBody: string,
   retryCount: number,
   txHashConfirmed: number,
@@ -207,7 +207,7 @@ async function sendMessageBackToSQS(
   }
 }
 
-async function deleteMessageFromSQS(receiptHandle: string) {
+async function deleteMessageFromSQS (receiptHandle: string) {
   const deleteParams = {
     QueueUrl: Config.QueueURLPrefix + sqsName,
     ReceiptHandle: receiptHandle
@@ -241,7 +241,7 @@ type SqsMessageType = {
   }
 }
 
-async function receiveMessagesFromSQS(): Promise<{Messages: Array<SqsMessageType>}> {
+async function receiveMessagesFromSQS (): Promise<{ Messages: Array<SqsMessageType> }> {
   const params = {
     QueueUrl: Config.QueueURLPrefix + sqsName,
     MaxNumberOfMessages: '10',
@@ -257,7 +257,7 @@ async function receiveMessagesFromSQS(): Promise<{Messages: Array<SqsMessageType
   }
 }
 
-async function sendEmail(item: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
+async function sendEmail (item: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
   const transferStage = item.transferStage
   switch (transferStage) {
     case 'SenderToChainsfer':

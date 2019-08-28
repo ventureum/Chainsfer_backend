@@ -17,12 +17,12 @@ type RecordType = {
   }
 }
 
-exports.handler = function(
+exports.handler = function (
   event: { Records: Array<RecordType> },
   context: Context,
   callback: Callback
 ) {
-  event.Records.forEach(function(record: RecordType) {
+  event.Records.forEach(function (record: RecordType) {
     const newImage = record.dynamodb.NewImage
     const transferData: TransferDataType = AWS.DynamoDB.Converter.unmarshall(newImage)
     const transferStage = transferData.transferStage
@@ -52,7 +52,7 @@ exports.handler = function(
           }
         }
       }
-      sqs.sendMessage(params, function(err: string, data: { MessageId: string }) {
+      sqs.sendMessage(params, function (err: string, data: { MessageId: string }) {
         if (err) {
           console.log('Fail to send message: ', err)
           context.done('error', 'ERROR Put SQS')

@@ -54,9 +54,9 @@ module.exports = {
     let paramsEmailCompatible: TransferDataEmailCompatibleType = { ...params }
 
     // set isDemo value
-    paramsEmailCompatible.isDemo = false
-    if (!['staging', 'prod'].includes(deploymentStage)) {
-      paramsEmailCompatible.isDemo = true
+    paramsEmailCompatible.isDemo = true
+    if (deploymentStage === 'prod') {
+      paramsEmailCompatible.isDemo = false
     }
     // set messages
     if (!paramsEmailCompatible.sendMessage) {
@@ -129,7 +129,7 @@ module.exports = {
       Destination: {
         ToAddresses: [toAddress]
       },
-      Template: params.isDemo ? templateName+'Demo' : templateName,
+      Template: params.isDemo ? templateName + 'Demo' : templateName,
       TemplateData: JSON.stringify(params)
     }
   },

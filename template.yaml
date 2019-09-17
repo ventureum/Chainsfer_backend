@@ -33,6 +33,14 @@ Parameters:
     Description: The rate that triggers validateTx Lambda function
     Default: rate(2 minutes)
     Type: String
+  EthPrivateKey:
+    Description: The ETH private key for referal
+    Default: '0x0'
+    Type: String
+  ReferralWalletTableName:
+    Description: The name of the referal wallet table
+    Default: ChainsferReferralWalletData
+    Type: String
 Globals:
   Function:
     Runtime: nodejs8.10
@@ -61,6 +69,13 @@ Globals:
               - Ref: ENV
         ENV_VALUE:
           Ref: ENV
+        ETH_PRIVATE_KEY:
+          Ref: EthPrivateKey
+        REFERRAL_WALLET_TABLE_NAME:
+          'Fn::Join':
+            - ''
+            - - Ref: ReferralWalletTableName
+              - Ref: ENV
 Resources:
   stream:
     Properties:
@@ -127,6 +142,33 @@ Resources:
       SourceArn:
         'Fn::Sub': >-
           arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/POST/user
+    DependsOn:
+      - ChainsferRestApi
+  referralWalletRequest:
+    Properties:
+      FunctionName:
+        'Fn::Join':
+          - ''
+          - - LambdaReferralWallet
+            - Ref: ENV
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+      Handler: dist/referralWallet.handler
+      MemorySize: 128
+      Description: ''
+    Type: 'AWS::Serverless::Function'
+  ReferralWalletRequestApiGatewayInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - referralWalletRequest
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        'Fn::Sub': >-
+          arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/POST/referralWallet
     DependsOn:
       - ChainsferRestApi
   validateTx:
@@ -274,6 +316,23 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+  ReferralWalletTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName:
+        'Fn::Join':
+          - ''
+          - - Ref: ReferralWalletTableName
+            - Ref: ENV
+      AttributeDefinitions:
+        - AttributeName: googleId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: googleId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
   TransactionDataStreamMapping:
     Type: 'AWS::Lambda::EventSourceMapping'
     Properties:
@@ -407,8 +466,8 @@ Resources:
           - ResponseParameters:
               method.response.header.Access-Control-Allow-Headers: >-
                 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
-              method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS'''
-              method.response.header.Access-Control-Allow-Origin: '''*'''
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
             ResponseTemplates:
               application/json: ''
             StatusCode: '200'
@@ -475,8 +534,76 @@ Resources:
           - ResponseParameters:
               method.response.header.Access-Control-Allow-Headers: >-
                 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
-              method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS'''
-              method.response.header.Access-Control-Allow-Origin: '''*'''
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+            StatusCode: '200'
+        PassthroughBehavior: NEVER
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+          StatusCode: '200'
+  ChainsferReferralWalletRestApiResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId:
+        Ref: ChainsferRestApi
+      ParentId:
+        'Fn::GetAtt':
+          - ChainsferRestApi
+          - RootResourceId
+      PathPart: referralWallet
+  ChainsferReferralWalletRestApiRequestPOST:
+    DependsOn: ReferralWalletRequestApiGatewayInvokePermission
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          'Fn::Sub':
+            - >-
+              arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+            - lambdaArn:
+                'Fn::GetAtt':
+                  - referralWalletRequest
+                  - Arn
+      ResourceId:
+        Ref: ChainsferReferralWalletRestApiResource
+      RestApiId:
+        Ref: ChainsferRestApi
+      MethodResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+          StatusCode: '200'
+  ChainsferReferralWalletRestApiCORSOptionMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      ResourceId:
+        Ref: ChainsferReferralWalletRestApiResource
+      RestApiId:
+        Ref: ChainsferRestApi
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: >-
+                'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
             ResponseTemplates:
               application/json: ''
             StatusCode: '200'

@@ -3,7 +3,7 @@ notifications:
   slack: ventureum-team:DSE8wxmLTenq0Yz17BrYBWg9
 language: node_js
 node_js:
-- 8
+  - 8
 fail_fast: true
 env:
   global:
@@ -15,15 +15,14 @@ before_install:
   - pip install --user awscli
 script:
   - npm run eslint
-  - npm run flow 
+  - npm run flow
   - npm run build
 deploy:
   # deploy to AWS
   provider: script
-  script: "npm run upload && make all ENV=staging && make all ENV=prod"
+  script: 'npm run upload && make all ENV=staging && make all ENV=test && make all ENV=prod '
   skip_cleanup: true
   on:
     branch: master
-  
 true:
   branch: master

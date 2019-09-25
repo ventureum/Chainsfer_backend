@@ -197,6 +197,8 @@ async function createAccount (googleId: string): Promise<{ balance: string }> {
   }
 }
 
+module.exports = { createAccount }
+
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   let request = JSON.parse(event.body)
 

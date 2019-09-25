@@ -2,6 +2,7 @@
 import type { Context, Callback } from 'flow-aws-lambda'
 import { verifyGoogleIdToken } from './dynamoDBTxOps.js'
 
+var referralWallet = require('./referralWallet.js')
 var Config = require('./config.js')
 const AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
@@ -25,6 +26,20 @@ type RecipientListType = {
   googleId: string,
   recipients: Array<RecipientType>
 }
+
+async function register (userTableName: string, googleId: string): Promise<{ balance: string }> {
+  // init User item
+  let response = await documentClient.put({
+    TableName: userTableName,
+    Item: {
+      googleId: googleId,
+      recipients: []
+    }
+  }).promise()
+
+  // create a referral account
+  return referralWallet.createAccount(googleId)
+} 
 
 async function getRecipients (userTableName: string, googleId: string): Promise<RecipientListType> {
   const params = {
@@ -151,8 +166,10 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
   try {
     let rv = null
     let googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], request.idToken)
-
-    if (request.action === 'GET_RECIPIENTS') {
+    
+    if (request.action === 'REGISTER') {
+      rv = await register(userTableName, googleId)
+    } else if (request.action === 'GET_RECIPIENTS') {
       rv = await getRecipients(userTableName, googleId)
     } else if (request.action === 'REMOVE_RECIPIENT') {
       rv = await removeRecipient(userTableName, googleId, request.recipient)

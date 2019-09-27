@@ -50,6 +50,12 @@ const EMAIL_META = [
       'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has been cancelled'
   },
   {
+    filename: 'reclaim_action_sender_notification.html',
+    name: 'reclaimActionSenderEmail',
+    subject:
+      'Chainsfr: The expired transfer of {{transferAmount}} {{cryptoSymbol}} to {{destination}} has been reclaimed'
+  },
+  {
     filename: 'cancel_action_receiver_notification.html',
     name: 'cancelActionReceiverEmail',
     subject:

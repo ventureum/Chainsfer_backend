@@ -158,6 +158,9 @@ module.exports = {
   cancelActionSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.sender, 'cancelActionSenderEmail', params)
   },
+  reclaimActionSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
+    return this.getTemplate(params.sender, 'reclaimActionSenderEmail', params)
+  },
   cancelActionReceiverEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.destination, 'cancelActionReceiverEmail', params)
   },
@@ -194,6 +197,13 @@ module.exports = {
     return Promise.all([
       ses.sendTemplatedEmail(this.cancelActionSenderEmailParams(paramsEmailCompatible)).promise(),
       ses.sendTemplatedEmail(this.cancelActionReceiverEmailParams(paramsEmailCompatible)).promise()
+    ])
+  },
+  // send to sender when the expired transfer is reclaimed by the sender
+  reclaimAction: function (params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
+    const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
+    return Promise.all([
+      ses.sendTemplatedEmail(this.reclaimActionSenderEmailParams(paramsEmailCompatible)).promise()
     ])
   },
   // only send once to both sender and receiver when the transfer is expired

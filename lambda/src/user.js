@@ -27,19 +27,36 @@ type RecipientListType = {
   recipients: Array<RecipientType>
 }
 
+type CryptoAccountType = {
+  cryptoType: string,
+  walletType: string,
+  address: ?string,
+  xpub: ?string,
+  name: string,
+  verified: boolean,
+  receivable: boolean,
+  sendable: boolean,
+  addedAt: number, // timestamp
+  updatedAt: number // timestamp
+}
+
+type CryptoAccounResponsetType = { cryptoAccounts: Array<CryptoAccountType> }
+
 async function register (userTableName: string, googleId: string): Promise<{ balance: string }> {
   // init User item
-  let response = await documentClient.put({
-    TableName: userTableName,
-    Item: {
-      googleId: googleId,
-      recipients: []
-    }
-  }).promise()
+  let response = await documentClient
+    .put({
+      TableName: userTableName,
+      Item: {
+        googleId: googleId,
+        recipients: []
+      }
+    })
+    .promise()
 
   // create a referral account
   return referralWallet.createAccount(googleId)
-} 
+}
 
 async function getRecipients (userTableName: string, googleId: string): Promise<RecipientListType> {
   const params = {
@@ -135,6 +152,127 @@ async function addRecipient (
   }
 }
 
+function _checkAccountExist (
+  cryptoAccounts: Array<CryptoAccountType>,
+  account: CryptoAccountType
+): boolean {
+  return (
+    cryptoAccounts.findIndex((item: CryptoAccountType): boolean => {
+      return (
+        item.cryptoType === account.cryptoType &&
+        (item.address === account.address || item.xpub === account.xpub)
+      )
+    }) >= 0
+  )
+}
+
+async function _updateCryptoAccounts (
+  userTableName: string,
+  googleId: string,
+  cryptoAccounts: Array<CryptoAccountType>
+): Promise<CryptoAccounResponsetType> {
+  const params = {
+    TableName: userTableName,
+    Key: {
+      googleId: googleId
+    },
+    UpdateExpression: 'set cryptoAccounts = :c',
+    ExpressionAttributeValues: {
+      ':c': cryptoAccounts
+    },
+    ReturnValues: 'UPDATED_NEW'
+  }
+  let response = await documentClient.update(params).promise()
+  return {
+    cryptoAccounts: response.Attributes.cryptoAccounts
+  }
+}
+
+async function getCryptoAccounts (
+  userTableName: string,
+  googleId: string
+): Promise<CryptoAccounResponsetType> {
+  const params = {
+    TableName: userTableName,
+    Key: {
+      googleId
+    }
+  }
+  let response = await documentClient.get(params).promise()
+  let result = []
+  if (!response.Item || !response.Item.googleId) {
+    throw new Error('User not found.')
+  }
+  if (response.Item && response.Item.cryptoAccounts) {
+    result = [...response.Item.cryptoAccounts]
+  }
+  return {
+    cryptoAccounts: result
+  }
+}
+
+async function addCryptoAccount (
+  userTableName: string,
+  googleId: string,
+  account: CryptoAccountType
+): Promise<CryptoAccounResponsetType> {
+  let { cryptoAccounts } = await getCryptoAccounts(userTableName, googleId)
+  // if crypto account not exists, add
+  if (!_checkAccountExist(cryptoAccounts, account)) {
+    const now = Math.floor(Date.now() / 1000)
+    account.addedAt = now
+    account.updatedAt = now
+    cryptoAccounts.push(account)
+    return _updateCryptoAccounts(userTableName, googleId, cryptoAccounts)
+  } else {
+    throw new Error('Account already exists')
+  }
+}
+
+async function removeCryptoAccount (
+  userTableName: string,
+  googleId: string,
+  account: CryptoAccountType
+): Promise<CryptoAccounResponsetType> {
+  let { cryptoAccounts } = await getCryptoAccounts(userTableName, googleId)
+  if (cryptoAccounts.length > 0) {
+    cryptoAccounts.filter((account: CryptoAccountType): boolean => {
+      return _checkAccountExist(cryptoAccounts, account)
+    })
+    return _updateCryptoAccounts(userTableName, googleId, cryptoAccounts)
+  }
+  return { cryptoAccounts }
+}
+
+async function modifyCryptoAccountName (
+  userTableName: string,
+  googleId: string,
+  account: CryptoAccountType
+): Promise<CryptoAccounResponsetType> {
+  let { cryptoAccounts } = await getCryptoAccounts(userTableName, googleId)
+  let exist = false
+  cryptoAccounts = cryptoAccounts.map((item: CryptoAccountType): CryptoAccountType => {
+    if (
+      item.cryptoType === account.cryptoType &&
+      (item.xpub === account.xpub || item.address === account.address)
+    ) {
+      item.name = account.name
+      const now = Math.floor(Date.now() / 1000)
+      account.updatedAt = now
+      exist = true
+    }
+    return item
+  })
+  if (exist !== true) {
+    throw new Error('Account not found')
+  }
+  if (cryptoAccounts.length > 0) {
+    return _updateCryptoAccounts(userTableName, googleId, cryptoAccounts)
+  } else {
+    return { cryptoAccounts }
+  }
+}
+
 // eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   let request = JSON.parse(event.body)
@@ -158,7 +296,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     } else {
       console.log(err)
       response.statusCode = 500
-      response.body = JSON.stringify(err)
+      response.body = err.message
       callback(null, response)
     }
   }
@@ -166,7 +304,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
   try {
     let rv = null
     let googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], request.idToken)
-    
+
     if (request.action === 'REGISTER') {
       rv = await register(userTableName, googleId)
     } else if (request.action === 'GET_RECIPIENTS') {
@@ -175,6 +313,14 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await removeRecipient(userTableName, googleId, request.recipient)
     } else if (request.action === 'ADD_RECIPIENT') {
       rv = await addRecipient(userTableName, googleId, request.recipient)
+    } else if (request.action === 'ADD_CRYPTO_ACCOUNT') {
+      rv = await addCryptoAccount(userTableName, googleId, request.account)
+    } else if (request.action === 'REMOVE_CRYPTO_ACCOUNT') {
+      rv = await removeCryptoAccount(userTableName, googleId, request.account)
+    } else if (request.action === 'MODIFY_CRYPTO_ACCOUNT_NAME') {
+      rv = await modifyCryptoAccountName(userTableName, googleId, request.account)
+    } else if (request.action === 'GET_CRYPTO_ACCOUNTS') {
+      rv = await getCryptoAccounts(userTableName, googleId)
     } else {
       throw new Error('Invalid command')
     }

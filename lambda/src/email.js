@@ -194,10 +194,12 @@ module.exports = {
   },
   cancelAction: function (params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
-    return Promise.all([
-      ses.sendTemplatedEmail(this.cancelActionSenderEmailParams(paramsEmailCompatible)).promise(),
-      ses.sendTemplatedEmail(this.cancelActionReceiverEmailParams(paramsEmailCompatible)).promise()
-    ])
+    let emailQueue = [ses.sendTemplatedEmail(this.cancelActionSenderEmailParams(paramsEmailCompatible)).promise()]
+    if (params.chainsferToReceiver.txState !== 'Expired') {
+      // send cancel email to receiver only before expiration
+      emailQueue.push(ses.sendTemplatedEmail(this.cancelActionReceiverEmailParams(paramsEmailCompatible)).promise())
+    }
+    return Promise.all(emailQueue)
   },
   // send to sender when the expired transfer is reclaimed by the sender
   reclaimAction: function (params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {

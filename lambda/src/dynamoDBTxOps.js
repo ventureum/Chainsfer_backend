@@ -9,15 +9,20 @@ import type {
   ReceiveTransferParamsType,
   ReceiveTransferReturnType,
   CancelTransferParamsType,
-  CancelTransferReturnType
+  CancelTransferReturnType,
+  GetMultiSigSigningDataParamsType,
+  GetMultiSigSigningDataReturnType
 } from './transfer.flow'
+import ethMultiSig from './EthMultiSig'
 var moment = require('moment')
 var UUID = require('uuid/v4')
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient()
 var Config = require('./config.js')
+var utils = require('./utils.js')
 const { OAuth2Client } = require('google-auth-library')
+const SimpleMultiSigContractArtifacts = require('./contracts/SimpleMultiSig.json')
 
 if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
 const transActionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
@@ -239,7 +244,9 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
     data,
     // others
     sendMessage,
-    sendTxHash
+    sendTxHash,
+    // multisig wallet
+    walletId
   } = params
 
   await documentClient
@@ -270,7 +277,9 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
         updated: timestamp,
         reminder: reminder,
         transferStage: 'SenderToChainsfer',
-        senderToChainsfer: senderToChainsfer
+        senderToChainsfer: senderToChainsfer,
+        // multisig wallet
+        walletId: walletId
       }
     })
     .promise()
@@ -292,9 +301,24 @@ async function receiveTransfer (
     params.receiveMessage && params.receiveMessage.length > 0 ? params.receiveMessage : null
 
   let transfer = await getTransferByReceivingId(params.receivingId)
+
   const receiveTimestamp = moment()
     .unix()
     .toString()
+
+  let receiveTxHash = '0x'
+
+  // eth based coins
+  if (['ethereum', 'dai'].includes(transfer.cryptoType)) {
+    // execute tx in multisig wallet
+    receiveTxHash = await ethMultiSig.executeMultiSig(
+      transfer,
+      params.clientSig,
+      transfer.destinationAddress
+    )
+  } else {
+    // NOT IMPLEMENTED
+  }
 
   let data = await documentClient
     .update({
@@ -316,7 +340,7 @@ async function receiveTransfer (
       },
       ExpressionAttributeValues: {
         ':ctr': {
-          txHash: params.receiveTxHash,
+          txHash: receiveTxHash,
           txState: 'Pending',
           txTimestamp: receiveTimestamp
         },
@@ -330,6 +354,7 @@ async function receiveTransfer (
     .promise()
 
   let result: ReceiveTransferReturnType = {
+    receiveTxHash: receiveTxHash,
     receiveTimestamp: receiveTimestamp
   }
 
@@ -341,9 +366,26 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
   params.cancelMessage =
     params.cancelMessage && params.cancelMessage.length > 0 ? params.cancelMessage : null
 
+  let transfer = await getTransferByTransferId(params.transferId)
+
   const cancelTimestamp = moment()
     .unix()
     .toString()
+
+  let cancelTxHash = '0x'
+
+  // eth based coins
+  if (['ethereum', 'dai'].includes(transfer.cryptoType)) {
+    // execute tx in multisig wallet
+    cancelTxHash = await ethMultiSig.executeMultiSig(
+      transfer,
+      params.clientSig,
+      // destinationAddress is pre-set by getMultiSigSigningData()
+      transfer.destinationAddress
+    )
+  } else {
+    // NOT IMPLEMENTED
+  }
 
   let data = await documentClient
     .update({
@@ -366,7 +408,7 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
       },
       ExpressionAttributeValues: {
         ':cts': {
-          txHash: params.cancelTxHash,
+          txHash: cancelTxHash,
           txState: 'Pending',
           txTimestamp: cancelTimestamp
         },
@@ -382,10 +424,72 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
   const senderToChainsfer = attributes.senderToChainsfer
 
   let result: CancelTransferReturnType = {
+    cancelTxHash: cancelTxHash,
     cancelTimestamp: cancelTimestamp
   }
 
   return result
+}
+
+async function getMultiSigSigningData (
+  params: GetMultiSigSigningDataParamsType
+): Promise<GetMultiSigSigningDataReturnType> {
+  // retrieve transfer data first
+  let transfer
+  if (params.transferId) {
+    transfer = await getTransferByTransferId(params.transferId)
+  } else {
+    transfer = await getTransferByReceivingId(params.receivingId)
+  }
+
+  let destinationAddress
+
+  // eth based coins
+  if (['ethereum', 'dai'].includes(transfer.cryptoType)) {
+    if (params.transferId) {
+      // cancellation
+      // send it back to sender
+      destinationAddress = await ethMultiSig.getSenderAddress(transfer)
+    } else {
+      // receiving
+      // use the receiver's designated address
+      destinationAddress = params.destinationAddress
+    }
+
+    // prepare signing data
+    const signingData = await ethMultiSig.createSigningData(transfer.walletId, destinationAddress)
+
+    // sign data with master first
+    const masterSig = await ethMultiSig.getMasterSig(signingData)
+
+    // store master signature and destinationAddress in transfer data
+    await documentClient
+      .update({
+        TableName: transActionDataTableName,
+        Key: {
+          transferId: transfer.transferId
+        },
+        UpdateExpression: 'SET #ms = :ms, #dr = :dr',
+        ExpressionAttributeNames: {
+          '#ms': 'masterSig',
+          '#dr': 'destinationAddress'
+        },
+        ExpressionAttributeValues: {
+          ':ms': masterSig,
+          ':dr': destinationAddress
+        },
+        ReturnValues: 'ALL_NEW'
+      })
+      .promise()
+
+    // return signingData for client to sign
+    return {
+      data: signingData
+    }
+  } else {
+    // NOT IMPLMENTED
+    throw new Error('Not implemented')
+  }
 }
 
 // eslint-disable-next-line flowtype/no-weak-types
@@ -512,5 +616,6 @@ module.exports = {
   collectPotentialExpirationRemainderList: collectPotentialExpirationRemainderList,
   collectPotentialReceiverRemainderList: collectPotentialReceiverRemainderList,
   updateReminderToReceiver: updateReminderToReceiver,
-  verifyGoogleIdToken: verifyGoogleIdToken
+  verifyGoogleIdToken: verifyGoogleIdToken,
+  getMultiSigSigningData: getMultiSigSigningData
 }

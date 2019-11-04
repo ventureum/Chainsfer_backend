@@ -20,15 +20,15 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
         'Access-Control-Allow-Origin': string,
         'Access-Control-Allow-Credentials': boolean
       },
-      'isBase64Encoded': boolean,
+      isBase64Encoded: boolean,
       statusCode: number,
       body: string
     } = {
-      'headers': {
+      headers: {
         'Access-Control-Allow-Origin': '*', // Required for CORS support to work
         'Access-Control-Allow-Credentials': true // Required for cookies, authorization headers with HTTPS
       },
-      'isBase64Encoded': false,
+      isBase64Encoded: false,
       statusCode: 200,
       body: ''
     }
@@ -60,6 +60,8 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await dynamoDBTxOps.receiveTransfer(request)
     } else if (request.action === 'CANCEL') {
       rv = await dynamoDBTxOps.cancelTransfer(request)
+    } else if (request.action === 'GET_MULTISIG_SIGNING_DATA') {
+      rv = await dynamoDBTxOps.getMultiSigSigningData(request)
     } else if (request.action === 'SET_LAST_USED_ADDRESS') {
       await dynamoDBTxOps.setLastUsedAddress(request)
     } else if (request.action === 'GET_LAST_USED_ADDRESS') {
@@ -67,7 +69,9 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     } else if (request.action === 'MINT_LIBRA') {
       // current faucet does not support http,  thus, frontend cannot mint
       // move the minting part here temporarily
-      await axios.post(`http://faucet.testnet.libra.org?amount=${request.amount}&address=${request.address}`)
+      await axios.post(
+        `http://faucet.testnet.libra.org?amount=${request.amount}&address=${request.address}`
+      )
     } else {
       throw new Error('Invalid command')
     }

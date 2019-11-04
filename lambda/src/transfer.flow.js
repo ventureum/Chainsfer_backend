@@ -1,12 +1,12 @@
 // @flow
 export type WalletLastUsedAddressType = {
-    address: string,
-    timestamp: string
+  address: string,
+  timestamp: string
 }
 
 export type WalletLastUsedAddressByWalletType = {
-    // walletType -> cryptoType -> WalletLastUsedAddressType
-    [key: string]: { [key: string]: WalletLastUsedAddressType }
+  // walletType -> cryptoType -> WalletLastUsedAddressType
+  [key: string]: { [key: string]: WalletLastUsedAddressType }
 }
 
 export type WalletAddressDataType = {
@@ -35,7 +35,8 @@ export type TransferDataSenderType = {
 
 export type TransferDataReceiverType = {
   receiverName: string,
-  destination: EmailAddressType
+  destination: EmailAddressType,
+  destinationAddress: string
 }
 
 export type TransferDataCryptoType = {
@@ -47,13 +48,13 @@ export type TransferDataCryptoType = {
 }
 
 export type TransferDataPrivateKeyType = {
-    data: string
+  data: string
 }
 
 export type TxStateType = {
-    txHash: string,
-    txState: string,
-    txTimestamp: string
+  txHash: string,
+  txState: string,
+  txTimestamp: string
 }
 export type TransferDataStateType = {
   transferStage: string,
@@ -80,6 +81,11 @@ export type TransferDataMetaType = {
   updated: string
 }
 
+export type MultiSigWalletType = {
+  walletId: string,
+  masterSig: EcdsaSigType
+}
+
 // complete transfer data db schema
 export type TransferDataType = {
   ...$Exact<TransferDataClientType>,
@@ -90,7 +96,8 @@ export type TransferDataType = {
   ...$Exact<TransferDataPrivateKeyType>,
   ...$Exact<TransferDataMessageType>,
   ...$Exact<TransferDataStateType>,
-  ...$Exact<TransferDataMetaType>
+  ...$Exact<TransferDataMetaType>,
+  ...$Exact<MultiSigWalletType>
 }
 
 export type SendTransferParamsType = {
@@ -99,6 +106,7 @@ export type SendTransferParamsType = {
   ...$Exact<TransferDataReceiverType>,
   ...$Exact<TransferDataCryptoType>,
   ...$Exact<TransferDataPrivateKeyType>,
+  ...$Exact<MultiSigWalletType>,
   sendMessage: ?string,
   sendTxHash: string | Array<string>
 }
@@ -111,19 +119,33 @@ export type SendTransferReturnType = {
 export type ReceiveTransferParamsType = {
   receivingId: string,
   receiveMessage: ?string,
-  receiveTxHash: string
+  clientSig: EcdsaSigType
 }
 
 export type ReceiveTransferReturnType = {
+  receiveTxHash: string,
   receiveTimestamp: string
 }
 
 export type CancelTransferParamsType = {
   transferId: string,
   cancelMessage: ?string,
-  cancelTxHash: string
+  clientSig: EcdsaSigType
 }
 
 export type CancelTransferReturnType = {
+  cancelTxHash: string,
   cancelTimestamp: string
 }
+
+export type GetMultiSigSigningDataParamsType = {
+  transferId: string,
+  receivingId: string,
+  destinationAddress: string
+}
+
+export type GetMultiSigSigningDataReturnType = {
+  data: string
+}
+
+export type EcdsaSigType = string

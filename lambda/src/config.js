@@ -5,6 +5,7 @@ var ethProviderTest = ethers.getDefaultProvider('rinkeby')
 let ethProviderMain = ethers.getDefaultProvider('homestead')
 var request = require('request-promise')
 
+const InfuraAPIKey = '9775236247814824bc231e65b1d4972a'
 const BlockcypherMainTxURL = 'https://api.blockcypher.com/v1/btc/main/txs/'
 const BlockcypherTest3TxURL = 'https://api.blockcypher.com/v1/btc/test3/txs/'
 
@@ -86,6 +87,11 @@ const EthChainId: { [key: string]: number } = {
   default: 4
 }
 
+const ChainIdMap: { [key: string]: string } = {
+  '1': 'mainnet',
+  '4': 'rinkeby'
+}
+
 const GoogleAPIConfig: {
   [key: string]: {
     clientId: string,
@@ -121,6 +127,15 @@ const GoogleAPIConfig: {
 
 const QueueURLPrefix = 'https://sqs.us-east-1.amazonaws.com/727151012682/'
 
+// list of token data
+const ERC20Tokens = {
+  dai: {
+    symbol: 'DAI',
+    address: '0x4aacB7f0bA0A5CfF9A8a5e8C0F24626Ee9FDA4a6',
+    decimals: 18
+  }
+}
+
 module.exports = {
   RootUrlConfig,
   TxConfirmationConfig: TxConfirmationConfig,
@@ -131,5 +146,8 @@ module.exports = {
   EthTxAPIConfig: EthTxAPIConfig,
   getBtcTx: getBtcTx,
   GoogleAPIConfig: GoogleAPIConfig,
-  EthChainId: EthChainId
+  EthChainId: EthChainId,
+  ERC20Tokens: ERC20Tokens,
+  InfuraAPIKey: InfuraAPIKey,
+  ChainIdMap: ChainIdMap
 }

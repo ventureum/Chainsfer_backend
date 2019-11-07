@@ -42,20 +42,70 @@ type CryptoAccountType = {
 
 type CryptoAccounResponsetType = { cryptoAccounts: Array<CryptoAccountType> }
 
-async function register (userTableName: string, googleId: string): Promise<{ balance: string }> {
-  // init User item
-  let response = await documentClient
-    .put({
-      TableName: userTableName,
-      Item: {
-        googleId: googleId,
-        recipients: []
-      }
-    })
-    .promise()
+async function register (
+  userTableName: string,
+  googleId: string
+): Promise<{
+  newUser: boolean,
+  googleId: string,
+  recipients: Array<RecipientType>
+}> {
+  const getParams = {
+    TableName: userTableName,
+    Key: {
+      googleId
+    }
+  }
 
+  let response = await documentClient.get(getParams).promise()
+  // init User item
+  if (response.Item && response.Item.googleId) {
+    return {
+      newUser: false,
+      googleId: response.Item.googleId,
+      recipients: response.Item.recipients
+    }
+  } else {
+    response = await documentClient
+      .put({
+        TableName: userTableName,
+        Item: {
+          googleId: googleId,
+          recipients: []
+        }
+      })
+      .promise()
+    await referralWallet.createAccount(googleId)
+    return {
+      newUser: true,
+      googleId: googleId,
+      recipients: []
+    }
+  }
   // create a referral account
-  return referralWallet.createAccount(googleId)
+}
+
+async function getUser (
+  userTableName: string,
+  googleId: string
+): Promise<{ googleId: string, recipients: ?Array<RecipientType> }> {
+  const params = {
+    TableName: userTableName,
+    Key: {
+      googleId
+    }
+  }
+
+  let response = await documentClient.get(params).promise()
+  let recipients = []
+  if (response.Item && response.Item.recipients) {
+    recipients = [...response.Item.recipients]
+  }
+
+  return {
+    googleId: response.Item.googleId || null,
+    recipients: recipients
+  }
 }
 
 async function getRecipients (userTableName: string, googleId: string): Promise<RecipientListType> {
@@ -152,18 +202,19 @@ async function addRecipient (
   }
 }
 
-function _checkAccountExist (
-  cryptoAccounts: Array<CryptoAccountType>,
-  account: CryptoAccountType
-): boolean {
-  return (
-    cryptoAccounts.findIndex((item: CryptoAccountType): boolean => {
-      return (
-        item.cryptoType === account.cryptoType &&
-        (item.address === account.address || item.xpub === account.xpub)
-      )
-    }) >= 0
-  )
+function _accountsEqual (account1: CryptoAccountType, account2: CryptoAccountType): boolean {
+  if (account1.cryptoType === 'bitcoin') {
+    return (
+      account1.cryptoType === account2.cryptoType &&
+      account1.xpub === account2.xpub &&
+      account1.walletType === account2.walletType
+    )
+  } else
+    return (
+      account1.cryptoType === account2.cryptoType &&
+      account1.address === account2.address &&
+      account1.walletType === account2.walletType
+    )
 }
 
 async function _updateCryptoAccounts (
@@ -218,7 +269,11 @@ async function addCryptoAccount (
 ): Promise<CryptoAccounResponsetType> {
   let { cryptoAccounts } = await getCryptoAccounts(userTableName, googleId)
   // if crypto account not exists, add
-  if (!_checkAccountExist(cryptoAccounts, account)) {
+  if (
+    cryptoAccounts.findIndex((item: CryptoAccountType): boolean => {
+      return _accountsEqual(item, account)
+    }) < 0
+  ) {
     const now = Math.floor(Date.now() / 1000)
     account.addedAt = now
     account.updatedAt = now
@@ -236,8 +291,8 @@ async function removeCryptoAccount (
 ): Promise<CryptoAccounResponsetType> {
   let { cryptoAccounts } = await getCryptoAccounts(userTableName, googleId)
   if (cryptoAccounts.length > 0) {
-    cryptoAccounts.filter((account: CryptoAccountType): boolean => {
-      return _checkAccountExist(cryptoAccounts, account)
+    cryptoAccounts = cryptoAccounts.filter((_account: CryptoAccountType): boolean => {
+      return !_accountsEqual(_account, account)
     })
     return _updateCryptoAccounts(userTableName, googleId, cryptoAccounts)
   }
@@ -252,10 +307,7 @@ async function modifyCryptoAccountName (
   let { cryptoAccounts } = await getCryptoAccounts(userTableName, googleId)
   let exist = false
   cryptoAccounts = cryptoAccounts.map((item: CryptoAccountType): CryptoAccountType => {
-    if (
-      item.cryptoType === account.cryptoType &&
-      (item.xpub === account.xpub || item.address === account.address)
-    ) {
+    if (_accountsEqual(item, account)) {
       item.name = account.name
       const now = Math.floor(Date.now() / 1000)
       account.updatedAt = now
@@ -307,6 +359,8 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
 
     if (request.action === 'REGISTER') {
       rv = await register(userTableName, googleId)
+    } else if (request.action === 'GET_USER') {
+      rv = await getUser(userTableName, googleId)
     } else if (request.action === 'GET_RECIPIENTS') {
       rv = await getRecipients(userTableName, googleId)
     } else if (request.action === 'REMOVE_RECIPIENT') {

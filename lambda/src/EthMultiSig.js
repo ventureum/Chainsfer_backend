@@ -33,9 +33,9 @@ const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 if (!process.env.ETH_PRIVATE_KEY) throw new Error('ETH_PRIVATE_KEY missing')
 const ethPrivateKey = process.env.ETH_PRIVATE_KEY
 
-const CHAINID = Config.EthChainId[deploymentStage]
+const CHAINID = Config.EthChainId[deploymentStage] || Config.EthChainId['default']
 
-const provider = Config.EthTxAPIConfig[deploymentStage]
+const provider = Config.EthTxAPIConfig[deploymentStage] || Config.EthTxAPIConfig['default']
 const wallet = new ethers.Wallet(ethPrivateKey, provider)
 // log master address
 console.info(`Master address: ${wallet.address}`)

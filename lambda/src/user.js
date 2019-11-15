@@ -325,6 +325,20 @@ async function modifyCryptoAccountName (
   }
 }
 
+async function clearCloudWalletCryptoAccounts (
+  userTableName: string,
+  googleId: string
+): Promise<CryptoAccounResponsetType> {
+  let { cryptoAccounts } = await getCryptoAccounts(userTableName, googleId)
+  if (cryptoAccounts.length > 0) {
+    cryptoAccounts = cryptoAccounts.filter((_account: CryptoAccountType): boolean => {
+      return _account.walletType !== 'drive'
+    })
+    return _updateCryptoAccounts(userTableName, googleId, cryptoAccounts)
+  }
+  return { cryptoAccounts }
+}
+
 // eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   let request = JSON.parse(event.body)
@@ -375,6 +389,8 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await modifyCryptoAccountName(userTableName, googleId, request.account)
     } else if (request.action === 'GET_CRYPTO_ACCOUNTS') {
       rv = await getCryptoAccounts(userTableName, googleId)
+    } else if (request.action === 'CLEAR_CLOUD_WALLET_CRYPTO_ACCOUNTS') {
+      rv = await clearCloudWalletCryptoAccounts(userTableName, googleId)
     } else {
       throw new Error('Invalid command')
     }

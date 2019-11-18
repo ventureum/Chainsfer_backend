@@ -14,6 +14,7 @@ import type {
   GetMultiSigSigningDataReturnType
 } from './transfer.flow'
 import ethMultiSig from './EthMultiSig'
+import BtcMultiSig from './BtcMultiSig'
 var moment = require('moment')
 var UUID = require('uuid/v4')
 var AWS = require('aws-sdk')
@@ -317,7 +318,10 @@ async function receiveTransfer (
       transfer.destinationAddress
     )
   } else {
-    // NOT IMPLEMENTED
+    // bitcoin
+    receiveTxHash = await BtcMultiSig.sendBtcMultiSigTransaction({
+      psbt: params.clientSig
+    })
   }
 
   let data = await documentClient
@@ -384,7 +388,10 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
       transfer.destinationAddress
     )
   } else {
-    // NOT IMPLEMENTED
+    // bitcoin
+    cancelTxHash = await BtcMultiSig.sendBtcMultiSigTransaction({
+      psbt: params.clientSig
+    })
   }
 
   let data = await documentClient

@@ -1,6 +1,8 @@
 // @flow
 import type { Context, Callback } from 'flow-aws-lambda'
 import axios from 'axios'
+import BtcMultiSig from './BtcMultiSig'
+
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
 var Config = require('./config.js')
 
@@ -72,6 +74,8 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       await axios.post(
         `http://faucet.testnet.libra.org?amount=${request.amount}&address=${request.address}`
       )
+    } else if (request.action === 'GET_BTC_MULTI_SIG_PUBLIC_KEY') {
+      rv = await BtcMultiSig.getBtcMultiSigPublicKey()
     } else {
       throw new Error('Invalid command')
     }

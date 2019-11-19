@@ -25,6 +25,7 @@ deploy:
 		--parameter-overrides \
 			ENV=$(shell ENV=$(ENV); echo $${ENV^}) \
 			EthPrivateKey=$(shell EthPrivateKey=$(ETH_PRIVATE_KEY); echo $${EthPrivateKey^}) \
+			BtcWif=$(shell BtcWif=$(BTC_WIF); echo $${BtcWif^}) \
 		--capabilities CAPABILITY_IAM \
 		--region ${REGION}
 	@$(MAKE) output

@@ -37,6 +37,10 @@ Parameters:
     Description: The ETH private key for referal
     Default: '0x0'
     Type: String
+  BtcWif:
+    Description: The BTC WIF for BTC multisig
+    Default: '0x0'
+    Type: String
   ReferralWalletTableName:
     Description: The name of the referal wallet table
     Default: ChainsferReferralWalletData
@@ -71,6 +75,8 @@ Globals:
           Ref: ENV
         ETH_PRIVATE_KEY:
           Ref: EthPrivateKey
+        BTC_WIF:
+          Ref: BtcWif
         REFERRAL_WALLET_TABLE_NAME:
           'Fn::Join':
             - ''

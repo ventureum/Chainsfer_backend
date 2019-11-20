@@ -20,7 +20,7 @@ script:
 deploy:
   # deploy to AWS
   provider: script
-  script: 'npm run upload && make all ENV=staging && make all ENV=test && make all ENV=prod '
+  script: 'npm run upload && make all ENV=staging BTC_WIF=$BTC_WIF_TESTNET && make all ENV=test && make all ENV=prod BTC_WIF=$BTC_WIF_MAINNET'
   skip_cleanup: true
   on:
     branch: master

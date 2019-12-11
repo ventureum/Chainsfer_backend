@@ -233,6 +233,7 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
     senderName,
     senderAvatar,
     sender,
+    senderAccount,
     // receiver
     receiverName,
     destination,
@@ -258,6 +259,7 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
         senderName,
         senderAvatar,
         sender,
+        senderAccount,
         // receiver
         receiverName,
         destination,
@@ -332,7 +334,8 @@ async function receiveTransfer (
       },
       ConditionExpression:
         'attribute_not_exists(#ctr) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
-      UpdateExpression: 'SET #ctr = :ctr, #tstage = :tstage, #upt = :upt, #rMsg = :rMsgValue',
+      UpdateExpression:
+        'SET #ctr = :ctr, #tstage = :tstage, #upt = :upt, #rMsg = :rMsgValue, #rAcc = :rAcc',
       ExpressionAttributeNames: {
         '#ctr': 'chainsferToReceiver',
         '#cts': 'chainsferToSender',
@@ -340,7 +343,8 @@ async function receiveTransfer (
         '#stcTxSate': 'txState',
         '#tstage': 'transferStage',
         '#rMsg': 'receiveMessage',
-        '#upt': 'updated'
+        '#upt': 'updated',
+        '#rAcc': 'receiverAccount'
       },
       ExpressionAttributeValues: {
         ':ctr': {
@@ -351,7 +355,8 @@ async function receiveTransfer (
         ':stcTxSate': 'Confirmed',
         ':tstage': 'ChainsferToReceiver',
         ':rMsgValue': params.receiveMessage,
-        ':upt': receiveTimestamp
+        ':upt': receiveTimestamp,
+        ':rAcc': params.receiverAccount
       },
       ReturnValues: 'ALL_NEW'
     })

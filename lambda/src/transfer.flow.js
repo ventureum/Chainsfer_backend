@@ -30,7 +30,8 @@ export type TransferDataIdType = {
 export type TransferDataSenderType = {
   senderName: string,
   senderAvatar: string,
-  sender: EmailAddressType
+  sender: EmailAddressType,
+  senderAccount: string
 }
 
 export type TransferDataReceiverType = {
@@ -97,7 +98,8 @@ export type TransferDataType = {
   ...$Exact<TransferDataMessageType>,
   ...$Exact<TransferDataStateType>,
   ...$Exact<TransferDataMetaType>,
-  ...$Exact<MultiSigWalletType>
+  ...$Exact<MultiSigWalletType>,
+  receiverAccount: string
 }
 
 export type SendTransferParamsType = {
@@ -119,6 +121,7 @@ export type SendTransferReturnType = {
 export type ReceiveTransferParamsType = {
   receivingId: string,
   receiveMessage: ?string,
+  receiverAccount: string,
   clientSig: EcdsaSigType
 }
 

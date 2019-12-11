@@ -1,0 +1,39 @@
+name: Release
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-east-1'
+        ETH_PRIVATE_KEY: ${{ secrets.ETH_PRIVATE_KEY }}
+        BTC_WIF_TESTNET: ${{ secrets.BTC_WIF_TESTNET }}
+        BTC_WIF_MAINNET: ${{ secrets.BTC_WIF_MAINNET }}
+        
+    steps:
+    - uses: actions/checkout@v1
+    - name: Use Node 8
+      uses: actions/setup-node@v1
+      with:
+        node-version: '8.x'
+      env:
+        CI: true
+    - name: Cache node modules
+      uses: actions/cache@v1
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+    - run: npm ci
+    - run: npm run eslint && npm run flow
+    - run: npm run build
+      
+    # build & deploy staging and prod
+    - run: npm run upload
+    - run: make all ENV=staging BTC_WIF=$BTC_WIF_TESTNET ETH_PRIVATE_KEY=$ETH_PRIVATE_KEY
+    - run: make all ENV=prod BTC_WIF=$BTC_WIF_MAINNET ETH_PRIVATE_KEY=$ETH_PRIVATE_KEY

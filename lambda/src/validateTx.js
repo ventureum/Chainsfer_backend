@@ -1,6 +1,23 @@
 // @flow
 import type { Context, Callback } from 'flow-aws-lambda'
 import type { CryptoType } from './typeConst'
+import type {
+  WalletLastUsedAddressType,
+  WalletAddressDataType,
+  TxStateType,
+  TransferDataType,
+  SendTransferParamsType,
+  SendTransferReturnType,
+  ReceiveTransferParamsType,
+  ReceiveTransferReturnType,
+  CancelTransferParamsType,
+  CancelTransferReturnType
+} from './transfer.flow'
+import type {
+  TransferDataEmailCompatibleType,
+  TemplateType,
+  SendTemplatedEmailReturnType
+} from './email.flow'
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var ddb = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' })
@@ -24,7 +41,7 @@ const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 const ethProvider = Config.EthTxAPIConfig[deploymentStage] || Config.EthTxAPIConfig['default']
 const btcApiURL = Config.BtcAPIConfig[deploymentStage] || Config.BtcAPIConfig['default']
 
-async function checkEthTxConfirmation (txHash) {
+async function checkEthTxConfirmation (txHash: string): Promise<number> {
   try {
     let transactionReceipt = await ethProvider.getTransactionReceipt(txHash)
     if (transactionReceipt !== null && transactionReceipt.status === 1) {
@@ -36,7 +53,7 @@ async function checkEthTxConfirmation (txHash) {
   }
 }
 
-async function checkBtcTxConfirmation (txHash) {
+async function checkBtcTxConfirmation (txHash: string): Promise<number> {
   try {
     let transactionReceipt = await Config.getBtcTx(txHash, btcApiURL)
     if (transactionReceipt.block_height !== undefined && transactionReceipt.block_height > 0) {
@@ -48,35 +65,66 @@ async function checkBtcTxConfirmation (txHash) {
   }
 }
 
-async function checkLibraTxConfirmation (txHash) {
+async function checkLibraTxConfirmation (txHash: string): Promise<number> {
   // libra tx is almost instant
   return 1
 }
 
-async function processTxConfirmation (retryCount: number, checkFunction: Function, cryptoType: CryptoType, txHash: string, gasTxHash: ?string, txHashConfirmed: number, gasTxHashConfirmed: number, item: any, messageBody: any) {
+async function processTxConfirmation (
+  retryCount: number,
+  checkFunction: (txHash: string) => Promise<number>,
+  cryptoType: CryptoType,
+  txHash: string,
+  gasTxHash: ?string,
+  txHashConfirmed: number,
+  gasTxHashConfirmed: number,
+  item: TransferDataType,
+  messageBody: string
+) {
   try {
     const maxRetry = Config.TxConfirmationConfig[cryptoType].maxRetry
     if (retryCount <= maxRetry) {
       if (txHash !== null && txHashConfirmed === 0) {
         txHashConfirmed = await checkFunction(txHash)
-        console.log('For %s, checking confirmation with RetryCount %d: transaction txHash %s (status: %d)',
-          cryptoType, retryCount, txHash, txHashConfirmed)
+        console.log(
+          'For %s, checking confirmation with RetryCount %d: transaction txHash %s (status: %d)',
+          cryptoType,
+          retryCount,
+          txHash,
+          txHashConfirmed
+        )
       }
-      if (gasTxHash !== null && gasTxHashConfirmed === 0) {
+      if (gasTxHash && gasTxHashConfirmed === 0) {
         gasTxHashConfirmed = await checkFunction(gasTxHash)
-        console.log('For %s, checking confirmation with RetryCount %d: transaction gasTxHash %s (status: %d)',
-          cryptoType, retryCount, gasTxHash, gasTxHashConfirmed)
+        console.log(
+          'For %s, checking confirmation with RetryCount %d: transaction gasTxHash %s (status: %d)',
+          cryptoType,
+          retryCount,
+          gasTxHash,
+          gasTxHashConfirmed
+        )
       }
       if (txHashConfirmed + gasTxHashConfirmed < 2) {
-        await sendMessageBackToSQS(messageBody, retryCount, txHashConfirmed, gasTxHashConfirmed, cryptoType)
+        await sendMessageBackToSQS(
+          messageBody,
+          retryCount,
+          txHashConfirmed,
+          gasTxHashConfirmed,
+          cryptoType
+        )
       } else {
         await updateTxState('Confirmed', item)
         await sendEmail(item)
-        if (item.transferStage.S === 'SenderToChainsfer') {
-          await dynamoDBTxOps.updateReminderToReceiver(transactionDataTableName, item.transferId.S)
+        if (item.transferStage === 'SenderToChainsfer') {
+          await dynamoDBTxOps.updateReminderToReceiver(item.transferId)
         }
-        console.log('For %s, suceeded to confirm with RetryCount %d: transaction txHash %s and gasTxHash %s',
-          cryptoType, retryCount, txHash, gasTxHash)
+        console.log(
+          'For %s, suceeded to confirm with RetryCount %d: transaction txHash %s and gasTxHash %s',
+          cryptoType,
+          retryCount,
+          txHash,
+          gasTxHash
+        )
       }
     } else {
       let errStr
@@ -92,13 +140,15 @@ async function processTxConfirmation (retryCount: number, checkFunction: Functio
   }
 }
 
-async function updateTxState (state, item) {
-  const ts = moment().unix().toString()
-  const transferStage = item.transferStage.S
+async function updateTxState (state: string, item: TransferDataType) {
+  const ts = moment()
+    .unix()
+    .toString()
+  const transferStage = item.transferStage
   const params = {
     TableName: transactionDataTableName,
     Key: {
-      'transferId': item.transferId.S
+      transferId: item.transferId
     },
     UpdateExpression: 'SET #stcTx.#state = :stcTxState, #upt = :up, #stcTx.#ts = :ts',
     ExpressionAttributeNames: {
@@ -122,22 +172,28 @@ async function updateTxState (state, item) {
   }
 }
 
-async function sendMessageBackToSQS (messageBody, retryCount, txHashConfirmed, gasTxHash, cryptoType) {
+async function sendMessageBackToSQS (
+  messageBody: string,
+  retryCount: number,
+  txHashConfirmed: number,
+  gasTxHash: number,
+  cryptoType: string
+) {
   const delaySeconds = Config.TxConfirmationConfig[cryptoType].delaySeconds
   const params = {
     DelaySeconds: delaySeconds,
     MessageBody: messageBody,
     QueueUrl: Config.QueueURLPrefix + sqsName,
     MessageAttributes: {
-      'RetryCount': {
+      RetryCount: {
         DataType: 'Number',
         StringValue: retryCount.toString()
       },
-      'TxHashConfirmed': {
+      TxHashConfirmed: {
         DataType: 'Number',
         StringValue: txHashConfirmed.toString()
       },
-      'GasTxHashConfirmed': {
+      GasTxHashConfirmed: {
         DataType: 'Number',
         StringValue: gasTxHash.toString()
       }
@@ -151,7 +207,7 @@ async function sendMessageBackToSQS (messageBody, retryCount, txHashConfirmed, g
   }
 }
 
-async function deleteMessageFromSQS (receiptHandle) {
+async function deleteMessageFromSQS (receiptHandle: string) {
   const deleteParams = {
     QueueUrl: Config.QueueURLPrefix + sqsName,
     ReceiptHandle: receiptHandle
@@ -165,7 +221,27 @@ async function deleteMessageFromSQS (receiptHandle) {
   }
 }
 
-async function receiveMessagesFromSQS () {
+type SqsMessageType = {
+  MessageId: string,
+  ReceiptHandle: string,
+  Body: string,
+  MessageAttributes: {
+    RetryCount: {
+      DataType: string,
+      StringValue: string
+    },
+    TxHashConfirmed: {
+      DataType: string,
+      StringValue: string // O means False, 1 means true
+    },
+    GasTxHashConfirmed: {
+      DataType: string,
+      StringValue: string // O means False, 1 means true
+    }
+  }
+}
+
+async function receiveMessagesFromSQS (): Promise<{ Messages: Array<SqsMessageType> }> {
   const params = {
     QueueUrl: Config.QueueURLPrefix + sqsName,
     MaxNumberOfMessages: '10',
@@ -181,55 +257,21 @@ async function receiveMessagesFromSQS () {
   }
 }
 
-async function sendEmail (item) {
-  const transferStage = item.transferStage.S
+async function sendEmail (item: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
+  const transferStage = item.transferStage
   switch (transferStage) {
     case 'SenderToChainsfer':
-      return email.sendAction(
-        ses,
-        item.transferId.S,
-        item.receivingId.S,
-        item.senderName.S,
-        item.sender.S,
-        item.receiver.S,
-        item.transferAmount.S,
-        item.cryptoType.S,
-        item.senderToChainsfer.M.txHash.S,
-        item.created.S
-      )
+      return email.sendAction(item)
     case 'ChainsferToReceiver':
-      return email.receiveAction(
-        ses,
-        item.transferId.S,
-        item.receivingId.S,
-        item.senderName.S,
-        item.sender.S,
-        item.receiver.S,
-        item.transferAmount.S,
-        item.cryptoType.S,
-        item.senderToChainsfer.M.txHash.S,
-        item.senderToChainsfer.M.txTimestamp.S,
-        item.chainsferToReceiver.M.txHash.S,
-        item.chainsferToReceiver.M.txTimestamp.S
-      )
+      return email.receiveAction(item)
     case 'ChainsferToSender':
-      return email.cancelAction(
-        ses,
-        item.transferId.S,
-        item.receivingId.S,
-        item.senderName.S,
-        item.sender.S,
-        item.receiver.S,
-        item.transferAmount.S,
-        item.cryptoType.S,
-        item.senderToChainsfer.M.txHash.S,
-        item.senderToChainsfer.M.txTimestamp.S,
-        item.chainsferToSender.M.txHash.S,
-        item.chainsferToSender.M.txTimestamp.S
-      )
+      return email.cancelAction(item)
+    default:
+      throw new Error(`Invalid transferStage ${transferStage}`)
   }
 }
 
+// eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   let data = await receiveMessagesFromSQS()
   if (data.Messages) {
@@ -237,16 +279,16 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     for (let index = 0; index < messages.length; index++) {
       const record = messages[index]
       const messageBody = record.Body
-      const item = JSON.parse(messageBody)
+      const item: TransferDataType = JSON.parse(messageBody)
       console.log('Message Id', record.MessageId)
       try {
         const retryCount = parseInt(record.MessageAttributes.RetryCount.StringValue) + 1
         let txHashConfirmed = parseInt(record.MessageAttributes.TxHashConfirmed.StringValue)
         let gasTxHashConfirmed = parseInt(record.MessageAttributes.GasTxHashConfirmed.StringValue)
 
-        const transferStage = item.transferStage.S
-        const transferStageMetaData = item[utils.lowerCaseFirstLetter(transferStage)].M
-        const txHash = transferStageMetaData.txHash.S
+        const transferStage = item.transferStage
+        const transferStageMetaData = item[utils.lowerCaseFirstLetter(transferStage)]
+        const txHash = transferStageMetaData.txHash
 
         await deleteMessageFromSQS(record.ReceiptHandle)
 
@@ -256,16 +298,36 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
 
         let gasTxHash = null
         if (transferStageMetaData.gasTxHash != null) {
-          gasTxHash = transferStageMetaData.gasTxHash.S
+          gasTxHash = transferStageMetaData.gasTxHash
         }
 
-        const cryptoType: CryptoType = item.cryptoType.S
+        const cryptoType: string = item.cryptoType
         switch (cryptoType) {
           case 'bitcoin':
-            await processTxConfirmation(retryCount, checkBtcTxConfirmation, cryptoType, txHash, null, txHashConfirmed, 1, item, messageBody)
+            await processTxConfirmation(
+              retryCount,
+              checkBtcTxConfirmation,
+              cryptoType,
+              txHash,
+              null,
+              txHashConfirmed,
+              1,
+              item,
+              messageBody
+            )
             break
           case 'ethereum':
-            await processTxConfirmation(retryCount, checkEthTxConfirmation, cryptoType, txHash, null, txHashConfirmed, 1, item, messageBody)
+            await processTxConfirmation(
+              retryCount,
+              checkEthTxConfirmation,
+              cryptoType,
+              txHash,
+              null,
+              txHashConfirmed,
+              1,
+              item,
+              messageBody
+            )
             break
           case 'dai': // ERC20
             if (gasTxHash === null) {
@@ -273,10 +335,30 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
               // necessary for validating a single erc20 tx (without prepaid eth tx)
               gasTxHashConfirmed = 1
             }
-            await processTxConfirmation(retryCount, checkEthTxConfirmation, cryptoType, txHash, gasTxHash, txHashConfirmed, gasTxHashConfirmed, item, messageBody)
+            await processTxConfirmation(
+              retryCount,
+              checkEthTxConfirmation,
+              cryptoType,
+              txHash,
+              gasTxHash,
+              txHashConfirmed,
+              gasTxHashConfirmed,
+              item,
+              messageBody
+            )
             break
           case 'libra':
-            processTxConfirmation(retryCount, checkLibraTxConfirmation, cryptoType, txHash, null, txHashConfirmed, 1, item, messageBody)
+            processTxConfirmation(
+              retryCount,
+              checkLibraTxConfirmation,
+              cryptoType,
+              txHash,
+              null,
+              txHashConfirmed,
+              1,
+              item,
+              messageBody
+            )
             break
           default:
             throw new Error(`Invalid cryptoType: ${cryptoType}`)

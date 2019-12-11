@@ -5,6 +5,8 @@ var ethProviderTest = ethers.getDefaultProvider('rinkeby')
 let ethProviderMain = ethers.getDefaultProvider('homestead')
 var request = require('request-promise')
 
+const BlockcypherMainURL = 'https://api.blockcypher.com/v1/btc/main'
+const BlockcypherTest3URL = 'https://api.blockcypher.com/v1/btc/test3'
 const InfuraAPIKey = '9775236247814824bc231e65b1d4972a'
 const BlockcypherMainTxURL = 'https://api.blockcypher.com/v1/btc/main/txs/'
 const BlockcypherTest3TxURL = 'https://api.blockcypher.com/v1/btc/test3/txs/'
@@ -14,12 +16,51 @@ async function getBtcTx (txHash: string, apiUrl: string): Promise<Object> {
   try {
     const options = {
       method: 'GET',
-      uri: apiUrl + txHash
+      uri: apiUrl + '/txs/' + txHash
     }
     let response = await request(options).promise()
     return JSON.parse(response)
   } catch (err) {
     throw new Error('Unable to get Btc Tx. Error: ' + err.message)
+  }
+}
+
+async function getBtcBlockHashData (blockHash: string, txstart: number, limit: number, apiUrl: string) {
+  try {
+    const options = {
+      method: 'GET',
+      uri: apiUrl + '/blocks/' + blockHash + '?txstart=' + txstart + '&limit=' + limit
+    }
+    let response = await request(options).promise()
+    return JSON.parse(response)
+  } catch (err) {
+    throw new Error('Unable to get Btc Block Data. Error: ' + err.message)
+  }
+}
+
+async function getBtcBlockHashDataByNextTxIds (nextTxIdsUrl: string) {
+  try {
+    const options = {
+      method: 'GET',
+      uri: nextTxIdsUrl
+    }
+    let response = await request(options).promise()
+    return JSON.parse(response)
+  } catch (err) {
+    throw new Error('Unable to get Btc Block Data By NextTxIds. Error: ' + err.message)
+  }
+}
+
+async function getBtcLatestBlockHashData (apiUrl: string) {
+  try {
+    const options = {
+      method: 'GET',
+      uri: apiUrl
+    }
+    let response = await request(options).promise()
+    return JSON.parse(response)
+  } catch (err) {
+    throw new Error('Unable to get Btc Latest Block Hash. Error: ' + err.message)
   }
 }
 
@@ -62,6 +103,19 @@ const ReminderIntervalConfig: { [key: string]: number } = {
   test: 432000, // 5 days
   default: 432000 // 5 days
 }
+
+const BtcAPIConfig: { [key:string]: any } = {
+  'prod': BlockcypherMainURL,
+  'staging': BlockcypherTest3URL,
+  'test': BlockcypherTest3URL,
+  'default': BlockcypherTest3URL
+}
+
+const BtcNetworkConfig: { [key: string]: string } = {
+  'prod': 'mainnet',
+  'staging': 'testnet',
+  'test': 'testnet',
+  'default': 'testnet'
 
 // eslint-disable-next-line flowtype/no-weak-types
 const BtcTxAPIConfig: { [key: string]: any } = {
@@ -125,6 +179,13 @@ const GoogleAPIConfig: {
   }
 }
 
+const LedgerApiUrlConfig: { [key: string]: any } = {
+  'prod': 'https://api.ledgerwallet.com/blockchain/v2/btc',
+  'staging': 'https://api.ledgerwallet.com/blockchain/v2/btc_testnet',
+  'test': 'https://api.ledgerwallet.com/blockchain/v2/btc_testnet',
+  'default': 'https://api.ledgerwallet.com/blockchain/v2/btc_testnet'
+}
+
 const QueueURLPrefix = 'https://sqs.us-east-1.amazonaws.com/727151012682/'
 
 // list of token data
@@ -142,10 +203,15 @@ module.exports = {
   QueueURLPrefix: QueueURLPrefix,
   ExpirationLengthConfig: ExpirationLengthConfig,
   ReminderIntervalConfig: ReminderIntervalConfig,
-  BtcTxAPIConfig: BtcTxAPIConfig,
+  BtcAPIConfig: BtcAPIConfig,
   EthTxAPIConfig: EthTxAPIConfig,
+  BtcNetworkConfig: BtcNetworkConfig,
   getBtcTx: getBtcTx,
   GoogleAPIConfig: GoogleAPIConfig,
+  getBtcLatestBlockHashData: getBtcLatestBlockHashData,
+  getBtcBlockHashData: getBtcBlockHashData,
+  LedgerApiUrlConfig: LedgerApiUrlConfig,
+  getBtcBlockHashDataByNextTxIds: getBtcBlockHashDataByNextTxIds,
   EthChainId: EthChainId,
   ERC20Tokens: ERC20Tokens,
   InfuraAPIKey: InfuraAPIKey,

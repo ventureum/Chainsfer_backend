@@ -30,7 +30,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-node-
     - run: npm ci
-    - run: npm run eslint && npm run flow
+    - run: npx cfn-lint validate template.yml && npm run eslint && npm run flow
     - run: npm run build
       
     # build & deploy staging and prod

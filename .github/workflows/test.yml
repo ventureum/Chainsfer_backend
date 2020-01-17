@@ -35,7 +35,7 @@ jobs:
     - run: npm ci
       
     # lint
-    - run: npm run eslint && npm run flow
+    - run: npx cfn-lint validate template.yml && npm run eslint && npm run flow
       
     # build & deploy test 
     - run: npm run build

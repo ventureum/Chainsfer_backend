@@ -156,7 +156,7 @@ Resources:
       Handler: dist/updateBtcXpubIndex.handler
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-      Description: ''
+      Description: 'Update btc xpub'
     Type: 'AWS::Serverless::Function'
   LambdaUpdateBtcXpubIndexSchedule:
     Type: 'AWS::Events::Rule'
@@ -195,7 +195,7 @@ Resources:
       Handler: dist/updateBtcBlockHashData.handler
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-      Description: ''
+      Description: 'Update btc block data'
     Type: 'AWS::Serverless::Function'
   LambdaUpdateBtcBlockHashDataSchedule:
     Type: 'AWS::Events::Rule'
@@ -233,7 +233,7 @@ Resources:
       Handler: dist/stream.handler
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-      Description: ''
+      Description: 'Tracking tx state in transfer data SQS'
     Type: 'AWS::Serverless::Function'
   transferRequest:
     Properties:
@@ -247,7 +247,7 @@ Resources:
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
       Handler: dist/transfer.handler
       MemorySize: 128
-      Description: ''
+      Description: 'Handle user transfer requests'
     Type: 'AWS::Serverless::Function'
   TransferRequestApiGatewayInvokePermission:
     Type: 'AWS::Lambda::Permission'
@@ -274,7 +274,7 @@ Resources:
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
       Handler: dist/user.handler
       MemorySize: 128
-      Description: ''
+      Description: 'Handle user data requests'
     Type: 'AWS::Serverless::Function'
   UserDataRequestApiGatewayInvokePermission:
     Type: 'AWS::Lambda::Permission'
@@ -301,7 +301,7 @@ Resources:
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
       Handler: dist/referralWallet.handler
       MemorySize: 128
-      Description: ''
+      Description: 'Handle referral wallet transfer requests'
     Type: 'AWS::Serverless::Function'
   ReferralWalletRequestApiGatewayInvokePermission:
     Type: 'AWS::Lambda::Permission'
@@ -328,7 +328,7 @@ Resources:
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
       Handler: dist/resourceOptionsMethod.handler
       MemorySize: 128
-      Description: ''
+      Description: 'Global options config for lambda functions'
     Type: 'AWS::Serverless::Function'
   resourceOptionsMethodApiGatewayInvokePermission:
     Type: 'AWS::Lambda::Permission'
@@ -384,7 +384,7 @@ Resources:
       Handler: dist/validateTx.handler
       MemorySize: 128
       Timeout: 900
-      Description: ''
+      Description: 'Validate tx state and update transfer data'
     Type: 'AWS::Serverless::Function'
   LambdaValidateTxSchedule:
     Type: 'AWS::Events::Rule'
@@ -423,7 +423,7 @@ Resources:
       Handler: dist/checkTxExpiration.handler
       MemorySize: 128
       Timeout: 900
-      Description: ''
+      Description: 'Check if a transfer request is expired'
     Type: 'AWS::Serverless::Function'
   LambdaCheckTxExpirationSchedule:
     Type: 'AWS::Events::Rule'
@@ -466,9 +466,7 @@ Resources:
       KeySchema:
         - AttributeName: transferId
           KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: PAY_PER_REQUEST
       GlobalSecondaryIndexes:
         - IndexName: receivingId-index
           KeySchema:
@@ -497,9 +495,7 @@ Resources:
       KeySchema:
         - AttributeName: googleId
           KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: PAY_PER_REQUEST
   UserTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
@@ -514,9 +510,7 @@ Resources:
       KeySchema:
         - AttributeName: googleId
           KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: PAY_PER_REQUEST
   ReferralWalletTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
@@ -531,9 +525,7 @@ Resources:
       KeySchema:
         - AttributeName: googleId
           KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: PAY_PER_REQUEST
   TransactionDataStreamMapping:
     Type: 'AWS::Lambda::EventSourceMapping'
     Properties:

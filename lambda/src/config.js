@@ -25,7 +25,12 @@ async function getBtcTx (txHash: string, apiUrl: string): Promise<Object> {
   }
 }
 
-async function getBtcBlockHashData (blockHash: string, txstart: number, limit: number, apiUrl: string) {
+async function getBtcBlockHashData (
+  blockHash: string,
+  txstart: number,
+  limit: number,
+  apiUrl: string
+): any { // eslint-disable-line
   try {
     const options = {
       method: 'GET',
@@ -38,7 +43,7 @@ async function getBtcBlockHashData (blockHash: string, txstart: number, limit: n
   }
 }
 
-async function getBtcBlockHashDataByNextTxIds (nextTxIdsUrl: string) {
+async function getBtcBlockHashDataByNextTxIds (nextTxIdsUrl: string): any { // eslint-disable-line
   try {
     const options = {
       method: 'GET',
@@ -51,7 +56,7 @@ async function getBtcBlockHashDataByNextTxIds (nextTxIdsUrl: string) {
   }
 }
 
-async function getBtcLatestBlockHashData (apiUrl: string) {
+async function getBtcLatestBlockHashData (apiUrl: string): any { // eslint-disable-line
   try {
     const options = {
       method: 'GET',
@@ -104,20 +109,19 @@ const ReminderIntervalConfig: { [key: string]: number } = {
   default: 432000 // 5 days
 }
 
-const BtcAPIConfig: { [key: string]: any } = {
-  'prod': BlockcypherMainURL,
-  'staging': BlockcypherTest3URL,
-  'test': BlockcypherTest3URL,
-  'default': BlockcypherTest3URL
+const BtcAPIConfig: { [key: string]: string } = {
+  prod: BlockcypherMainURL,
+  staging: BlockcypherTest3URL,
+  test: BlockcypherTest3URL,
+  default: BlockcypherTest3URL
 }
 
 const BtcNetworkConfig: { [key: string]: string } = {
-  'prod': 'mainnet',
-  'staging': 'testnet',
-  'test': 'testnet',
-  'default': 'testnet'
+  prod: 'mainnet',
+  staging: 'testnet',
+  test: 'testnet',
+  default: 'testnet'
 }
-
 // eslint-disable-next-line flowtype/no-weak-types
 const BtcTxAPIConfig: { [key: string]: any } = {
   prod: BlockcypherMainTxURL,
@@ -180,11 +184,11 @@ const GoogleAPIConfig: {
   }
 }
 
-const LedgerApiUrlConfig: { [key: string]: any } = {
-  'prod': 'https://api.ledgerwallet.com/blockchain/v2/btc',
-  'staging': 'https://api.ledgerwallet.com/blockchain/v2/btc_testnet',
-  'test': 'https://api.ledgerwallet.com/blockchain/v2/btc_testnet',
-  'default': 'https://api.ledgerwallet.com/blockchain/v2/btc_testnet'
+const LedgerApiUrlConfig: { [key: string]: string } = {
+  prod: 'https://api.ledgerwallet.com/blockchain/v2/btc',
+  staging: 'https://api.ledgerwallet.com/blockchain/v2/btc_testnet',
+  test: 'https://api.ledgerwallet.com/blockchain/v2/btc_testnet',
+  default: 'https://api.ledgerwallet.com/blockchain/v2/btc_testnet'
 }
 
 const QueueURLPrefix = 'https://sqs.us-east-1.amazonaws.com/727151012682/'

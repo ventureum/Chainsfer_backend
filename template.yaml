@@ -78,6 +78,7 @@ Globals:
           'Fn::Join':
             - ''
             - - Ref: UserTableName
+              - Ref: ENV
         ENV_VALUE:
           Ref: ENV
         ETH_PRIVATE_KEY:

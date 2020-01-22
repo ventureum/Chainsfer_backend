@@ -206,7 +206,7 @@ function _accountsEqual (account1: CryptoAccountType, account2: CryptoAccountTyp
   if (account1.cryptoType === 'bitcoin') {
     return (
       account1.cryptoType === account2.cryptoType &&
-      account1.xpub === account2.xpub &&
+      (account1.xpub === account2.xpub || account1.address === account2.address) &&
       account1.walletType === account2.walletType
     )
   } else

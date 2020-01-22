@@ -104,7 +104,7 @@ const ReminderIntervalConfig: { [key: string]: number } = {
   default: 432000 // 5 days
 }
 
-const BtcAPIConfig: { [key:string]: any } = {
+const BtcAPIConfig: { [key: string]: any } = {
   'prod': BlockcypherMainURL,
   'staging': BlockcypherTest3URL,
   'test': BlockcypherTest3URL,
@@ -116,6 +116,7 @@ const BtcNetworkConfig: { [key: string]: string } = {
   'staging': 'testnet',
   'test': 'testnet',
   'default': 'testnet'
+}
 
 // eslint-disable-next-line flowtype/no-weak-types
 const BtcTxAPIConfig: { [key: string]: any } = {

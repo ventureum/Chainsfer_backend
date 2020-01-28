@@ -37,6 +37,7 @@ jobs:
     # lint
     - run: npx cfn-lint validate template.yaml && npm run eslint && npm run flow
       
-    # build & deploy test 
+    # build
     - run: npm run build
     - run: npm run upload && make all ENV=test BTC_WIF=$BTC_WIF_TESTNET ETH_PRIVATE_KEY=$ETH_PRIVATE_KEY
+      if: github.event_name == 'push'

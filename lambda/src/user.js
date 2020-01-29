@@ -28,6 +28,8 @@ type RecipientListType = {
 }
 
 type CryptoAccountType = {
+  id: string,
+
   cryptoType: string,
   walletType: string,
   address: ?string,
@@ -202,19 +204,27 @@ async function addRecipient (
   }
 }
 
+function _getAccountId (account: CryptoAccountType): string {
+  if (account.cryptoType === 'bitcoin' && account.xpub) {
+    return JSON.stringify({
+      cryptoType: account.cryptoType.toLowerCase(),
+      walletType: account.walletType.toLowerCase(),
+      // $FlowFixMe
+      xpub: account.xpub.toLowerCase()
+    })
+  }
+  return JSON.stringify({
+    cryptoType: account.cryptoType.toLowerCase(),
+    walletType: account.walletType.toLowerCase(),
+    // $FlowFixMe
+    address: account.address.toLowerCase()
+  })
+}
+
 function _accountsEqual (account1: CryptoAccountType, account2: CryptoAccountType): boolean {
-  if (account1.cryptoType === 'bitcoin') {
-    return (
-      account1.cryptoType === account2.cryptoType &&
-      (account1.xpub === account2.xpub || account1.address === account2.address) &&
-      account1.walletType === account2.walletType
-    )
-  } else
-    return (
-      account1.cryptoType === account2.cryptoType &&
-      account1.address === account2.address &&
-      account1.walletType === account2.walletType
-    )
+  if (!account1.id) account1.id = _getAccountId(account1)
+  if (!account2.id) account2.id = _getAccountId(account2)
+  return account1.id === account2.id
 }
 
 async function _updateCryptoAccounts (
@@ -262,67 +272,83 @@ async function getCryptoAccounts (
   }
 }
 
-async function addCryptoAccount (
+async function addCryptoAccounts (
   userTableName: string,
   googleId: string,
-  account: CryptoAccountType
+  payloadAccounts: Array<CryptoAccountType>
 ): Promise<CryptoAccounResponsetType> {
   let { cryptoAccounts } = await getCryptoAccounts(userTableName, googleId)
-  // if crypto account not exists, add
-  if (
-    cryptoAccounts.findIndex((item: CryptoAccountType): boolean => {
-      return _accountsEqual(item, account)
-    }) < 0
-  ) {
-    const now = Math.floor(Date.now() / 1000)
-    account.addedAt = now
-    account.updatedAt = now
-    cryptoAccounts.push(account)
-    return _updateCryptoAccounts(userTableName, googleId, cryptoAccounts)
-  } else {
-    throw new Error('Account already exists')
-  }
+  let accountDict = {}
+
+  cryptoAccounts.forEach((account: CryptoAccountType) => {
+    accountDict[_getAccountId(account)] = account
+  })
+
+  payloadAccounts.forEach((newAccount: CryptoAccountType) => {
+    if (!accountDict[_getAccountId(newAccount)]) {
+      // if crypto account does not exist then add
+      const now = Math.floor(Date.now() / 1000)
+      newAccount.addedAt = now
+      newAccount.updatedAt = now
+      cryptoAccounts.push(newAccount)
+    } else {
+      throw new Error('Account already exists')
+    }
+  })
+
+  return _updateCryptoAccounts(userTableName, googleId, cryptoAccounts)
 }
 
-async function removeCryptoAccount (
+async function removeCryptoAccounts (
   userTableName: string,
   googleId: string,
-  account: CryptoAccountType
+  payloadAccounts: Array<CryptoAccountType>
 ): Promise<CryptoAccounResponsetType> {
   let { cryptoAccounts } = await getCryptoAccounts(userTableName, googleId)
   if (cryptoAccounts.length > 0) {
+    let toBeRemovedDict = {}
+
+    payloadAccounts.forEach((account: CryptoAccountType) => {
+      toBeRemovedDict[_getAccountId(account)] = account
+    })
+
     cryptoAccounts = cryptoAccounts.filter((_account: CryptoAccountType): boolean => {
-      return !_accountsEqual(_account, account)
+      return toBeRemovedDict[_getAccountId(_account)] === undefined
     })
     return _updateCryptoAccounts(userTableName, googleId, cryptoAccounts)
   }
   return { cryptoAccounts }
 }
 
-async function modifyCryptoAccountName (
+async function modifyCryptoAccountNames (
   userTableName: string,
   googleId: string,
-  account: CryptoAccountType
+  payloadAccounts: Array<CryptoAccountType>
 ): Promise<CryptoAccounResponsetType> {
   let { cryptoAccounts } = await getCryptoAccounts(userTableName, googleId)
   let exist = false
+  let toBeModifiedDict = {}
+
+  payloadAccounts.forEach((account: CryptoAccountType) => {
+    toBeModifiedDict[_getAccountId(account)] = account
+  })
+
   cryptoAccounts = cryptoAccounts.map((item: CryptoAccountType): CryptoAccountType => {
-    if (_accountsEqual(item, account)) {
-      item.name = account.name
+    const match = toBeModifiedDict[_getAccountId(item)]
+    if (match) {
+      item.name = match.name
       const now = Math.floor(Date.now() / 1000)
-      account.updatedAt = now
+      item.updatedAt = now
       exist = true
     }
     return item
   })
+
   if (exist !== true) {
     throw new Error('Account not found')
   }
-  if (cryptoAccounts.length > 0) {
-    return _updateCryptoAccounts(userTableName, googleId, cryptoAccounts)
-  } else {
-    return { cryptoAccounts }
-  }
+
+  return _updateCryptoAccounts(userTableName, googleId, cryptoAccounts)
 }
 
 async function clearCloudWalletCryptoAccounts (
@@ -381,12 +407,12 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await removeRecipient(userTableName, googleId, request.recipient)
     } else if (request.action === 'ADD_RECIPIENT') {
       rv = await addRecipient(userTableName, googleId, request.recipient)
-    } else if (request.action === 'ADD_CRYPTO_ACCOUNT') {
-      rv = await addCryptoAccount(userTableName, googleId, request.account)
-    } else if (request.action === 'REMOVE_CRYPTO_ACCOUNT') {
-      rv = await removeCryptoAccount(userTableName, googleId, request.account)
-    } else if (request.action === 'MODIFY_CRYPTO_ACCOUNT_NAME') {
-      rv = await modifyCryptoAccountName(userTableName, googleId, request.account)
+    } else if (request.action === 'ADD_CRYPTO_ACCOUNTS') {
+      rv = await addCryptoAccounts(userTableName, googleId, request.payloadAccounts)
+    } else if (request.action === 'REMOVE_CRYPTO_ACCOUNTS') {
+      rv = await removeCryptoAccounts(userTableName, googleId, request.payloadAccounts)
+    } else if (request.action === 'MODIFY_CRYPTO_ACCOUNT_NAMES') {
+      rv = await modifyCryptoAccountNames(userTableName, googleId, request.payloadAccounts)
     } else if (request.action === 'GET_CRYPTO_ACCOUNTS') {
       rv = await getCryptoAccounts(userTableName, googleId)
     } else if (request.action === 'CLEAR_CLOUD_WALLET_CRYPTO_ACCOUNTS') {

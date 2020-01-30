@@ -4,7 +4,6 @@ import axios from 'axios'
 import BtcMultiSig from './BtcMultiSig'
 
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
-var btcOps = require('./btcOps.js')
 var Config = require('./config.js')
 var bitcoin = require('bitcoinjs-lib')
 
@@ -16,12 +15,6 @@ const walletAddressesDataTableName = process.env.WALLET_ADDRESSES_DATA_TABLE_NAM
 
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
 const deploymentStage = process.env.ENV_VALUE.toLowerCase()
-
-if (!process.env.CHAINSFER_BTC_XPUB_INDEX_DATA_TABLE_NAME) throw new Error('CHAINSFER_BTC_XPUB_INDEX_DATA_TABLE_NAME missing')
-const chainsferBtcXPubIndexDataTableName = process.env.CHAINSFER_BTC_XPUB_INDEX_DATA_TABLE_NAME
-
-if (!process.env.CHAINSFER_BTC_TRACKED_ADDRESS_DATA_TABLE_NAME) throw new Error('CHAINSFER_BTC_TRACKED_ADDRESS_DATA_TABLE_NAME missing')
-const chainsferBtcTrackedAddressDataTableName = process.env.CHAINSFER_BTC_TRACKED_ADDRESS_DATA_TABLE_NAME
 
 const expirationLength = Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
 const reminderInterval = Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
@@ -90,14 +83,6 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await dynamoDBTxOps.cancelTransfer(request)
     } else if (request.action === 'GET_MULTISIG_SIGNING_DATA') {
       rv = await dynamoDBTxOps.getMultiSigSigningData(request)
-    } else if (request.action === 'SET_LAST_USED_ADDRESS') {
-      await dynamoDBTxOps.setLastUsedAddress(request)
-    } else if (request.action === 'GET_LAST_USED_ADDRESS') {
-      let googleId = await dynamoDBTxOps.verifyGoogleIdToken(googleAPIConfig['clientId'], request.idToken)
-      rv = await dynamoDBTxOps.getLastUsedAddress(walletAddressesDataTableName, googleId)
-    } else if (request.action === 'UTXOS') {
-      const limit = request.limit || 1000
-      rv = await btcOps.getUtxosFromChainsferBtcXPubIndex(request.xpub, request.accountIndex, chainsferBtcXPubIndexDataTableName, limit, BaseBtcPath, BtcNetworkConfig, LedgerApiUrl, chainsferBtcTrackedAddressDataTableName)
     } else if (request.action === 'MINT_LIBRA') {
       // current faucet does not support http,  thus, frontend cannot mint
       // move the minting part here temporarily

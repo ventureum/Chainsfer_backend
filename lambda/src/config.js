@@ -25,50 +25,6 @@ async function getBtcTx (txHash: string, apiUrl: string): Promise<Object> {
   }
 }
 
-async function getBtcBlockHashData (
-  blockHash: string,
-  txstart: number,
-  limit: number,
-  apiUrl: string
-): any { // eslint-disable-line
-  try {
-    const options = {
-      method: 'GET',
-      uri: apiUrl + '/blocks/' + blockHash + '?txstart=' + txstart + '&limit=' + limit
-    }
-    let response = await request(options).promise()
-    return JSON.parse(response)
-  } catch (err) {
-    throw new Error('Unable to get Btc Block Data. Error: ' + err.message)
-  }
-}
-
-async function getBtcBlockHashDataByNextTxIds (nextTxIdsUrl: string): any { // eslint-disable-line
-  try {
-    const options = {
-      method: 'GET',
-      uri: nextTxIdsUrl
-    }
-    let response = await request(options).promise()
-    return JSON.parse(response)
-  } catch (err) {
-    throw new Error('Unable to get Btc Block Data By NextTxIds. Error: ' + err.message)
-  }
-}
-
-async function getBtcLatestBlockHashData (apiUrl: string): any { // eslint-disable-line
-  try {
-    const options = {
-      method: 'GET',
-      uri: apiUrl
-    }
-    let response = await request(options).promise()
-    return JSON.parse(response)
-  } catch (err) {
-    throw new Error('Unable to get Btc Latest Block Hash. Error: ' + err.message)
-  }
-}
-
 const TxConfirmationConfig = {
   ethereum: {
     delaySeconds: 60,
@@ -213,10 +169,7 @@ module.exports = {
   BtcNetworkConfig: BtcNetworkConfig,
   getBtcTx: getBtcTx,
   GoogleAPIConfig: GoogleAPIConfig,
-  getBtcLatestBlockHashData: getBtcLatestBlockHashData,
-  getBtcBlockHashData: getBtcBlockHashData,
   LedgerApiUrlConfig: LedgerApiUrlConfig,
-  getBtcBlockHashDataByNextTxIds: getBtcBlockHashDataByNextTxIds,
   EthChainId: EthChainId,
   ERC20Tokens: ERC20Tokens,
   InfuraAPIKey: InfuraAPIKey,

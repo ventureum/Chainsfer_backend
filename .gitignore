@@ -4,3 +4,4 @@
 /dist
 /flow-typed
 template_packaged*.yml
+upload.sh

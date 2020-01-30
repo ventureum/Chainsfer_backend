@@ -1,5 +1,6 @@
 [ignore]
 .*/node_modules/oboe/test/json/incomplete.json
+.*/node_modules/cfn-lint/testData/invalid/json/invalid_json.json
 
 [include]
 ./lambda

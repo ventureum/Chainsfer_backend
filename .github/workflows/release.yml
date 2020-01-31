@@ -37,3 +37,26 @@ jobs:
     - run: npm run upload
     - run: make all ENV=staging BTC_WIF=$BTC_WIF_TESTNET ETH_PRIVATE_KEY=$ETH_PRIVATE_KEY
     - run: make all ENV=prod BTC_WIF=$BTC_WIF_MAINNET ETH_PRIVATE_KEY=$ETH_PRIVATE_KEY
+    
+    - name: Notify slack success
+      if: success()
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      uses: voxmedia/github-action-slack-notify-build@v1
+      with:
+        # Updates existing message from the first step
+        message_id: ${{ steps.slack.outputs.message_id }}
+        channel_id: CESRN89MF
+        status: SUCCESS
+        color: good
+    - name: Notify slack failure
+      if: failure()
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      uses: voxmedia/github-action-slack-notify-build@v1
+      with:
+        # Updates existing message from the first step
+        message_id: ${{ steps.slack.outputs.message_id }}
+        channel_id: CESRN89MF
+        status: FAILED
+        color: danger

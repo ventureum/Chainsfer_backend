@@ -27,12 +27,14 @@ type RecipientListType = {
   recipients: Array<RecipientType>
 }
 
+// asdasd
 type CryptoAccountType = {
   cryptoType: string,
   walletType: string,
   address: ?string,
   xpub: ?string,
   name: string,
+  email: ?string,
   verified: boolean,
   receivable: boolean,
   sendable: boolean,

@@ -91,6 +91,8 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       )
     } else if (request.action === 'GET_BTC_MULTI_SIG_PUBLIC_KEY') {
       rv = await BtcMultiSig.getBtcMultiSigPublicKey()
+    } else if (request.action === 'DIRECT_TRANSFER') {
+      rv = await dynamoDBTxOps.directTransfer(request)
     } else {
       throw new Error('Invalid command')
     }

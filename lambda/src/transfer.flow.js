@@ -151,4 +151,17 @@ export type GetMultiSigSigningDataReturnType = {
   data: string
 }
 
+export type DirectTransferParamsType = {
+  senderAccount: string,
+  destinationAccount: string,
+  ...$Exact<TransferDataCryptoType>,
+  sendTxHash: string
+}
+
+export type DirectTransferReturnType = {
+  transferId: string,
+  sendTimestamp: string
+}
+
+
 export type EcdsaSigType = string

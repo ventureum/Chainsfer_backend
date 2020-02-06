@@ -114,7 +114,12 @@ async function processTxConfirmation (
         )
       } else {
         await updateTxState('Confirmed', item)
-        await sendEmail(item)
+        if (item.transferStage != 'SenderToReceiver') {
+          // only send email for email transfer
+          // stage == SenderToReceiver indicates a direct
+          // transfer
+          await sendEmail(item)
+        }
         if (item.transferStage === 'SenderToChainsfer') {
           await dynamoDBTxOps.updateReminderToReceiver(item.transferId)
         }

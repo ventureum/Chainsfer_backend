@@ -11,7 +11,9 @@ import type {
   CancelTransferParamsType,
   CancelTransferReturnType,
   GetMultiSigSigningDataParamsType,
-  GetMultiSigSigningDataReturnType
+  GetMultiSigSigningDataReturnType,
+  DirectTransferParamsType,
+  DirectTransferReturnType
 } from './transfer.flow'
 import ethMultiSig from './EthMultiSig'
 import BtcMultiSig from './BtcMultiSig'
@@ -504,6 +506,65 @@ async function getMultiSigSigningData (
   }
 }
 
+async function directTransfer (params: DirectTransferParamsType): Promise<DirectTransferReturnType> {
+  const ts = moment().unix()
+  const timestamp = ts.toString()
+  const transferId = UUID()
+
+  let senderToReceiver: { [key: string]: string | Array<string> } = {
+    txState: 'Pending',
+    txTimestamp: timestamp,
+    txHash: params.sendTxHash
+  }
+
+  let {
+    // sender
+    senderAccount,
+    // receiver
+    destinationAccount,
+    // crypto
+    cryptoType,
+    transferAmount,
+    transferFiatAmountSpot,
+    fiatType,
+    // others
+    sendTxHash,
+  } = params
+
+  await documentClient
+    .put({
+      TableName: transActionDataTableName,
+      Item: {
+        // sender
+        senderAccount,
+        // receiver
+        destinationAccount,
+        // crypto
+        cryptoType,
+        transferAmount,
+        transferFiatAmountSpot,
+        fiatType,
+        // others
+        sendTxHash,
+        // auto generated
+        transferId: transferId,
+        created: timestamp,
+        updated: timestamp,
+        transferStage: 'SenderToReceiver',
+        senderToReceiver,
+      }
+    })
+    .promise()
+
+  console.log('directTransfer: transferId %s', transferId)
+  let result: DirectTransferReturnType = {
+    transferId: transferId,
+    sendTimestamp: timestamp
+  }
+
+  return result
+}
+
 // eslint-disable-next-line flowtype/no-weak-types
 async function collectPotentialExpirationRemainderList (): Promise<Array<Object>> {
   const timestamp = moment().unix()
@@ -629,5 +690,6 @@ module.exports = {
   collectPotentialReceiverRemainderList: collectPotentialReceiverRemainderList,
   updateReminderToReceiver: updateReminderToReceiver,
   verifyGoogleIdToken: verifyGoogleIdToken,
-  getMultiSigSigningData: getMultiSigSigningData
+  getMultiSigSigningData: getMultiSigSigningData,
+  directTransfer
 }

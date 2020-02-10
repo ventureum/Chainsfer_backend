@@ -22,6 +22,20 @@ type RecipientType = {
   updatedAt: number // timestamp
 }
 
+type UserProfileType = {
+  imageUrl: ?string,
+  name: string,
+  givenName: string,
+  familyName: string
+}
+
+type UserType = {
+  googleId: string,
+  email: string,
+  recipients: Array<RecipientType>,
+  profile: UserProfileType
+}
+
 type RecipientListType = {
   googleId: string,
   recipients: Array<RecipientType>
@@ -46,68 +60,80 @@ type CryptoAccounResponsetType = { cryptoAccounts: Array<CryptoAccountType> }
 
 async function register (
   userTableName: string,
-  googleId: string
+  googleId: string,
+  email: string,
+  profile: UserProfileType
 ): Promise<{
   newUser: boolean,
   googleId: string,
   recipients: Array<RecipientType>
 }> {
-  const getParams = {
-    TableName: userTableName,
-    Key: {
-      googleId
-    }
-  }
-
-  let response = await documentClient.get(getParams).promise()
-  // init User item
-  if (response.Item && response.Item.googleId) {
+  try {
+    const user = await getUser(userTableName, googleId)
     return {
       newUser: false,
-      googleId: response.Item.googleId,
-      recipients: response.Item.recipients
+      ...user
     }
-  } else {
-    response = await documentClient
-      .put({
-        TableName: userTableName,
-        Item: {
-          googleId: googleId,
-          recipients: []
-        }
-      })
-      .promise()
-    await referralWallet.createAccount(googleId)
-    return {
-      newUser: true,
-      googleId: googleId,
-      recipients: []
+  } catch (e) {
+    if (e.message === 'User not found') {
+      const newEntry = {
+        googleId: googleId,
+        recipients: [],
+        profile: profile,
+        email: email
+      }
+      await documentClient
+        .put({
+          TableName: userTableName,
+          Item: newEntry
+        })
+        .promise()
+
+      return {
+        newUser: true,
+        ...newEntry
+      }
     }
+    throw e
   }
-  // create a referral account
 }
 
 async function getUser (
   userTableName: string,
-  googleId: string
-): Promise<{ googleId: string, recipients: ?Array<RecipientType> }> {
-  const params = {
-    TableName: userTableName,
-    Key: {
-      googleId
+  googleId: ?string,
+  email: ?string
+): Promise<UserType> {
+  let params
+  if (googleId) {
+    // query by primary key
+    params = {
+      TableName: userTableName,
+      KeyConditionExpression: '#gid = :gid',
+      ExpressionAttributeNames: {
+        '#gid': 'googleId'
+      },
+      ExpressionAttributeValues: {
+        ':gid': googleId
+      }
     }
+  } else if (email) {
+    // query by secondary index
+    params = {
+      TableName: userTableName,
+      IndexName: 'emailIndex',
+      KeyConditionExpression: 'email = :em',
+      ExpressionAttributeValues: {
+        ':em': email
+      }
+    }
+  } else {
+    throw new Error('Invalid params')
   }
 
-  let response = await documentClient.get(params).promise()
-  let recipients = []
-  if (response.Item && response.Item.recipients) {
-    recipients = [...response.Item.recipients]
-  }
+  let response = await documentClient.query(params).promise()
+  if (response.Count < 1) throw new Error('User not found')
 
-  return {
-    googleId: response.Item.googleId || null,
-    recipients: recipients
-  }
+  return response.Items[0]
 }
 
 async function getRecipients (userTableName: string, googleId: string): Promise<RecipientListType> {
@@ -395,27 +421,31 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
 
   try {
     let rv = null
-    let googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], request.idToken)
+    let googleId = ''
+    const { action, idToken, email } = request
+    if (idToken) {
+      googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], idToken)
+    }
 
-    if (request.action === 'REGISTER') {
-      rv = await register(userTableName, googleId)
-    } else if (request.action === 'GET_USER') {
-      rv = await getUser(userTableName, googleId)
-    } else if (request.action === 'GET_RECIPIENTS') {
+    if (action === 'REGISTER') {
+      rv = await register(userTableName, googleId, request.email, request.profile)
+    } else if (action === 'GET_USER' && (googleId || email)) {
+      rv = await getUser(userTableName, googleId, email)
+    } else if (action === 'GET_RECIPIENTS') {
       rv = await getRecipients(userTableName, googleId)
-    } else if (request.action === 'REMOVE_RECIPIENT') {
+    } else if (action === 'REMOVE_RECIPIENT') {
       rv = await removeRecipient(userTableName, googleId, request.recipient)
-    } else if (request.action === 'ADD_RECIPIENT') {
+    } else if (action === 'ADD_RECIPIENT') {
       rv = await addRecipient(userTableName, googleId, request.recipient)
-    } else if (request.action === 'ADD_CRYPTO_ACCOUNTS') {
+    } else if (action === 'ADD_CRYPTO_ACCOUNTS') {
       rv = await addCryptoAccounts(userTableName, googleId, request.payloadAccounts)
-    } else if (request.action === 'REMOVE_CRYPTO_ACCOUNTS') {
+    } else if (action === 'REMOVE_CRYPTO_ACCOUNTS') {
       rv = await removeCryptoAccounts(userTableName, googleId, request.payloadAccounts)
-    } else if (request.action === 'MODIFY_CRYPTO_ACCOUNT_NAMES') {
+    } else if (action === 'MODIFY_CRYPTO_ACCOUNT_NAMES') {
       rv = await modifyCryptoAccountNames(userTableName, googleId, request.payloadAccounts)
-    } else if (request.action === 'GET_CRYPTO_ACCOUNTS') {
+    } else if (action === 'GET_CRYPTO_ACCOUNTS') {
       rv = await getCryptoAccounts(userTableName, googleId)
-    } else if (request.action === 'CLEAR_CLOUD_WALLET_CRYPTO_ACCOUNTS') {
+    } else if (action === 'CLEAR_CLOUD_WALLET_CRYPTO_ACCOUNTS') {
       rv = await clearCloudWalletCryptoAccounts(userTableName, googleId)
     } else {
       throw new Error('Invalid command')

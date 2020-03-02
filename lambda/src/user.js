@@ -29,11 +29,18 @@ type UserProfileType = {
   familyName: string
 }
 
+type CloudWalletFolderMetaType = {
+  fileId: string,
+  lastModified: number // timestamp
+}
+
 type UserType = {
   googleId: string,
   email: string,
   recipients: Array<RecipientType>,
-  profile: UserProfileType
+  profile: UserProfileType,
+  cloudWalletFolderMeta: CloudWalletFolderMetaType,
+  registerTime: number // timestamp
 }
 
 type RecipientListType = {
@@ -76,11 +83,14 @@ async function register (
     }
   } catch (e) {
     if (e.message === 'User not found') {
+      const now = Math.floor(Date.now() / 1000)
+
       const newEntry = {
         googleId: googleId,
         recipients: [],
         profile: profile,
-        email: email
+        email: email,
+        registerTime: now
       }
       await documentClient
         .put({
@@ -391,6 +401,40 @@ async function clearCloudWalletCryptoAccounts (
   return { cryptoAccounts }
 }
 
+async function updateUserCloudWalletFolderMeta (
+  userTableName: string,
+  googleId: string,
+  newMetaInfo: CloudWalletFolderMetaType
+): Promise<CloudWalletFolderMetaType> {
+  let user = await getUser(userTableName, googleId)
+  const oldMeta = user.cloudWalletFolderMeta
+  user.cloudWalletFolderMeta = { ...oldMeta, ...newMetaInfo }
+
+  const params = {
+    TableName: userTableName,
+    Key: {
+      googleId
+    },
+    UpdateExpression: 'set cloudWalletFolderMeta = :c',
+    ExpressionAttributeValues: {
+      ':c': user.cloudWalletFolderMeta
+    },
+    ReturnValues: 'UPDATED_NEW'
+  }
+
+  let response = await documentClient.update(params).promise()
+
+  return response.Attributes.cloudWalletFolderMeta
+}
+
+async function getUserCloudWalletFolderMeta (
+  userTableName: string,
+  googleId: string
+): Promise<CloudWalletFolderMetaType> {
+  let user = await getUser(userTableName, googleId)
+  return user.cloudWalletFolderMeta || {}
+}
+
 // eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   let request = JSON.parse(event.body)
@@ -447,6 +491,10 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await getCryptoAccounts(userTableName, googleId)
     } else if (action === 'CLEAR_CLOUD_WALLET_CRYPTO_ACCOUNTS') {
       rv = await clearCloudWalletCryptoAccounts(userTableName, googleId)
+    } else if (action === 'UPDATE_UESR_CLOUD_WALLET_FOLDER_META') {
+      rv = await updateUserCloudWalletFolderMeta(userTableName, googleId, request.newMetaInfo)
+    } else if (action === 'GET_UESR_CLOUD_WALLET_FOLDER_META') {
+      rv = await getUserCloudWalletFolderMeta(userTableName, googleId)
     } else {
       throw new Error('Invalid command')
     }

@@ -36,7 +36,7 @@ const TxConfirmationConfig = {
   },
   bitcoin: {
     delaySeconds: 600,
-    maxRetry: 6
+    maxRetry: 72 // 12 hours
   },
   libra: {
     delaySeconds: 60,

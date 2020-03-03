@@ -336,6 +336,8 @@ Resources:
           AttributeType: S
         - AttributeName: receiveTxHash
           AttributeType: S
+        - AttributeName: cancelTxHash
+          AttributeType: S
       KeySchema:
         - AttributeName: transferId
           KeyType: HASH
@@ -361,6 +363,12 @@ Resources:
               NonKeyAttributes:
                 - receivingId
               ProjectionType: INCLUDE
+        - IndexName: cancelTxHash-index
+          KeySchema:
+            - AttributeName: cancelTxHash
+              KeyType: HASH
+          Projection:
+              ProjectionType: KEYS_ONLY
       StreamSpecification:
         StreamViewType: NEW_IMAGE
     DependsOn:

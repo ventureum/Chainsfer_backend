@@ -211,6 +211,16 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
     txTimestamp: timestamp
   }
 
+  let chainsferToReceiver: { [key: ?string]: ?string | Array<?string> } = {
+    txState: null,
+    txTimestamp: null
+  }
+
+  let chainsferToSender: { [key: ?string]: ?string | Array<?string> } = {
+    txState: null,
+    txTimestamp: null
+  }
+
   let reminder: { [key: string]: number } = {
     expirationTime: ts + expirationLength,
     availableReminderToReceiver: Math.floor(expirationLength / reminderInterval),
@@ -283,6 +293,8 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
         reminder: reminder,
         transferStage: 'SenderToChainsfer',
         senderToChainsfer: senderToChainsfer,
+        chainsferToReceiver: chainsferToReceiver,
+        chainsferToSender: chainsferToSender,
         // multisig wallet
         walletId: walletId
       }

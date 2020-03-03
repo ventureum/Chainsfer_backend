@@ -347,7 +347,7 @@ async function receiveTransfer (
         transferId: transfer.transferId
       },
       ConditionExpression:
-        'attribute_not_exists(#ctr) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
+        'attribute_not_exists(#ctr.#ctrTxHash) and attribute_not_exists(#cts.#ctsTxHash) and #stcTx.#stcTxSate = :stcTxSate',
       UpdateExpression:
         'SET #ctr = :ctr, #tstage = :tstage, #upt = :upt, #rMsg = :rMsgValue, #rAcc = :rAcc, #rTxHash = :rTxHash',
       ExpressionAttributeNames: {
@@ -359,7 +359,9 @@ async function receiveTransfer (
         '#rMsg': 'receiveMessage',
         '#upt': 'updated',
         '#rAcc': 'receiverAccount',
-        '#rTxHash': 'receiveTxHash'
+        '#rTxHash': 'receiveTxHash',
+        '#ctrTxHash': 'txHash',
+        '#ctsTxHash': 'txHash'
       },
       ExpressionAttributeValues: {
         ':ctr': {
@@ -422,7 +424,7 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
         transferId: params.transferId
       },
       ConditionExpression:
-        '(attribute_not_exists(#ctr) or attribute_not_exists(#ctr.#ctrTxHash)) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
+        '(attribute_not_exists(#ctr) or attribute_not_exists(#ctr.#ctrTxHash)) and attribute_not_exists(#cts.#ctsTxHash) and #stcTx.#stcTxSate = :stcTxSate',
       UpdateExpression:
         'SET #cts = :cts, #tstage = :tstage, #upt = :upt, #cMsg = :cMsgValue, #cTxHash = :cTxHash',
       ExpressionAttributeNames: {
@@ -434,7 +436,8 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
         '#tstage': 'transferStage',
         '#cMsg': 'cancelMessage',
         '#upt': 'updated',
-        '#cTxHash': 'cancelTxHash'
+        '#cTxHash': 'cancelTxHash',
+        '#ctsTxHash': 'txHash'
       },
       ExpressionAttributeValues: {
         ':cts': {
@@ -600,10 +603,12 @@ async function collectPotentialExpirationRemainderList (): Promise<Array<Object>
           '#stc': 'senderToChainsfer',
           '#txState': 'txState',
           '#reminder': 'reminder',
-          '#exp': 'expirationTime'
+          '#exp': 'expirationTime',
+          '#ctrTxHash': 'txHash',
+          '#ctsTxHash': 'txHash'
         },
         FilterExpression:
-          '(attribute_not_exists(#ctr) or (attribute_exists(#ctr.#txState) and #ctr.#txState = :expired)) and attribute_not_exists(#cts) and (#stc.#txState = :confirmed) and (#reminder.#exp <= :ts)',
+          '(attribute_not_exists(#ctr) or (attribute_exists(#ctr.#txState) and #ctr.#txState = :expired)) and attribute_not_exists(#cts.#ctsTxHash) and (#stc.#txState = :confirmed) and (#reminder.#exp <= :ts)',
         TableName: transActionDataTableName
       })
       .promise()
@@ -639,10 +644,12 @@ async function collectPotentialReceiverRemainderList (): Promise<Array<Object>> 
           '#txState': 'txState',
           '#reminder': 'reminder',
           '#exp': 'expirationTime',
-          '#artc': 'availableReminderToReceiver'
+          '#artc': 'availableReminderToReceiver',
+          '#ctrTxHash': 'txHash',
+          '#ctsTxHash': 'txHash'
         },
         FilterExpression:
-          '#stcTx.#txState = :confirmed and attribute_not_exists(#ctrTx) and attribute_not_exists(#ctsTx) and (#reminder.#exp > :ts) and (#reminder.#artc > :zero)',
+          '#stcTx.#txState = :confirmed and attribute_not_exists(#ctrTx.#ctrTxHash) and attribute_not_exists(#ctsTx.#ctsTxHash) and (#reminder.#exp > :ts) and (#reminder.#artc > :zero)',
         TableName: transActionDataTableName
       })
       .promise()
@@ -667,7 +674,7 @@ async function updateReminderToReceiver (transferId: string) {
       transferId: transferId
     },
     ConditionExpression:
-      'attribute_not_exists(#ctr) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate and #re.#artc > :zero',
+      'attribute_not_exists(#ctr.#ctrTxHash) and attribute_not_exists(#cts.#ctsTxHash) and #stcTx.#stcTxSate = :stcTxSate and #re.#artc > :zero',
     UpdateExpression: 'SET #upt = :upt, #re.#artc = #re.#artc - :inc, #re.#rtrc = #re.#rtrc + :inc',
     ExpressionAttributeNames: {
       '#ctr': 'chainsferToReceiver',
@@ -677,7 +684,9 @@ async function updateReminderToReceiver (transferId: string) {
       '#upt': 'updated',
       '#re': 'reminder',
       '#artc': 'availableReminderToReceiver',
-      '#rtrc': 'reminderToReceiverCount'
+      '#rtrc': 'reminderToReceiverCount',
+      '#ctrTxHash': 'txHash',
+      '#ctsTxHash': 'txHash'
     },
     ExpressionAttributeValues: {
       ':stcTxSate': 'Confirmed',

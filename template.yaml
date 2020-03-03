@@ -334,6 +334,8 @@ Resources:
           AttributeType: S
         - AttributeName: sendTxHash
           AttributeType: S
+        - AttributeName: receiveTxHash
+          AttributeType: S
       KeySchema:
         - AttributeName: transferId
           KeyType: HASH
@@ -351,6 +353,14 @@ Resources:
               KeyType: HASH
           Projection:
               ProjectionType: KEYS_ONLY
+        - IndexName: receiveTxHash-index
+          KeySchema:
+            - AttributeName: receiveTxHash
+              KeyType: HASH
+          Projection:
+              NonKeyAttributes:
+                - receivingId
+              ProjectionType: INCLUDE
       StreamSpecification:
         StreamViewType: NEW_IMAGE
     DependsOn:

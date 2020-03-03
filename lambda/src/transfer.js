@@ -93,6 +93,8 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await BtcMultiSig.getBtcMultiSigPublicKey()
     } else if (request.action === 'DIRECT_TRANSFER') {
       rv = await dynamoDBTxOps.directTransfer(request)
+    } else if (request.action === 'LOOKUP_TX_HASHES') {
+      rv = await dynamoDBTxOps.lookupTxHashes(request)
     } else {
       throw new Error('Invalid command')
     }

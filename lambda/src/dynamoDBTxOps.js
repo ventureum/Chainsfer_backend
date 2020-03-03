@@ -337,7 +337,7 @@ async function receiveTransfer (
       ConditionExpression:
         'attribute_not_exists(#ctr) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
       UpdateExpression:
-        'SET #ctr = :ctr, #tstage = :tstage, #upt = :upt, #rMsg = :rMsgValue, #rAcc = :rAcc',
+        'SET #ctr = :ctr, #tstage = :tstage, #upt = :upt, #rMsg = :rMsgValue, #rAcc = :rAcc, #rTxHash = :rTxHash',
       ExpressionAttributeNames: {
         '#ctr': 'chainsferToReceiver',
         '#cts': 'chainsferToSender',
@@ -346,7 +346,8 @@ async function receiveTransfer (
         '#tstage': 'transferStage',
         '#rMsg': 'receiveMessage',
         '#upt': 'updated',
-        '#rAcc': 'receiverAccount'
+        '#rAcc': 'receiverAccount',
+        '#rTxHash': 'receiveTxHash'
       },
       ExpressionAttributeValues: {
         ':ctr': {
@@ -356,6 +357,7 @@ async function receiveTransfer (
         },
         ':stcTxSate': 'Confirmed',
         ':tstage': 'ChainsferToReceiver',
+        ':rTxHash': receiveTxHash,
         ':rMsgValue': params.receiveMessage,
         ':upt': receiveTimestamp,
         ':rAcc': params.receiverAccount
@@ -409,7 +411,8 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
       },
       ConditionExpression:
         '(attribute_not_exists(#ctr) or attribute_not_exists(#ctr.#ctrTxHash)) and attribute_not_exists(#cts) and #stcTx.#stcTxSate = :stcTxSate',
-      UpdateExpression: 'SET #cts = :cts, #tstage = :tstage, #upt = :upt, #cMsg = :cMsgValue',
+      UpdateExpression:
+        'SET #cts = :cts, #tstage = :tstage, #upt = :upt, #cMsg = :cMsgValue, #cTxHash = :cTxHash',
       ExpressionAttributeNames: {
         '#ctr': 'chainsferToReceiver',
         '#cts': 'chainsferToSender',
@@ -418,7 +421,8 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
         '#ctrTxHash': 'txHash',
         '#tstage': 'transferStage',
         '#cMsg': 'cancelMessage',
-        '#upt': 'updated'
+        '#upt': 'updated',
+        '#cTxHash': 'cancelTxHash'
       },
       ExpressionAttributeValues: {
         ':cts': {
@@ -428,6 +432,7 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
         },
         ':stcTxSate': 'Confirmed',
         ':tstage': 'ChainsferToSender',
+        ':cTxHash': cancelTxHash,
         ':cMsgValue': params.cancelMessage,
         ':upt': cancelTimestamp
       },
@@ -528,7 +533,7 @@ async function directTransfer (params: DirectTransferParamsType): Promise<Direct
     transferFiatAmountSpot,
     fiatType,
     // others
-    sendTxHash,
+    sendTxHash
   } = params
 
   await documentClient
@@ -551,7 +556,7 @@ async function directTransfer (params: DirectTransferParamsType): Promise<Direct
         created: timestamp,
         updated: timestamp,
         transferStage: 'SenderToReceiver',
-        senderToReceiver,
+        senderToReceiver
       }
     })
     .promise()
@@ -678,6 +683,122 @@ async function updateReminderToReceiver (transferId: string) {
   }
 }
 
+async function lookupTxHashes (params: {
+  txHashes: Array<string>
+}): Promise<Array<{
+    txHash: string,
+    transferId?: string,
+    receivingId?: string,
+    error?: string
+  }>> {
+  const { txHashes } = params
+
+  const QUERY_BATCH_SIZE = 50
+
+  let rv = []
+
+  for (let i = 0; i < txHashes.length; i += QUERY_BATCH_SIZE) {
+    const chunks = txHashes.slice(i, i + QUERY_BATCH_SIZE)
+
+    let sendTxHashQueryPromiseList = []
+    let receiveTxHashQueryPromiseList = []
+    let cancelTxHashQueryPromiseList = []
+
+    for (let j = 0; j < chunks.length; j++) {
+      let txHash = chunks[j]
+
+      let sendTxHashParams = {
+        TableName: transActionDataTableName,
+        IndexName: 'sendTxHash-index',
+        KeyConditionExpression: 'sendTxHash = :hash',
+        ExpressionAttributeValues: {
+          ':hash': txHash
+        }
+      }
+
+      let receiveTxHashParams = {
+        TableName: transActionDataTableName,
+        IndexName: 'receiveTxHash-index',
+        KeyConditionExpression: 'receiveTxHash = :hash',
+        ExpressionAttributeValues: {
+          ':hash': txHash
+        }
+      }
+
+      let cancelTxHashParams = {
+        TableName: transActionDataTableName,
+        IndexName: 'cancelTxHash-index',
+        KeyConditionExpression: 'cancelTxHash = :hash',
+        ExpressionAttributeValues: {
+          ':hash': txHash
+        }
+      }
+
+      sendTxHashQueryPromiseList.push(documentClient.query(sendTxHashParams).promise())
+      receiveTxHashQueryPromiseList.push(documentClient.query(receiveTxHashParams).promise())
+      cancelTxHashQueryPromiseList.push(documentClient.query(cancelTxHashParams).promise())
+    }
+
+    // run promises
+    let sendTxHashQueryResults = await Promise.all(sendTxHashQueryPromiseList)
+    let receiveTxHashQueryResults = await Promise.all(receiveTxHashQueryPromiseList)
+    let cancelTxHashQueryResults = await Promise.all(cancelTxHashQueryPromiseList)
+
+    // safety check
+    if (
+      sendTxHashQueryResults.length === receiveTxHashQueryResults.length &&
+      receiveTxHashQueryResults.length === cancelTxHashQueryResults.length
+    ) {
+      // gather results
+      for (let j = 0; j < sendTxHashQueryResults.length; j++) {
+        // DEBUG
+        console.log(
+          chunks[j],
+          sendTxHashQueryResults[j],
+          receiveTxHashQueryResults[j],
+          cancelTxHashQueryResults[j]
+        )
+
+        if (sendTxHashQueryResults[j].Items && sendTxHashQueryResults[j].Items.length === 1) {
+          // is sendTxHash
+          rv.push({
+            txHash: chunks[j],
+            transferId: sendTxHashQueryResults[j].Items[0].transferId
+          })
+        } else if (
+          receiveTxHashQueryResults[j].Items &&
+          receiveTxHashQueryResults[j].Items.length === 1
+        ) {
+          // is receiveTxHash
+          rv.push({
+            txHash: chunks[j],
+            receivingId: receiveTxHashQueryResults[j].Items[0].receivingId
+          })
+        } else if (
+          cancelTxHashQueryResults[j].Items &&
+          cancelTxHashQueryResults[j].Items.length === 1
+        ) {
+          // is cancelTxHash
+          rv.push({
+            txHash: chunks[j],
+            transferId: cancelTxHashQueryResults[j].Items[0].transferId
+          })
+        } else {
+          rv.push({
+            txHash: chunks[j],
+            error: 'Cannot found corresponding txHash in transaction table'
+          })
+        }
+      }
+    } else {
+      throw new Error(
+        'sendTxHashQueryResults, receiveTxHashQueryResults and cancelTxHashQueryResults have different lengths'
+      )
+    }
+  }
+  return rv
+}
+
 module.exports = {
   sendTransfer: sendTransfer,
   cancelTransfer: cancelTransfer,
@@ -691,5 +812,6 @@ module.exports = {
   updateReminderToReceiver: updateReminderToReceiver,
   verifyGoogleIdToken: verifyGoogleIdToken,
   getMultiSigSigningData: getMultiSigSigningData,
-  directTransfer
+  directTransfer,
+  lookupTxHashes
 }

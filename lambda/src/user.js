@@ -7,6 +7,7 @@ var Config = require('./config.js')
 const AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient()
+var generator = require('generate-password')
 
 if (!process.env.USER_TABLE_NAME) throw new Error('USER_TABLE_NAME missing')
 const userTableName = process.env.USER_TABLE_NAME
@@ -40,7 +41,8 @@ type UserType = {
   recipients: Array<RecipientType>,
   profile: UserProfileType,
   cloudWalletFolderMeta: CloudWalletFolderMetaType,
-  registerTime: number // timestamp
+  registerTime: number, // timestamp
+  masterKey: ?string
 }
 
 type RecipientListType = {
@@ -65,6 +67,17 @@ type CryptoAccountType = {
 
 type CryptoAccounResponsetType = { cryptoAccounts: Array<CryptoAccountType> }
 
+function generateMasterKey (): string {
+  return generator.generate({
+    length: 16,
+    numbers: true,
+    symbols: true,
+    lowercase: true,
+    uppercase: true,
+    strict: true
+  })
+}
+
 async function register (
   userTableName: string,
   googleId: string,
@@ -79,7 +92,8 @@ async function register (
     const user = await getUser(userTableName, googleId)
     return {
       newUser: false,
-      ...user
+      ...user,
+      masterKey: user.masterKey ? user.masterKey : generateMasterKey()
     }
   } catch (e) {
     if (e.message === 'User not found') {
@@ -90,7 +104,8 @@ async function register (
         recipients: [],
         profile: profile,
         email: email,
-        registerTime: now
+        registerTime: now,
+        masterKey: generateMasterKey()
       }
       await documentClient
         .put({

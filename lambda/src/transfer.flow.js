@@ -110,7 +110,8 @@ export type SendTransferParamsType = {
   ...$Exact<TransferDataPrivateKeyType>,
   ...$Exact<MultiSigWalletType>,
   sendMessage: ?string,
-  sendTxHash: string | Array<string>
+  sendTxHash: string | Array<string>,
+  transferId: ?string
 }
 
 export type SendTransferReturnType = {

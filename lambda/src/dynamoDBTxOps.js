@@ -201,13 +201,24 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
   params.sendMessage =
     params.sendMessage && params.sendMessage.length > 0 ? params.sendMessage : null
 
+  // generate timestamp on backup
+  // use previously generated timestamp after broadcasting
   const ts = moment().unix()
-  const timestamp = ts.toString()
-  const transferId = UUID()
-  const receivingId = UUID()
+  let timestamp = ts.toString()
 
-  let senderToChainsfer: { [key: string]: string | Array<string> } = {
-    txState: 'Pending',
+  // generate transferId on backup
+  // use previously generated transferId after broadcasting
+  const transferId = params.transferId ? params.transferId : UUID()
+
+  // generate receivingId on backup
+  // do not update receivingId after broadcasting
+  const receivingId = params.transferId ? null : UUID()
+
+  let senderToChainsfer: { [key: ?string]: ?string | Array<?string> } = {
+    // sendTxHash === null: backup transferData before broadcasting
+    // sendTxHash !== null: update transferData after broadcasting
+    // Set txState to null to void being pushed into SQS
+    txState: params.sendTxHash ? 'Pending' : null,
     txTimestamp: timestamp
   }
 
@@ -263,43 +274,71 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
     walletId
   } = params
 
-  await documentClient
-    .put({
-      TableName: transActionDataTableName,
-      Item: {
-        // sender
-        senderName,
-        senderAvatar,
-        sender,
-        senderAccount,
-        // receiver
-        receiverName,
-        destination,
-        // crypto
-        cryptoType,
-        cryptoSymbol,
-        transferAmount,
-        transferFiatAmountSpot,
-        fiatType,
-        data,
-        // others
-        sendMessage,
-        sendTxHash,
-        // auto generated
-        transferId: transferId,
-        receivingId: receivingId,
-        created: timestamp,
-        updated: timestamp,
-        reminder: reminder,
-        transferStage: 'SenderToChainsfer',
-        senderToChainsfer: senderToChainsfer,
-        chainsferToReceiver: chainsferToReceiver,
-        chainsferToSender: chainsferToSender,
-        // multisig wallet
-        walletId: walletId
-      }
-    })
-    .promise()
+  if (!sendTxHash) {
+    await documentClient
+      .put({
+        TableName: transActionDataTableName,
+        Item: {
+          // sender
+          senderName,
+          senderAvatar,
+          sender,
+          senderAccount,
+          // receiver
+          receiverName,
+          destination,
+          // crypto
+          cryptoType,
+          cryptoSymbol,
+          transferAmount,
+          transferFiatAmountSpot,
+          fiatType,
+          data,
+          // others
+          sendMessage,
+          // auto generated
+          transferId: transferId,
+          receivingId: receivingId,
+          created: timestamp,
+          updated: timestamp,
+          reminder: reminder,
+          transferStage: 'SenderToChainsfer',
+          senderToChainsfer: senderToChainsfer,
+          chainsferToReceiver: chainsferToReceiver,
+          chainsferToSender: chainsferToSender,
+          // multisig wallet
+          walletId: walletId
+        }
+      })
+      .promise()
+  } else {
+    // update sendTxHash
+    const response = await documentClient
+      .update({
+        TableName: transActionDataTableName,
+        Key: {
+          transferId: transferId
+        },
+        UpdateExpression: 'SET #stc = :stc, #sTxHash = :sTxHash',
+        ExpressionAttributeNames: {
+          '#stc': 'senderToChainsfer',
+          '#sTxHash': 'sendTxHash'
+        },
+        ExpressionAttributeValues: {
+          ':stc': {
+            txHash: sendTxHash,
+            txState: 'Pending',
+            txTimestamp: timestamp
+          },
+          ':sTxHash': sendTxHash,
+        },
+        ReturnValues: 'ALL_NEW'
+      })
+      .promise()
+
+    // use first generated timestamp
+    timestamp = response.Attributes.senderToChainsfer.txTimestamp
+  }
 
   console.log('sendTransfer: transferId %s, receivingId %s', transferId, receivingId)
   let result: SendTransferReturnType = {

@@ -338,6 +338,8 @@ Resources:
           AttributeType: S
         - AttributeName: cancelTxHash
           AttributeType: S
+        - AttributeName: inEscrow
+          AttributeType: N
       KeySchema:
         - AttributeName: transferId
           KeyType: HASH
@@ -369,6 +371,17 @@ Resources:
               KeyType: HASH
           Projection:
               ProjectionType: KEYS_ONLY
+        - IndexName: inEscrow-index
+          KeySchema:
+            - AttributeName: inEscrow
+              KeyType: HASH
+          Projection:
+            NonKeyAttributes:
+              - transferId
+              - reminder
+              - chainsferToSender
+              - chainsferToReceiver
+            ProjectionType: INCLUDE
       StreamSpecification:
         StreamViewType: NEW_IMAGE
     DependsOn:

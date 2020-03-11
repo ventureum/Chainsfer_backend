@@ -15,41 +15,38 @@ const transactionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
 const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 
-const reminderInterval = Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
+const expirationLength =
+  Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
+const reminderInterval =
+  Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
 
 async function insertExpiredState (transferId: string) {
-  const ts = moment().unix().toString()
+  const ts = moment().unix()
   const params = {
     TableName: transactionDataTableName,
     Key: {
-      'transferId': transferId
+      transferId: transferId
     },
-    ConditionExpression: '(attribute_not_exists(#ctr) or (attribute_exists(#ctr.#txState) and #ctr.#txState = :expired)) and attribute_not_exists(#cts)  and #stcTx.#txState = :confirmed',
-    UpdateExpression: 'SET #ctr = :ctr, #upt = :upt, #re.#rtsc = #re.#rtsc + :inc',
+    UpdateExpression:
+      'SET #expired = :expired, #upt = :upt, #re.#rtsc = #re.#rtsc + :inc, #re.#nrt = :nrt',
     ExpressionAttributeNames: {
-      '#ctr': 'chainsferToReceiver',
-      '#cts': 'chainsferToSender',
-      '#stcTx': 'senderToChainsfer',
-      '#txState': 'txState',
+      '#expired': 'expired',
       '#upt': 'updated',
       '#re': 'reminder',
-      '#rtsc': 'reminderToSenderCount'
+      '#rtsc': 'reminderToSenderCount',
+      '#nrt': 'nextReminderTimestamp'
     },
     ExpressionAttributeValues: {
-      ':ctr': {
-        'txState': 'Expired',
-        'txTimestamp': ts
-      },
-      ':expired': 'Expired',
-      ':confirmed': 'Confirmed',
+      ':expired': true,
       ':upt': ts,
-      ':inc': 1
+      ':inc': 1,
+      ':nrt': ts + reminderInterval
     },
     ReturnValues: 'ALL_NEW'
   }
   try {
     await ddb.update(params).promise()
-    console.log('chainsferToReceiver txState is updated successfully with State Expired')
+    console.log('transfer is updated successfully with State Expired')
   } catch (err) {
     throw new Error('Unable to update chainsferToReceiver txState. Error: ' + err.message)
   }
@@ -57,53 +54,55 @@ async function insertExpiredState (transferId: string) {
 
 // eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
-  const timestamp = moment().unix()
-  let potentialExpirationRemainderList = await dynamoDBTxOps.collectPotentialExpirationRemainderList()
-  console.log(potentialExpirationRemainderList)
-  for (let index = 0; index < potentialExpirationRemainderList.length; index++) {
-    // conditions to send remiander for expirations:
-    // (1) ChainsferToSender does not exist
-    // (2) ChainsferToReceiver does not exist or is in Expired state
-    // (3) timestamp >= reminder.ExpirationTime
-    // (4) Floor((timestamp - reminder.ExpirationTime) / reminderInterval) + 1 > reminder.reminderToSenderCount
-    //
-    // collectPotentialExpirationRemainderList has satisfied (1) - (3), so only (4) is cheked here
-    const item = potentialExpirationRemainderList[index]
-    const reminderToSenderCount = item.reminder.reminderToSenderCount
-    if (Math.floor((timestamp - item.reminder.expirationTime) / reminderInterval) + 1 > reminderToSenderCount) {
-      const str = `For tarnsfer ${item.transferId}, expiration remiander is sent to sender`
-      console.log(str)
-      await insertExpiredState(item.transferId)
-      if (reminderToSenderCount === 0) {
-        // just expired, sent expiration notice
-        await email.expireAction(AWS.DynamoDB.Converter.unmarshall(item))
+  /* 
+    Once the escrow receives funds sucessfully (),
+    we begain periodically send out reminder/expiration emails till the funds leave
+    the escrow wallet (returned or received)
+   */
+  try {
+    const timestamp = moment().unix()
+    const reminderList = await dynamoDBTxOps.collectReminderList()
+    console.log('reminderList', reminderList)
+    for (let item of reminderList) {
+      // classify reminder type:
+      // 1. expiration >= timestamp => send reminder to receiver
+      // 2. expiration < timestamp => send reminder to sender for cancellation
+      const { senderToChainsfer, reminder } = item
+      if (senderToChainsfer.txState !== 'Confirmed') {
+        // this should not happen by the definition of inEscrow value
+        console.warn('senderToChainsfer tx is not confirmed')
+      }
+      const expirationTime = senderToChainsfer.txTimestamp + expirationLength
+      if (expirationTime >= timestamp) {
+        // case 1, not expired
+        await email.receiverReminderAction(item)
+        await dynamoDBTxOps.updateReminderToReceiver(item.transferId)
+        console.log(`For tarnsfer ${item.transferId}, remiander is sent to receiver`)
       } else {
-        // has already expired, send notice to sender to cancel the transfer
-        await email.senderReminderAction(AWS.DynamoDB.Converter.unmarshall(item))
+        // case 2, expired
+        if (reminder) {
+          if (reminder.reminderToSenderCount === 0) {
+            // just expired, sent expiration notice to both
+            // sender and receiver
+            await insertExpiredState(item.transferId)
+            await email.expireAction(item)
+            console.log(
+              `For tarnsfer ${item.transferId}, expiration notice is sent to sender and receiver`
+            )
+          } else if (reminder.reminderToSenderCount <= 1) {
+            // has already expired, send notice to sender to cancel the transfer
+            // max one notifications
+            await email.senderReminderAction(item)
+            await dynamoDBTxOps.updateReminderToSender(item.transferId)
+            console.log(`For tarnsfer ${item.transferId}, expiration remiander is sent to sender`)
+          }
+        } else {
+          console.warn(`Reminder is null for transfer ${item.transferId}`)
+        }
       }
     }
+    callback(null, 'message')
+  } catch (err) {
+    callback(err)
   }
-
-  let potentialReceiverRemainderList = await dynamoDBTxOps.collectPotentialReceiverRemainderList()
-  for (let index = 0; index < potentialReceiverRemainderList.length; index++) {
-    // conditions to send remiander to receiver:
-    // (1) ChainsferToSender dose not exist
-    // (2) ChainsferToReceiver dose not exist
-    // (3) timestamp < reminder.ExpirationTime
-    // (4) reminder.availableReminderToReceiver > 0
-    // (5) Floor((timestamp - created) / reminderInterval) + 1 > reminder.reminderToReceiverCount
-    //
-    // collectPotentialReceiverRemainderList has satisfied (1)-(4), so only (5) is cheked here
-    const item = potentialReceiverRemainderList[index]
-    const reminderToReceiverCount = item.reminder.reminderToReceiverCount
-    if (reminderToReceiverCount > 0 && Math.floor((timestamp - item.created) / reminderInterval) + 1 > reminderToReceiverCount) {
-      const str = `For tarnsfer ${item.transferId}, remiander is sent to receiver`
-      console.log(str)
-      await email.receiverReminderAction(
-         AWS.DynamoDB.Converter.unmarshall(item)
-      )
-      await dynamoDBTxOps.updateReminderToReceiver(item.transferId)
-    }
-  }
-  callback(null, 'message')
 }

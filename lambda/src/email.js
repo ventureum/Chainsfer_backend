@@ -90,9 +90,9 @@ module.exports = {
       )
 
       // set remainPeriod value
-      const secondsPassed: number = moment().unix() - Number(params.senderToChainsfer.txTimestamp)
+      const secondsPassed: number = moment().unix() - params.senderToChainsfer.txTimestamp
       paramsEmailCompatible.remainPeriod = Math.floor(
-        Number(expirationLength) - secondsPassed
+        Math.max(0, (Number(expirationLength) - secondsPassed)) / 86400
       ).toString()
     }
     if (params.chainsferToReceiver) {
@@ -195,7 +195,7 @@ module.exports = {
   cancelAction: function (params: TransferDataType): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
     let emailQueue = [ses.sendTemplatedEmail(this.cancelActionSenderEmailParams(paramsEmailCompatible)).promise()]
-    if (params.chainsferToReceiver.txState !== 'Expired') {
+    if (!params.expired) {
       // send cancel email to receiver only before expiration
       emailQueue.push(ses.sendTemplatedEmail(this.cancelActionReceiverEmailParams(paramsEmailCompatible)).promise())
     }

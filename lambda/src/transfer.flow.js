@@ -157,7 +157,8 @@ export type DirectTransferParamsType = {
   senderAccount: string,
   destinationAccount: string,
   ...$Exact<TransferDataCryptoType>,
-  sendTxHash: string
+  sendTxHash: string,
+  sendMessage: ?string
 }
 
 export type DirectTransferReturnType = {

@@ -79,9 +79,7 @@ async function setLastUsedAddress (params: {
   address: string
 }) {
   const googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], params.idToken)
-  const timestamp = moment()
-    .unix()
-    .toString()
+  const timestamp = moment().unix()
 
   const wallet: WalletLastUsedAddressType = {
     address: params.address,
@@ -203,52 +201,50 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
 
   // generate timestamp on backup
   // use previously generated timestamp after broadcasting
-  const ts = moment().unix()
-  let timestamp = ts.toString()
+  let timestamp = moment().unix()
 
   // generate transferId on backup
   // use previously generated transferId after broadcasting
   const transferId = params.transferId ? params.transferId : UUID()
 
-  // generate receivingId on backup
-  // do not update receivingId after broadcasting
-  const receivingId = params.transferId ? null : UUID()
+  // generate receivingId on creation
+  const receivingId = UUID()
 
-  let senderToChainsfer: { [key: ?string]: ?string | Array<?string> } = {
+  let senderToChainsfer: { txState: string, txTimestamp: number, txHash: ?string } = {
     // sendTxHash === null: backup transferData before broadcasting
     // sendTxHash !== null: update transferData after broadcasting
     // Set txState to null to void being pushed into SQS
-    txState: params.sendTxHash ? 'Pending' : null,
-    txTimestamp: timestamp
+    txState: params.sendTxHash ? 'Pending' : 'NotInitiated',
+    txTimestamp: timestamp,
+    // cannot be an empty string
+    txHash: null
   }
 
-  let chainsferToReceiver: { [key: ?string]: ?string | Array<?string> } = {
-    txState: null,
-    txTimestamp: null
+  let chainsferToReceiver: { txState: string, txTimestamp: number, txHash: ?string } = {
+    txState: 'NotInitiated',
+    txTimestamp: 0,
+    // cannot be an empty string
+    txHash: null
   }
 
-  let chainsferToSender: { [key: ?string]: ?string | Array<?string> } = {
-    txState: null,
-    txTimestamp: null
+  let chainsferToSender: { txState: string, txTimestamp: number, txHash: ?string } = {
+    txState: 'NotInitiated',
+    txTimestamp: 0,
+    // cannot be an empty string
+    txHash: null
   }
 
-  let reminder: { [key: string]: number } = {
-    expirationTime: ts + expirationLength,
-    availableReminderToReceiver: Math.floor(expirationLength / reminderInterval),
+  let reminder: {
+    nextReminderTimestamp: number,
+    reminderToSenderCount: number,
+    reminderToReceiverCount: number
+  } = {
+    nextReminderTimestamp: 0,
     reminderToSenderCount: 0,
     reminderToReceiverCount: 0
   }
 
-  if (Array.isArray(params.sendTxHash)) {
-    if (params.sendTxHash.length === 2) {
-      senderToChainsfer.txHash = params.sendTxHash[0]
-      senderToChainsfer.gasTxHash = params.sendTxHash[1]
-    } else if (params.sendTxHash.length === 1) {
-      senderToChainsfer.txHash = params.sendTxHash[0]
-    } else {
-      throw new Error('sendTxHash array length is limited to 1 or 2')
-    }
-  } else {
+  if (params.sendTxHash) {
     senderToChainsfer.txHash = params.sendTxHash
   }
   let {
@@ -307,7 +303,18 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
           chainsferToReceiver: chainsferToReceiver,
           chainsferToSender: chainsferToSender,
           // multisig wallet
-          walletId: walletId
+          walletId: walletId,
+          // funds in escrow, waiting for receiving
+          // or cancellation
+          // it is used for checking expiration and sending
+          // reminders
+          //
+          // note we must use N instead of BOOL type due
+          // to index type limitation
+          // Member must satisfy enum value set: [B, N, S]
+          inEscrow: 0,
+          // transfer has expired if set to true
+          expired: false
         }
       })
       .promise()
@@ -330,7 +337,7 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
             txState: 'Pending',
             txTimestamp: timestamp
           },
-          ':sTxHash': sendTxHash,
+          ':sTxHash': sendTxHash
         },
         ReturnValues: 'ALL_NEW'
       })
@@ -358,9 +365,7 @@ async function receiveTransfer (
 
   let transfer = await getTransferByReceivingId(params.receivingId)
 
-  const receiveTimestamp = moment()
-    .unix()
-    .toString()
+  const receiveTimestamp = moment().unix()
 
   let receiveTxHash = '0x'
 
@@ -386,21 +391,19 @@ async function receiveTransfer (
         transferId: transfer.transferId
       },
       ConditionExpression:
-        'attribute_not_exists(#ctr.#ctrTxHash) and attribute_not_exists(#cts.#ctsTxHash) and #stcTx.#stcTxSate = :stcTxSate',
+        '#ctr.#txState = :notInitiated and #cts.#txState = :notInitiated and #stcTx.#txState = :stcTxState',
       UpdateExpression:
         'SET #ctr = :ctr, #tstage = :tstage, #upt = :upt, #rMsg = :rMsgValue, #rAcc = :rAcc, #rTxHash = :rTxHash',
       ExpressionAttributeNames: {
         '#ctr': 'chainsferToReceiver',
         '#cts': 'chainsferToSender',
         '#stcTx': 'senderToChainsfer',
-        '#stcTxSate': 'txState',
+        '#txState': 'txState',
         '#tstage': 'transferStage',
         '#rMsg': 'receiveMessage',
         '#upt': 'updated',
         '#rAcc': 'receiverAccount',
-        '#rTxHash': 'receiveTxHash',
-        '#ctrTxHash': 'txHash',
-        '#ctsTxHash': 'txHash'
+        '#rTxHash': 'receiveTxHash'
       },
       ExpressionAttributeValues: {
         ':ctr': {
@@ -408,12 +411,13 @@ async function receiveTransfer (
           txState: 'Pending',
           txTimestamp: receiveTimestamp
         },
-        ':stcTxSate': 'Confirmed',
+        ':stcTxState': 'Confirmed',
         ':tstage': 'ChainsferToReceiver',
         ':rTxHash': receiveTxHash,
         ':rMsgValue': params.receiveMessage,
         ':upt': receiveTimestamp,
-        ':rAcc': params.receiverAccount
+        ':rAcc': params.receiverAccount,
+        ':notInitiated': 'NotInitiated'
       },
       ReturnValues: 'ALL_NEW'
     })
@@ -434,9 +438,7 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
 
   let transfer = await getTransferByTransferId(params.transferId)
 
-  const cancelTimestamp = moment()
-    .unix()
-    .toString()
+  const cancelTimestamp = moment().unix()
 
   let cancelTxHash = '0x'
 
@@ -463,20 +465,18 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
         transferId: params.transferId
       },
       ConditionExpression:
-        '(attribute_not_exists(#ctr) or attribute_not_exists(#ctr.#ctrTxHash)) and attribute_not_exists(#cts.#ctsTxHash) and #stcTx.#stcTxSate = :stcTxSate',
+        '#ctr.#txState = :notInitiated and #cts.#txState = :notInitiated and #stcTx.#txState = :stcTxState',
       UpdateExpression:
         'SET #cts = :cts, #tstage = :tstage, #upt = :upt, #cMsg = :cMsgValue, #cTxHash = :cTxHash',
       ExpressionAttributeNames: {
         '#ctr': 'chainsferToReceiver',
         '#cts': 'chainsferToSender',
         '#stcTx': 'senderToChainsfer',
-        '#stcTxSate': 'txState',
-        '#ctrTxHash': 'txHash',
+        '#txState': 'txState',
         '#tstage': 'transferStage',
         '#cMsg': 'cancelMessage',
         '#upt': 'updated',
-        '#cTxHash': 'cancelTxHash',
-        '#ctsTxHash': 'txHash'
+        '#cTxHash': 'cancelTxHash'
       },
       ExpressionAttributeValues: {
         ':cts': {
@@ -484,11 +484,12 @@ async function cancelTransfer (params: CancelTransferParamsType): Promise<Cancel
           txState: 'Pending',
           txTimestamp: cancelTimestamp
         },
-        ':stcTxSate': 'Confirmed',
+        ':stcTxState': 'Confirmed',
         ':tstage': 'ChainsferToSender',
         ':cTxHash': cancelTxHash,
         ':cMsgValue': params.cancelMessage,
-        ':upt': cancelTimestamp
+        ':upt': cancelTimestamp,
+        ':notInitiated': 'NotInitiated'
       },
       ReturnValues: 'ALL_NEW'
     })
@@ -566,8 +567,7 @@ async function getMultiSigSigningData (
 }
 
 async function directTransfer (params: DirectTransferParamsType): Promise<DirectTransferReturnType> {
-  const ts = moment().unix()
-  const timestamp = ts.toString()
+  const timestamp = moment().unix()
   const transferId = UUID()
 
   let senderToReceiver: { [key: string]: string | Array<string> } = {
@@ -625,113 +625,111 @@ async function directTransfer (params: DirectTransferParamsType): Promise<Direct
 }
 
 // eslint-disable-next-line flowtype/no-weak-types
-async function collectPotentialExpirationRemainderList (): Promise<Array<Object>> {
+async function collectReminderList (): Promise<Array<Object>> {
   const timestamp = moment().unix()
 
-  try {
-    let response = await documentClient
-      .scan({
-        ExpressionAttributeValues: {
-          ':ts': timestamp,
-          ':confirmed': 'Confirmed',
-          ':expired': 'Expired'
-        },
-        ExpressionAttributeNames: {
-          '#ctr': 'chainsferToReceiver',
-          '#cts': 'chainsferToSender',
-          '#stc': 'senderToChainsfer',
-          '#txState': 'txState',
-          '#reminder': 'reminder',
-          '#exp': 'expirationTime',
-          '#ctrTxHash': 'txHash',
-          '#ctsTxHash': 'txHash'
-        },
-        FilterExpression:
-          '(attribute_not_exists(#ctr) or (attribute_exists(#ctr.#txState) and #ctr.#txState = :expired)) and attribute_not_exists(#cts.#ctsTxHash) and (#stc.#txState = :confirmed) and (#reminder.#exp <= :ts)',
-        TableName: transActionDataTableName
-      })
-      .promise()
-    console.log(
-      'CollectPotentialExpirationRemainderList: scaned table successfully with valid count %d and total ScannedCount %s',
-      response.Count,
-      response.ScannedCount
-    )
-    return response.Items
-  } catch (err) {
-    throw new Error(
-      'CollectPotentialExpirationRemainderList: unable to scaned table . Error: ' + err.message
-    )
+  const queryParams = {
+    TableName: transActionDataTableName,
+    IndexName: 'inEscrow-index',
+    KeyConditionExpression: 'inEscrow = :inEscrow',
+    // next reminder time has passed
+    // we must send out a reminder in this iteration
+    FilterExpression:
+      'attribute_exists(#re) and attribute_exists(#re.#nrt) and #re.#nrt <= :ts' +
+      ' and attribute_exists(#ctr) and attribute_exists(#ctr.#txState) and #ctr.#txState <> :txStatePending' +
+      ' and attribute_exists(#cts) and attribute_exists(#cts.#txState) and #cts.#txState <> :txStatePending',
+    ExpressionAttributeNames: {
+      '#re': 'reminder',
+      '#nrt': 'nextReminderTimestamp',
+      '#ctr': 'chainsferToReceiver',
+      '#cts': 'chainsferToSender',
+      '#txState': 'txState'
+    },
+    ExpressionAttributeValues: {
+      ':inEscrow': 1,
+      ':ts': timestamp,
+      ':txStatePending': 'Pending'
+    }
   }
-}
-
-// eslint-disable-next-line flowtype/no-weak-types
-async function collectPotentialReceiverRemainderList (): Promise<Array<Object>> {
-  const timestamp = moment().unix()
 
   try {
-    let response = await documentClient
-      .scan({
-        ExpressionAttributeValues: {
-          ':ts': timestamp,
-          ':confirmed': 'Confirmed',
-          ':zero': 0
-        },
-        ExpressionAttributeNames: {
-          '#ctrTx': 'chainsferToReceiver',
-          '#ctsTx': 'chainsferToSender',
-          '#stcTx': 'senderToChainsfer',
-          '#txState': 'txState',
-          '#reminder': 'reminder',
-          '#exp': 'expirationTime',
-          '#artc': 'availableReminderToReceiver',
-          '#ctrTxHash': 'txHash',
-          '#ctsTxHash': 'txHash'
-        },
-        FilterExpression:
-          '#stcTx.#txState = :confirmed and attribute_not_exists(#ctrTx.#ctrTxHash) and attribute_not_exists(#ctsTx.#ctsTxHash) and (#reminder.#exp > :ts) and (#reminder.#artc > :zero)',
-        TableName: transActionDataTableName
-      })
-      .promise()
-    console.log(
-      'CollectReceiverRemainderList: scaned table successfully with valid count %d and total ScannedCount %s',
-      response.Count,
-      response.ScannedCount
-    )
-    return response.Items
+    let data
+    let transferIds = []
+    do {
+      let params = queryParams
+      if (data && data.LastEvaluatedKey) {
+        params = {
+          ...queryParams,
+          ExclusiveStartKey: data.LastEvaluatedKey
+        }
+      }
+      data = await documentClient.query(params).promise()
+      if (data) {
+        transferIds = transferIds.concat(
+          data.Items.map((item: { transferId: string }): string => item.transferId)
+        )
+        console.log(
+          'collectReminderList: query table successfully with valid count %d and total ScannedCount %s',
+          data.Count,
+          data.ScannedCount
+        )
+      }
+    } while (data.LastEvaluatedKey)
+    // retrieve transferData by items
+    const transferItems = await batchQueryTransfersByIds(transferIds, false)
+    return transferItems
   } catch (err) {
-    throw new Error('CollectReceiverRemainderList: unable to scaned table . Error: ' + err.message)
+    throw new Error('collectReminderList: unable to query table. Error: ' + err.message)
   }
 }
 
 async function updateReminderToReceiver (transferId: string) {
-  const ts = moment()
-    .unix()
-    .toString()
+  const ts = moment().unix()
   const params = {
     TableName: transActionDataTableName,
     Key: {
       transferId: transferId
     },
-    ConditionExpression:
-      'attribute_not_exists(#ctr.#ctrTxHash) and attribute_not_exists(#cts.#ctsTxHash) and #stcTx.#stcTxSate = :stcTxSate and #re.#artc > :zero',
-    UpdateExpression: 'SET #upt = :upt, #re.#artc = #re.#artc - :inc, #re.#rtrc = #re.#rtrc + :inc',
+    UpdateExpression: 'SET #upt = :upt, #re.#rtrc = #re.#rtrc + :inc, #re.#nrt = :nrt',
     ExpressionAttributeNames: {
-      '#ctr': 'chainsferToReceiver',
-      '#cts': 'chainsferToSender',
-      '#stcTx': 'senderToChainsfer',
-      '#stcTxSate': 'txState',
       '#upt': 'updated',
       '#re': 'reminder',
-      '#artc': 'availableReminderToReceiver',
       '#rtrc': 'reminderToReceiverCount',
-      '#ctrTxHash': 'txHash',
-      '#ctsTxHash': 'txHash'
+      '#nrt': 'nextReminderTimestamp'
     },
     ExpressionAttributeValues: {
-      ':stcTxSate': 'Confirmed',
       ':upt': ts,
       ':inc': 1,
-      ':zero': 0
+      ':nrt': ts + reminderInterval
+    },
+    ReturnValues: 'ALL_NEW'
+  }
+  try {
+    let data = await documentClient.update(params).promise()
+    console.log('ReminderToReceiver is updated successfully to be: ', data)
+  } catch (err) {
+    throw new Error('Unable to update ReminderToReceiver. Error: ' + err.message)
+  }
+}
+
+async function updateReminderToSender (transferId: string) {
+  const ts = moment().unix()
+  const params = {
+    TableName: transActionDataTableName,
+    Key: {
+      transferId: transferId
+    },
+    UpdateExpression: 'SET #upt = :upt, #re.#rtsc = #re.#rtsc + :inc, #re.#nrt = :nrt',
+    ExpressionAttributeNames: {
+      '#upt': 'updated',
+      '#re': 'reminder',
+      '#rtsc': 'reminderToSenderCount',
+      '#nrt': 'nextReminderTimestamp'
+    },
+    ExpressionAttributeValues: {
+      ':upt': ts,
+      ':inc': 1,
+      ':nrt': ts + reminderInterval
     },
     ReturnValues: 'ALL_NEW'
   }
@@ -867,11 +865,11 @@ module.exports = {
   getBatchTransfers: getBatchTransfers,
   setLastUsedAddress: setLastUsedAddress,
   getLastUsedAddress: getLastUsedAddress,
-  collectPotentialExpirationRemainderList: collectPotentialExpirationRemainderList,
-  collectPotentialReceiverRemainderList: collectPotentialReceiverRemainderList,
   updateReminderToReceiver: updateReminderToReceiver,
+  updateReminderToSender,
   verifyGoogleIdToken: verifyGoogleIdToken,
   getMultiSigSigningData: getMultiSigSigningData,
   directTransfer,
-  lookupTxHashes
+  lookupTxHashes,
+  collectReminderList
 }

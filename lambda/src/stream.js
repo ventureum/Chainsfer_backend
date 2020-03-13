@@ -22,46 +22,59 @@ exports.handler = function (
   context: Context,
   callback: Callback
 ) {
-  event.Records.forEach(function (record: RecordType) {
-    const newImage = record.dynamodb.NewImage
-    const transferData: TransferDataType = AWS.DynamoDB.Converter.unmarshall(newImage)
-    const transferStage = transferData.transferStage
-    const txState = transferData[utils.lowerCaseFirstLetter(transferStage)].txState
-    if (txState === 'Pending') {
-      console.log(
-        'eventName: %s, transferId: %s, transferStage: %s',
-        record.eventName,
-        newImage.transferId.S,
-        transferStage
-      )
-      const params = {
-        MessageBody: JSON.stringify(transferData),
-        QueueUrl: Config.QueueURLPrefix + sqsName,
-        MessageAttributes: {
-          RetryCount: {
-            DataType: 'Number',
-            StringValue: '0'
-          },
-          TxHashConfirmed: {
-            DataType: 'Number',
-            StringValue: '0' // O means False, 1 means true
-          },
-          GasTxHashConfirmed: {
-            DataType: 'Number',
-            StringValue: '0' // O means False, 1 means true
+  try {
+    for (let record: RecordType of event.Records) {
+      try {
+
+        // skip REMOVE events
+        // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_streams_Record.html
+        if (record.eventName !== 'INSERT' && record.eventName !== 'MODIFY') continue
+
+        const newImage = record.dynamodb.NewImage
+        const transferData: TransferDataType = AWS.DynamoDB.Converter.unmarshall(newImage)
+        const transferStage = transferData.transferStage
+        const txState = transferData[utils.lowerCaseFirstLetter(transferStage)].txState
+        if (txState === 'Pending') {
+          console.log(
+            'eventName: %s, transferId: %s, transferStage: %s',
+            record.eventName,
+            newImage.transferId.S,
+            transferStage
+          )
+          const params = {
+            MessageBody: JSON.stringify(transferData),
+            QueueUrl: Config.QueueURLPrefix + sqsName,
+            MessageAttributes: {
+              RetryCount: {
+                DataType: 'Number',
+                StringValue: '0'
+              },
+              TxHashConfirmed: {
+                DataType: 'Number',
+                StringValue: '0' // O means False, 1 means true
+              },
+              GasTxHashConfirmed: {
+                DataType: 'Number',
+                StringValue: '0' // O means False, 1 means true
+              }
+            }
           }
+          sqs.sendMessage(params, function (err: string, data: { MessageId: string }) {
+            if (err) {
+              console.log('Fail to send message: ', err)
+              context.done('error', 'ERROR Put SQS')
+            } else {
+              console.log('MessageId:', data.MessageId)
+              context.done(null, '')
+            }
+          })
         }
+      } catch (err) {
+        throw new Error(`Unable to process record: ${JSON.stringify(record)}`)
       }
-      sqs.sendMessage(params, function (err: string, data: { MessageId: string }) {
-        if (err) {
-          console.log('Fail to send message: ', err)
-          context.done('error', 'ERROR Put SQS')
-        } else {
-          console.log('MessageId:', data.MessageId)
-          context.done(null, '')
-        }
-      })
     }
-  })
-  callback(null, 'message')
+    callback(null, 'message')
+  } catch (err) {
+    callback(err)
+  }
 }

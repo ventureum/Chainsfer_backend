@@ -55,7 +55,7 @@ export type TransferDataPrivateKeyType = {
 export type TxStateType = {
   txHash: string,
   txState: string,
-  txTimestamp: string
+  txTimestamp: number
 }
 export type TransferDataStateType = {
   transferStage: string,
@@ -63,11 +63,12 @@ export type TransferDataStateType = {
   chainsferToSender: TxStateType,
   chainsferToReceiver: TxStateType,
   reminder: {
-    availableReminderToReceiver: number,
-    expirationTime: number,
+    nextReminderTimestamp: number,
     reminderToReceiverCount: number,
     reminderToSenderCount: number
-  }
+  },
+  inEscrow: number,
+  expired: boolean
 }
 
 export type TransferDataMessageType = {
@@ -110,7 +111,7 @@ export type SendTransferParamsType = {
   ...$Exact<TransferDataPrivateKeyType>,
   ...$Exact<MultiSigWalletType>,
   sendMessage: ?string,
-  sendTxHash: string | Array<string>,
+  sendTxHash: string,
   transferId: ?string
 }
 
@@ -156,7 +157,8 @@ export type DirectTransferParamsType = {
   senderAccount: string,
   destinationAccount: string,
   ...$Exact<TransferDataCryptoType>,
-  sendTxHash: string
+  sendTxHash: string,
+  sendMessage: ?string
 }
 
 export type DirectTransferReturnType = {

@@ -38,6 +38,9 @@ const sqsName = process.env.SQS_NAME
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
 const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 
+const reminderInterval =
+  Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
+  
 const ethProvider = Config.EthTxAPIConfig[deploymentStage] || Config.EthTxAPIConfig['default']
 const btcApiURL = Config.BtcAPIConfig[deploymentStage] || Config.BtcAPIConfig['default']
 
@@ -148,24 +151,41 @@ async function processTxConfirmation (
 async function updateTxState (state: string, item: TransferDataType) {
   const ts = moment()
     .unix()
-    .toString()
   const transferStage = item.transferStage
+  let inEscrow = item.inEscrow
+
+  if (state === 'Confirmed') {
+    if (transferStage === 'SenderToChainsfer') {
+      // funds sucessfully received by the email
+      inEscrow = 1
+    } else if (transferStage === 'ChainsferToSender' || transferStage === 'ChainsferToReceiver') {
+      // funds sucessfully received or returned
+      inEscrow = 0
+    }
+  }
+
   const params = {
     TableName: transactionDataTableName,
     Key: {
       transferId: item.transferId
     },
-    UpdateExpression: 'SET #stcTx.#state = :stcTxState, #upt = :up, #stcTx.#ts = :ts',
+    UpdateExpression: 'SET #stcTx.#state = :stcTxState, #upt = :up, #stcTx.#ts = :ts,' +
+    ' #inEscrow = :inEscrow, #re.#nrt = :nrt',
     ExpressionAttributeNames: {
       '#stcTx': utils.lowerCaseFirstLetter(transferStage),
       '#state': 'txState',
       '#ts': 'txTimestamp',
-      '#upt': 'updated'
+      '#inEscrow': 'inEscrow',
+      '#upt': 'updated',
+      '#re': 'reminder',
+      '#nrt': 'nextReminderTimestamp',
     },
     ExpressionAttributeValues: {
       ':stcTxState': state,
+      ':inEscrow': inEscrow,
       ':up': ts,
-      ':ts': ts
+      ':ts': ts,
+      ':nrt': ts + reminderInterval
     }
   }
 

@@ -54,6 +54,15 @@ async function verifyGoogleIdToken (clientId: string, idToken: string): Promise<
     const payload = ticket.getPayload()
     return payload['sub']
   } catch (err) {
+    if (err.message && err.message.startsWith('Token used too late')) {
+      if (deploymentStage !== 'staging' && deploymentStage !== 'prod') {
+        // ignore expiration
+        // testing only
+        let payload = '{' + err.message.split('{')[1]
+        payload = JSON.parse(payload)
+        return payload['sub']
+      }
+    }
     console.error('Failed to verify Id Token: ' + err.message)
     throw new Error('Failed to verify Id Token')
   }

@@ -100,7 +100,9 @@ export type TransferDataType = {
   ...$Exact<TransferDataStateType>,
   ...$Exact<TransferDataMetaType>,
   ...$Exact<MultiSigWalletType>,
-  receiverAccount: string
+  receiverAccount: string,
+  // testing
+  mock: ?boolean
 }
 
 export type SendTransferParamsType = {

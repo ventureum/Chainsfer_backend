@@ -32,6 +32,7 @@ exports.handler = function (
 
         const newImage = record.dynamodb.NewImage
         const transferData: TransferDataType = AWS.DynamoDB.Converter.unmarshall(newImage)
+        if (transferData.mock) continue
         const transferStage = transferData.transferStage
         const txState = transferData[utils.lowerCaseFirstLetter(transferStage)].txState
         if (txState === 'Pending') {

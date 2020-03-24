@@ -866,6 +866,62 @@ async function lookupTxHashes (params: {
   return rv
 }
 
+// testing only
+async function resetTransfers (email: string, transfers: ?Array<TransferDataType>) {
+  // first clear transfers
+  const scanParams = {
+    TableName: transActionDataTableName,
+    ProjectionExpression: 'transferId',
+    FilterExpression: '#sender = :email or #destination = :email',
+    ExpressionAttributeNames: {
+      '#sender': 'sender',
+      '#destination': 'destination'
+    },
+    ExpressionAttributeValues: {
+      ':email': email
+    }
+  }
+
+  try {
+    let data
+    // delete all transfers with either sender == email or destination == email
+    do {
+      let params = scanParams
+      if (data && data.LastEvaluatedKey) {
+        params = {
+          ...scanParams,
+          ExclusiveStartKey: data.LastEvaluatedKey
+        }
+      }
+      data = await documentClient.scan(params).promise()
+      for (let { transferId } of data.Items) {
+        const deleteParams = {
+          TableName: transActionDataTableName,
+          Key: {
+            transferId: transferId
+          }
+        }
+        await documentClient.delete(deleteParams).promise()
+        console.log('Deleted ' + transferId)
+      }
+    } while (data.LastEvaluatedKey)
+
+    // insert new transfers
+    if (transfers) {
+      for (let transfer of transfers) {
+        const insertParams = {
+          TableName: transActionDataTableName,
+          Item: transfer
+        }
+        await documentClient.put(insertParams).promise()
+        console.log('Added ' + JSON.stringify(transfer, null, 2))
+      }
+    }
+  } catch (err) {
+    console.log(JSON.stringify(err, null, 2))
+  }
+}
+
 module.exports = {
   sendTransfer: sendTransfer,
   cancelTransfer: cancelTransfer,
@@ -880,5 +936,6 @@ module.exports = {
   getMultiSigSigningData: getMultiSigSigningData,
   directTransfer,
   lookupTxHashes,
-  collectReminderList
+  collectReminderList,
+  resetTransfers
 }

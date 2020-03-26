@@ -455,32 +455,62 @@ async function resetUser (
   userTableName: string,
   googleId: string,
   data: {
+    email: ?string,
+    profile: ?UserProfileType,
+    registerTime: ?number,
+    masterKey: ?string,
+    cloudWalletFolderMeta: ?CloudWalletFolderMetaType,
     recipients: ?Array<RecipientType>,
     accounts: ?Array<CryptoAccountType>,
     transfers: ?Array<TransferDataType>
   }
 ) {
-  if (data.recipients) {
-    const params = {
+
+  // remove user if it exists
+  try {
+    const user = await getUser(userTableName, googleId)
+    // user exist, remove it
+    const deleteParams = {
       TableName: userTableName,
       Key: {
         googleId: googleId
-      },
-      UpdateExpression: 'set recipients = :r',
-      ExpressionAttributeValues: {
-        ':r': data.recipients
-      },
-      ReturnValues: 'UPDATED_NEW'
+      }
     }
+    await documentClient.delete(deleteParams).promise()
+  } catch (e) {
+    if (e.message !== 'User not found') {
+      throw e
+    }
+  }
 
-    await documentClient.update(params).promise()
-  }
-  if (data.accounts) {
-    await _updateCryptoAccounts(userTableName, googleId, data.accounts)
-  }
-  if (data.transfers) {
-    const userData = await getUser(userTableName, googleId)
-    await resetTransfers(userData.email, data.transfers)
+  // register user
+  await register (
+    userTableName,
+    googleId,
+    data.email || '',
+    data.profile || {},
+  )
+
+  // overwrite/udpate attributes
+  for (let [k, v] of Object.entries(data)) {
+    if (!v) continue
+    if (k === 'transfers') {
+      const userData = await getUser(userTableName, googleId)
+      await resetTransfers(userData.email, data.transfers)
+    } else {
+      const params = {
+        TableName: userTableName,
+        Key: {
+          googleId
+        },
+        UpdateExpression: `set ${k} = :val`,
+        ExpressionAttributeValues: {
+          ':val': v
+        },
+        ReturnValues: 'UPDATED_NEW'
+      }
+      await documentClient.update(params).promise()
+    }
   }
 }
 // eslint-disable-next-line flowtype/no-weak-types
@@ -519,8 +549,6 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], idToken)
     }
 
-    console.log(request)
-
     if (action === 'REGISTER') {
       rv = await register(userTableName, googleId, request.email, request.profile)
     } else if (action === 'GET_USER' && (googleId || email)) {
@@ -545,7 +573,11 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await updateUserCloudWalletFolderMeta(userTableName, googleId, request.newMetaInfo)
     } else if (action === 'GET_UESR_CLOUD_WALLET_FOLDER_META') {
       rv = await getUserCloudWalletFolderMeta(userTableName, googleId)
-    } else if (action === 'RESET_USER' && deploymentStage !== 'prod' && deploymentStage !== 'staging') {
+    } else if (
+      action === 'RESET_USER' &&
+      deploymentStage !== 'prod' &&
+      deploymentStage !== 'staging'
+    ) {
       // testing  only
       rv = await resetUser(userTableName, googleId, request.data)
     } else {

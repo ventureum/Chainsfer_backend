@@ -2,6 +2,7 @@
 import type { Context, Callback } from 'flow-aws-lambda'
 import { verifyGoogleIdToken, resetTransfers } from './dynamoDBTxOps.js'
 import type { TransferDataType } from './transfer.flow'
+import moment from 'moment'
 
 var referralWallet = require('./referralWallet.js')
 var Config = require('./config.js')
@@ -20,6 +21,8 @@ const googleAPIConfig = Config.GoogleAPIConfig[deploymentStage] || Config.Google
 type RecipientType = {
   name: string,
   email: string,
+  imageUrl: ?string, // recipient google avatar
+  imageUrlUpdatedAt: ?number,
   addedAt: number, // timestamp
   updatedAt: number // timestamp
 }
@@ -175,6 +178,44 @@ async function getRecipients (userTableName: string, googleId: string): Promise<
   if (response.Item && response.Item.recipients) {
     result = [...response.Item.recipients]
   }
+
+  // updating recipient imageUrl
+  let recipientModified = false
+  const currentTimestamp = moment().unix()
+  for (let i = 0; i < result.length; i++) {
+    let recipient = result[i]
+    if (!recipient.imageUrlUpdatedAt || recipient.imageUrlUpdatedAt + 604800 < currentTimestamp) {
+      // if last update was more than 1 week ago or has not been updated yet
+      try {
+        let recipientUser = await getUser(userTableName, null, recipient.email)
+        result[i].imageUrl = recipientUser.profile.imageUrl
+        result[i].imageUrlUpdatedAt = currentTimestamp
+        recipientModified = true
+      } catch (e) {
+        // ignore user not found error
+        if (e.message !== 'User not found') {
+          throw e
+        }
+      }
+    }
+  }
+
+  if (recipientModified) {
+    // update recipients
+    const params = {
+      TableName: userTableName,
+      Key: {
+        googleId: googleId
+      },
+      UpdateExpression: 'set recipients = :r',
+      ExpressionAttributeValues: {
+        ':r': result
+      },
+      ReturnValues: 'UPDATED_NEW'
+    }
+    await documentClient.update(params).promise()
+  }
+
   return {
     googleId: googleId,
     recipients: result
@@ -233,6 +274,17 @@ async function addRecipient (
       ...recipient
     })
   } else {
+    try {
+      // add imageUrl if available
+      let recipientUser = await getUser(userTableName, null, recipient.email)
+      recipient.imageUrl = recipientUser.profile.imageUrl
+      recipient.imageUrlUpdatedAt = moment().unix()
+    } catch (e) {
+      // ignore user not found error
+      if (e.message !== 'User not found') {
+        throw e
+      }
+    }
     recipients.push({ updatedAt: now, addedAt: now, ...recipient })
   }
 
@@ -465,7 +517,6 @@ async function resetUser (
     transfers: ?Array<TransferDataType>
   }
 ) {
-
   // remove user if it exists
   try {
     const user = await getUser(userTableName, googleId)
@@ -484,12 +535,7 @@ async function resetUser (
   }
 
   // register user
-  await register (
-    userTableName,
-    googleId,
-    data.email || '',
-    data.profile || {},
-  )
+  await register(userTableName, googleId, data.email || '', data.profile || {})
 
   // overwrite/udpate attributes
   for (let [k, v] of Object.entries(data)) {

@@ -176,6 +176,11 @@ function formatQueriedTransfer (
     item.receivingId = item.receivingId
     // mask out transferId for receiver
     item.transferId = ''
+  } else if (deploymentStage === 'prod' || deploymentStage === 'staging') {
+    // Only mask out receivingId in prod or staging env
+    item.transferId = item.transferId
+    // mask out receivingId for sender
+    item.receivingId = ''
   }
   return item
 }

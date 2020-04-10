@@ -38,6 +38,8 @@ const sqsName = process.env.SQS_NAME
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
 const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 
+const expirationLength =
+  Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
 const reminderInterval =
   Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
   
@@ -153,11 +155,14 @@ async function updateTxState (state: string, item: TransferDataType) {
     .unix()
   const transferStage = item.transferStage
   let inEscrow = item.inEscrow
+  let expiresAt = item.expiresAt
 
   if (state === 'Confirmed') {
     if (transferStage === 'SenderToChainsfer') {
       // funds sucessfully received by the email
       inEscrow = 1
+      // update expiration time
+      expiresAt = ts + expirationLength
     } else if (transferStage === 'ChainsferToSender' || transferStage === 'ChainsferToReceiver') {
       // funds sucessfully received or returned
       inEscrow = 0
@@ -170,7 +175,7 @@ async function updateTxState (state: string, item: TransferDataType) {
       transferId: item.transferId
     },
     UpdateExpression: 'SET #stcTx.#state = :stcTxState, #upt = :up, #stcTx.#ts = :ts,' +
-    ' #inEscrow = :inEscrow, #re.#nrt = :nrt',
+    ' #inEscrow = :inEscrow, #re.#nrt = :nrt, #expiresAt = :expiresAt',
     ExpressionAttributeNames: {
       '#stcTx': utils.lowerCaseFirstLetter(transferStage),
       '#state': 'txState',
@@ -179,13 +184,15 @@ async function updateTxState (state: string, item: TransferDataType) {
       '#upt': 'updated',
       '#re': 'reminder',
       '#nrt': 'nextReminderTimestamp',
+      '#expiresAt': 'expiresAt'
     },
     ExpressionAttributeValues: {
       ':stcTxState': state,
       ':inEscrow': inEscrow,
       ':up': ts,
       ':ts': ts,
-      ':nrt': ts + reminderInterval
+      ':nrt': ts + reminderInterval,
+      ':expiresAt': expiresAt
     }
   }
 

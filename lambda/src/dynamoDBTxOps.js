@@ -326,7 +326,11 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
           // Member must satisfy enum value set: [B, N, S]
           inEscrow: 0,
           // transfer has expired if set to true
-          expired: false
+          expired: false,
+          // transfer expiration time
+          // will be set once funds have arrived at
+          // escrow wallet
+          expiresAt: 0
         }
       })
       .promise()

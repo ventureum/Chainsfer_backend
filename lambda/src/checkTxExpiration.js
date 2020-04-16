@@ -64,6 +64,9 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     const reminderList = await dynamoDBTxOps.collectReminderList()
     console.log('reminderList', reminderList)
     for (let item of reminderList) {
+      // ignore mock transfers
+      if (item.mock) continue
+
       // classify reminder type:
       // 1. expiration >= timestamp => send reminder to receiver
       // 2. expiration < timestamp => send reminder to sender for cancellation

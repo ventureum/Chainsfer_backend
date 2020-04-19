@@ -24,78 +24,78 @@ const EMAIL_META = [
   {
     filename: 'send_action_sender_notification.html',
     name: 'sendActionSenderEmail',
-    subject: 'Chainsfr: Your transfer of {{transferAmount}} {{cryptoSymbol}} has been sent to {{receiverName}}'
+    subject: 'Chainsfr: Your payment of {{transferAmount}} {{cryptoSymbol}} has been sent to {{receiverName}}'
   },
   {
     filename: 'send_action_receiver_notification.html',
     name: 'sendActionReceiverEmail',
-    subject: 'Chainsfr: {{senderName}} sent you a transfer of {{transferAmount}} {{cryptoSymbol}}'
+    subject: 'Chainsfr: {{senderName}} sent you a payment of {{transferAmount}} {{cryptoSymbol}}'
   },
   {
     filename: 'receive_action_sender_notification.html',
     name: 'receiveActionSenderEmail',
     subject:
-      'Chainsfr: {{receiverName}} accepted your transfer of {{transferAmount}} {{cryptoSymbol}}'
+      'Chainsfr: {{receiverName}} accepted your payment of {{transferAmount}} {{cryptoSymbol}}'
   },
   {
     filename: 'receive_action_receiver_notification.html',
     name: 'receiveActionReceiverEmail',
     subject:
-      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{senderName}} has been deposited'
+      'Chainsfr: The payment of {{transferAmount}} {{cryptoSymbol}} from {{senderName}} has been deposited'
   },
   {
     filename: 'cancel_action_sender_notification.html',
     name: 'cancelActionSenderEmail',
     subject:
-      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}} has been cancelled'
+      'Chainsfr: The payment of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}} has been cancelled'
   },
   {
     filename: 'reclaim_action_sender_notification.html',
     name: 'reclaimActionSenderEmail',
     subject:
-      'Chainsfr: The expired transfer of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}} has been reclaimed'
+      'Chainsfr: The expired payment of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}} has been reclaimed'
   },
   {
     filename: 'cancel_action_receiver_notification.html',
     name: 'cancelActionReceiverEmail',
     subject:
-      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{senderName}} has been cancelled'
+      'Chainsfr: The payment of {{transferAmount}} {{cryptoSymbol}} from {{senderName}} has been cancelled'
   },
   {
     filename: 'expire_action_sender_notification.html',
     name: 'expireActionSenderEmail',
     subject:
-      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}} has expired'
+      'Chainsfr: The payment of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}} has expired'
   },
   {
     filename: 'expire_action_receiver_notification.html',
     name: 'expireActionReceiverEmail',
     subject:
-      'Chainsfr: The transfer of {{transferAmount}} {{cryptoSymbol}} from {{senderName}} has expired'
+      'Chainsfr: The payment of {{transferAmount}} {{cryptoSymbol}} from {{senderName}} has expired'
   },
   {
     filename: 'reminder_action_receiver_notification.html',
     name: 'reminderActionReceiverEmail',
     subject:
-      'Chainsfr: Remember to deposit the transfer of {{transferAmount}} {{cryptoSymbol}} from {{senderName}}'
+      'Chainsfr: Remember to deposit the payment of {{transferAmount}} {{cryptoSymbol}} from {{senderName}}'
   },
   {
     filename: 'reminder_action_sender_notification.html',
     name: 'reminderActionSenderEmail',
     subject:
-      'Chainsfr: Remember to reclaim your transfer of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}}'
+      'Chainsfr: Remember to reclaim your payment of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}}'
   },
   {
     filename: 'wrong_action_sender_notification.html',
     name: 'wrongActionSenderEmail',
     subject:
-      'Chainsfr: Your transfer of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}} is NOT successful'
+      'Chainsfr: Your payment of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}} is NOT successful'
   },
   {
     filename: 'remind_wrong_action_sender_notification.html',
     name: 'remindWrongActionSenderEmail',
     subject:
-      'Chainsfr: Remember to cancel the unsuccessful transfer of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}}'
+      'Chainsfr: Remember to cancel the unsuccessful payment of {{transferAmount}} {{cryptoSymbol}} to {{receiverName}}'
   }
 ]
 

@@ -591,8 +591,8 @@
                           <table align="left" width="100%" border="0" cellpadding="0" cellspacing="0" class="mcnImageContentContainer" style="min-width:100%;">
                             <tbody>
                               <tr>
-                                <td class="mcnImageContent" valign="top" style="padding-right:9px;padding-left:9px;padding-top:15px;padding-bottom:15px;text-align:center;">
-                                  <img alt="" src="{{senderAvatar}}" width="60" style="max-width:100px; padding-bottom: 0; display: inline !important; vertical-align: bottom;border-radius:100px;border:transparent;border-width:1px;border-style:solid" class="mcnRetinaImage">
+                                <td class="mcnImageContent" valign="top" style="padding-right:9px;padding-left:9px;padding-top:15px;padding-bottom:20px;text-align:center;">
+                                  <img alt="" src="https://chainsfr-public.s3.amazonaws.com/expire_purple_200.png" width="60" style="max-width:100px; padding-bottom: 0; display: inline !important; vertical-align: bottom;border-radius:100px;border:transparent;border-width:1px;border-style:solid" class="mcnRetinaImage">
                                 </td>
                               </tr>
                             </tbody>
@@ -615,13 +615,12 @@
                           <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:100%;min-width:100%;" width="100%" class="mcnTextContentContainer">
                             <tbody>
                               <tr>
-                                <td valign="top" class="mcnTextContent" style="padding:0px 40px 9px;font-family:Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+                                <td valign="top" class="mcnTextContent" style="padding:0px 40px 12px;font-family:Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;">
                                   <div style="text-align:center;">
                                     <span style="font-size:16px;line-height:30px"><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif">
-                                      {{senderName}} just sent you
-                                      {{transferAmount}} {{cryptoSymbol}} ({{transferFiatAmountSpot}} {{fiatType}}).<br>
-                                      Message: {{sendMessage}}
-                                      </span></span>
+									  Remember to cancel your unsuccessful payment of
+									  {{transferAmount}} {{cryptoSymbol}} ({{transferFiatAmountSpot}} {{fiatType}})
+									  to {{receiverName}} at {{destination}}. <br></span></span>
                                     </div>
                                   </td>
                                 </tr>
@@ -646,8 +645,8 @@
                               <tbody>
                                 <tr>
                                   <td align="center" valign="middle" class="mcnButtonContent" style="font-family:Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;font-size:16px;padding:16px;">
-                                    <a class="mcnButton" title="Sign in to Deposit" href="https://{{rootUrl}}/receive?id={{receivingId}}" target="_blank" style="font-weight:normal;letter-spacing:normal;line-height:100%;text-align:center;text-decoration:none;color:#FFFFFF;">Sign
-                                      in to Deposit</a>
+                                    <a class="mcnButton" title="Sign in to Deposit" href="https://{{rootUrl}}/cancel?id={{transferId}}" target="_blank" style="font-weight:normal;letter-spacing:normal;line-height:100%;text-align:center;text-decoration:none;color:#FFFFFF;">
+                                      Sign in to Cancel</a>
                                     </td>
                                   </tr>
                                 </tbody>
@@ -681,24 +680,67 @@
                         <tbody class="mcnTextBlockOuter">
                           <tr>
                             <td valign="top" class="mcnTextBlockInner" style="padding-top:9px;">
-                              <!--[if mso]>
-                              <table align="left" border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%;">
-                                <tr>
-                                  <![endif]-->
-                              <!--[if mso]>
-                              <td valign="top" width="600" style="width:600px;">
-                                <![endif]-->
                               <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:100%;min-width:100%;" width="100%" class="mcnTextContentContainer">
                                 <tbody>
                                   <tr>
-                                    <td valign="top" class="mcnTextContent" style="padding-top:0;padding-right:40px;padding-bottom:0px;padding-left:40px;">
+                                    <td valign="top" class="mcnTextContent" style="padding-top:0px;padding-right:40px;padding-bottom:0px;padding-left:40px;">
                                       <div style="text-align:left;">
-                                        <span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">This payment
-                                          is ready for deposit. You have <strong>{{expirePeriod}}</strong> days to accept it.
-                                          To keep the payment safe, please
-                                          <strong>DO NOT</strong> share this
-                                            email with
-                                            others.</span></span>
+										<span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:14px">
+										  This payment was not successful likely due to an invalid email address of {{receiverName}}.
+										  You need to sign in to cancel the payment first, then update the email address for {{receiverName}} and make a new payment.
+                                          To learn more,
+                                          please check out the <a href="https://help.chainsfr.com/en/articles/3936934" target="_blank">link</a> here.
+                                          </span></span>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <!--[if mso]>
+                              </td>
+                              <![endif]-->
+                                <!--[if mso]>
+                              </tr>
+                            </table>
+                            <![endif]-->
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td valign="top" id="templateFooter">
+                        <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnTextBlock" style="min-width:100%;">
+                          <tbody class="mcnTextBlockOuter">
+                            <tr>
+                              <td valign="top" class="mcnTextBlockInner" style="padding-top:9px;">
+                                <!--[if mso]>
+                                <table align="left" border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%;">
+                                  <tr>
+                                    <![endif]-->
+                                <!--[if mso]>
+                                <td valign="top" width="600" style="width:600px;">
+                                  <![endif]-->
+                                <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:100%;min-width:100%;" width="100%" class="mcnTextContentContainer">
+                                  <tbody>
+                                    <tr>
+                                      <td valign="top" class="mcnTextContent" style="padding:10px 40px 9px;color:#FFFFFF;">
+                                        <div> </div>
+                                        <div style="text-align:justify;">
+                                          <span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:12px">This email was sent
+                                            to you by Chainsfr, a cryptocurrency
+                                            payment
+                                            service. Powered by Google
+                                            and end-to-end encryption technology,
+                                            Chainsfr makes cryptocurrency payments
+                                            easier than ever
+                                            without any compromise on security.
+                                            To learn more,
+                                            please visit
+                                            the Chainsfr website and help center, or
+                                            join the
+                                            RocketChat community below.</span></span>
                                           </div>
                                         </td>
                                       </tr>
@@ -715,10 +757,139 @@
                               </tr>
                             </tbody>
                           </table>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td valign="top" id="templateFooter">
+                          <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowBlock" style="min-width:100%;">
+                            <tbody class="mcnFollowBlockOuter">
+                              <tr>
+                                <td align="center" valign="top" style="padding:0px;" class="mcnFollowBlockInner">
+                                  <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowContentContainer" style="min-width:100%;">
+                                    <tbody>
+                                      <tr>
+                                        <td align="center" style="padding-left:9px;padding-right:9px;">
+                                          <table border="0" cellpadding="0" cellspacing="0" width="100%" style="min-width:100%;background-color:#393386;border:1px none;" class="mcnFollowContent">
+                                            <tbody>
+                                              <tr>
+                                                <td align="center" valign="top" style="padding-top:9px;padding-right:9px;padding-left:9px;">
+                                                  <table align="center" border="0" cellpadding="0" cellspacing="0">
+                                                    <tbody>
+                                                      <tr>
+                                                        <td align="center" valign="top">
+                                                          <!--[if mso]>
+                                                          <table align="center" border="0" cellspacing="0" cellpadding="0">
+                                                            <tr>
+                                                              <![endif]-->
+                                                          <!--[if mso]>
+                                                          <td align="center" valign="top">
+                                                            <![endif]-->
+                                                          <table align="left" border="0" cellpadding="0" cellspacing="0" style="display:inline;">
+                                                            <tbody>
+                                                              <tr>
+                                                                <td valign="top" style="padding-right:10px;padding-bottom:9px;" class="mcnFollowContentItemContainer">
+                                                                  <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowContentItem">
+                                                                    <tbody>
+                                                                      <tr>
+                                                                        <td align="left" valign="middle" style="padding-top:5px;padding-right:10px;padding-bottom:5px;padding-left:9px;">
+                                                                          <table align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                            <tbody>
+                                                                              <tr>
+                                                                                <td align="center" valign="middle" width="24" class="mcnFollowIconContent">
+                                                                                  <a href="http://chainsfr.com" target="_blank"><img src="https://chainsfr-public.s3.amazonaws.com/link_80.png" alt="Chainsfr Website" style="display:block;" height="24" width="24"></a>
+                                                                                </td>
+                                                                              </tr>
+                                                                            </tbody>
+                                                                          </table>
+                                                                        </td>
+                                                                      </tr>
+                                                                    </tbody>
+                                                                  </table>
+                                                                </td>
+                                                              </tr>
+                                                            </tbody>
+                                                          </table>
+                                                          <!--[if mso]>
+                                                        </td>
+                                                        <![endif]-->
+                                                          <!--[if mso]>
+                                                          <td align="center" valign="top">
+                                                            <![endif]-->
+                                                          <table align="left" border="0" cellpadding="0" cellspacing="0" style="display:inline;">
+                                                            <tbody>
+                                                              <tr>
+                                                                <td valign="top" style="padding-right:10px;padding-bottom:9px;" class="mcnFollowContentItemContainer">
+                                                                  <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowContentItem">
+                                                                    <tbody>
+                                                                      <tr>
+                                                                        <td align="left" valign="middle" style="padding-top:5px;padding-right:10px;padding-bottom:5px;padding-left:9px;">
+                                                                          <table align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                            <tbody>
+                                                                              <tr>
+                                                                                <td align="center" valign="middle" width="24" class="mcnFollowIconContent">
+                                                                                  <a href="https://help.chainsfr.com" target="_blank"><img src="https://chainsfr-public.s3.amazonaws.com/help_80.png" alt="Chainsfr | Help Center" style="display:block;" height="24" width="24"></a>
+                                                                                </td>
+                                                                              </tr>
+                                                                            </tbody>
+                                                                          </table>
+                                                                        </td>
+                                                                      </tr>
+                                                                    </tbody>
+                                                                  </table>
+                                                                </td>
+                                                              </tr>
+                                                            </tbody>
+                                                          </table>
+                                                          <!--[if mso]>
+                                                        </td>
+                                                        <![endif]-->
+                                                          <!--[if mso]>
+                                                          <td align="center" valign="top">
+                                                            <![endif]-->
+                                                          <table align="left" border="0" cellpadding="0" cellspacing="0" style="display:inline;">
+                                                            <tbody>
+                                                              <tr>
+                                                                <td valign="top" style="padding-right:10px;padding-bottom:9px;" class="mcnFollowContentItemContainer">
+                                                                  <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowContentItem">
+                                                                    <tbody>
+                                                                      <tr>
+                                                                        <td align="left" valign="middle" style="padding-top:5px;padding-right:10px;padding-bottom:5px;padding-left:9px;">
+                                                                          <table align="left" border="0" cellpadding="0" cellspacing="0">
+                                                                            <tbody>
+                                                                              <tr>
+                                                                                <td align="center" valign="middle" width="24" class="mcnFollowIconContent">
+                                                                                  <a href="https://gsuite.google.com/marketplace/app/chainsfr/754636752811" target="_blank"><img src="https://chainsfr-public.s3.amazonaws.com/google_80.png" alt="G Suite Marketplace" style="display:block;" height="24" width="24"></a>
+                                                                                </td>
+                                                                              </tr>
+                                                                            </tbody>
+                                                                          </table>
+                                                                        </td>
+                                                                      </tr>
+                                                                    </tbody>
+                                                                  </table>
+                                                                </td>
+                                                              </tr>
+                                                            </tbody>
+                                                          </table>
+                                                          <!--[if mso]>
+                                                        </td>
+                                                        <![endif]-->
+                                                          <!--[if mso]>
+                                                        </tr>
+                                                      </table>
+                                                      <![endif]-->
+                                                        </td>
+                                                      </tr>
+                                                    </tbody>
+                                                  </table>
+                                                </td>
+                                              </tr>
+                                            </tbody>
+                                          </table>
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
                           <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnTextBlock" style="min-width:100%;">
                             <tbody class="mcnTextBlockOuter">
                               <tr>
@@ -733,21 +904,12 @@
                                   <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:100%;min-width:100%;" width="100%" class="mcnTextContentContainer">
                                     <tbody>
                                       <tr>
-                                        <td valign="top" class="mcnTextContent" style="padding:10px 40px 9px;color:#FFFFFF;">
-                                          <div> </div>
-                                          <div style="text-align:justify;">
-                                            <span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:12px">This email was sent
-                                              to you by Chainsfr, a cryptocurrency payment
-                                              service. Powered by Google
-                                              and end-to-end encryption technology,
-                                              Chainsfr makes cryptocurrency payments
-                                              easier than ever
-                                              without any compromise on security.
-                                              To learn more,
-                                              please visit
-                                              the Chainsfr website and help center, or
-                                              join the
-                                              RocketChat community below.</span></span>
+                                        <td valign="top" class="mcnTextContent" style="padding-top:0;padding-right:18px;padding-bottom:9px;padding-left:18px;">
+                                          <div style="text-align:center;">
+                                            <strong><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:12px"><span style="color:#FFFFFF">Chainsfr
+                                              © 2020, Developed by
+                                              </span><a href="https://ventureum.io" target="_blank"><span style="color:#FFFFFF">Ventureum</span></a>
+                                              <br></span></span></strong>
                                             </div>
                                           </td>
                                         </tr>
@@ -764,187 +926,18 @@
                                 </tr>
                               </tbody>
                             </table>
-                            <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowBlock" style="min-width:100%;">
-                              <tbody class="mcnFollowBlockOuter">
-                                <tr>
-                                  <td align="center" valign="top" style="padding:0px;" class="mcnFollowBlockInner">
-                                    <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowContentContainer" style="min-width:100%;">
-                                      <tbody>
-                                        <tr>
-                                          <td align="center" style="padding-left:9px;padding-right:9px;">
-                                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="min-width:100%;background-color:#393386;border:1px none;" class="mcnFollowContent">
-                                              <tbody>
-                                                <tr>
-                                                  <td align="center" valign="top" style="padding-top:9px;padding-right:9px;padding-left:9px;">
-                                                    <table align="center" border="0" cellpadding="0" cellspacing="0">
-                                                      <tbody>
-                                                        <tr>
-                                                          <td align="center" valign="top">
-                                                            <!--[if mso]>
-                                                            <table align="center" border="0" cellspacing="0" cellpadding="0">
-                                                              <tr>
-                                                                <![endif]-->
-                                                            <!--[if mso]>
-                                                            <td align="center" valign="top">
-                                                              <![endif]-->
-                                                            <table align="left" border="0" cellpadding="0" cellspacing="0" style="display:inline;">
-                                                              <tbody>
-                                                                <tr>
-                                                                  <td valign="top" style="padding-right:10px;padding-bottom:9px;" class="mcnFollowContentItemContainer">
-                                                                    <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowContentItem">
-                                                                      <tbody>
-                                                                        <tr>
-                                                                          <td align="left" valign="middle" style="padding-top:5px;padding-right:10px;padding-bottom:5px;padding-left:9px;">
-                                                                            <table align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                              <tbody>
-                                                                                <tr>
-                                                                                  <td align="center" valign="middle" width="24" class="mcnFollowIconContent">
-                                                                                    <a href="http://chainsfr.com" target="_blank"><img src="https://chainsfr-public.s3.amazonaws.com/link_80.png" alt="Chainsfr Website" style="display:block;" height="24" width="24"></a>
-                                                                                  </td>
-                                                                                </tr>
-                                                                              </tbody>
-                                                                            </table>
-                                                                          </td>
-                                                                        </tr>
-                                                                      </tbody>
-                                                                    </table>
-                                                                  </td>
-                                                                </tr>
-                                                              </tbody>
-                                                            </table>
-                                                            <!--[if mso]>
-                                                          </td>
-                                                          <![endif]-->
-                                                            <!--[if mso]>
-                                                            <td align="center" valign="top">
-                                                              <![endif]-->
-                                                            <table align="left" border="0" cellpadding="0" cellspacing="0" style="display:inline;">
-                                                              <tbody>
-                                                                <tr>
-                                                                  <td valign="top" style="padding-right:10px;padding-bottom:9px;" class="mcnFollowContentItemContainer">
-                                                                    <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowContentItem">
-                                                                      <tbody>
-                                                                        <tr>
-                                                                          <td align="left" valign="middle" style="padding-top:5px;padding-right:10px;padding-bottom:5px;padding-left:9px;">
-                                                                            <table align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                              <tbody>
-                                                                                <tr>
-                                                                                  <td align="center" valign="middle" width="24" class="mcnFollowIconContent">
-                                                                                    <a href="https://help.chainsfr.com" target="_blank"><img src="https://chainsfr-public.s3.amazonaws.com/help_80.png" alt="Chainsfr | Help Center" style="display:block;" height="24" width="24"></a>
-                                                                                  </td>
-                                                                                </tr>
-                                                                              </tbody>
-                                                                            </table>
-                                                                          </td>
-                                                                        </tr>
-                                                                      </tbody>
-                                                                    </table>
-                                                                  </td>
-                                                                </tr>
-                                                              </tbody>
-                                                            </table>
-                                                            <!--[if mso]>
-                                                          </td>
-                                                          <![endif]-->
-                                                            <!--[if mso]>
-                                                            <td align="center" valign="top">
-                                                              <![endif]-->
-                                                            <table align="left" border="0" cellpadding="0" cellspacing="0" style="display:inline;">
-                                                              <tbody>
-                                                                <tr>
-                                                                  <td valign="top" style="padding-right:10px;padding-bottom:9px;" class="mcnFollowContentItemContainer">
-                                                                    <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnFollowContentItem">
-                                                                      <tbody>
-                                                                        <tr>
-                                                                          <td align="left" valign="middle" style="padding-top:5px;padding-right:10px;padding-bottom:5px;padding-left:9px;">
-                                                                            <table align="left" border="0" cellpadding="0" cellspacing="0">
-                                                                              <tbody>
-                                                                                <tr>
-                                                                                  <td align="center" valign="middle" width="24" class="mcnFollowIconContent">
-                                                                                    <a href="https://gsuite.google.com/marketplace/app/chainsfr/754636752811" target="_blank"><img src="https://chainsfr-public.s3.amazonaws.com/google_80.png" alt="G Suite Marketplace" style="display:block;" height="24" width="24"></a>
-                                                                                  </td>
-                                                                                </tr>
-                                                                              </tbody>
-                                                                            </table>
-                                                                          </td>
-                                                                        </tr>
-                                                                      </tbody>
-                                                                    </table>
-                                                                  </td>
-                                                                </tr>
-                                                              </tbody>
-                                                            </table>
-                                                            <!--[if mso]>
-                                                          </td>
-                                                          <![endif]-->
-                                                            <!--[if mso]>
-                                                          </tr>
-                                                        </table>
-                                                        <![endif]-->
-                                                          </td>
-                                                        </tr>
-                                                      </tbody>
-                                                    </table>
-                                                  </td>
-                                                </tr>
-                                              </tbody>
-                                            </table>
-                                          </td>
-                                        </tr>
-                                      </tbody>
-                                    </table>
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
-                            <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnTextBlock" style="min-width:100%;">
-                              <tbody class="mcnTextBlockOuter">
-                                <tr>
-                                  <td valign="top" class="mcnTextBlockInner" style="padding-top:9px;">
-                                    <!--[if mso]>
-                                    <table align="left" border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%;">
-                                      <tr>
-                                        <![endif]-->
-                                    <!--[if mso]>
-                                    <td valign="top" width="600" style="width:600px;">
-                                      <![endif]-->
-                                    <table align="left" border="0" cellpadding="0" cellspacing="0" style="max-width:100%;min-width:100%;" width="100%" class="mcnTextContentContainer">
-                                      <tbody>
-                                        <tr>
-                                          <td valign="top" class="mcnTextContent" style="padding-top:0;padding-right:18px;padding-bottom:9px;padding-left:18px;">
-                                            <div style="text-align:center;">
-                                              <strong><span style="font-family:roboto,helvetica neue,helvetica,arial,sans-serif"><span style="font-size:12px"><span style="color:#FFFFFF">Chainsfr
-                                                © 2020, Developed by
-                                                </span><a href="https://ventureum.io" target="_blank"><span style="color:#FFFFFF">Ventureum</span></a>
-                                                <br></span></span></strong>
-                                              </div>
-                                            </td>
-                                          </tr>
-                                        </tbody>
-                                      </table>
-                                      <!--[if mso]>
-                                    </td>
-                                    <![endif]-->
-                                      <!--[if mso]>
-                                    </tr>
-                                  </table>
-                                  <![endif]-->
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </td>
-                          </tr>
-                        </table>
-                        <!--[if (gte mso 9)|(IE)]>
-                      </td>
-                    </tr>
-                  </table>
-                  <![endif]-->
-                        <!-- // END TEMPLATE -->
-                      </td>
-                    </tr>
-                  </table>
-                </center>
-              </body>
+                          </td>
+                        </tr>
+                      </table>
+                      <!--[if (gte mso 9)|(IE)]>
+                    </td>
+                  </tr>
+                </table>
+                <![endif]-->
+                      <!-- // END TEMPLATE -->
+                    </td>
+                  </tr>
+                </table>
+              </center>
+            </body>
 </html>

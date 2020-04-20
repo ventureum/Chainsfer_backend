@@ -35,3 +35,8 @@ export type TemplateType = {
 export type SendTemplatedEmailReturnType = {
   MessageId: string
 }
+
+export type EmailActionRecordType = {
+  messageId: string,
+  transferId: string
+}

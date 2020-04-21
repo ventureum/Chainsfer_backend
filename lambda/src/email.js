@@ -40,6 +40,8 @@ const rootUrl = Config.RootUrlConfig[deploymentStage] || Config.RootUrlConfig['d
 
 if (!process.env.EMAIL_RECORDS_TABLE_NAME) throw new Error('EMAIL_RECORDS_TABLE_NAME missing')
 const emailRecordsTableName = process.env.EMAIL_RECORDS_TABLE_NAME
+if (!process.env.SES_CONFIG_SET_NAME) throw new Error('SES_CONFIG_SET_NAME missing')
+const sesConfigSetName = process.env.SES_CONFIG_SET_NAME
 
 module.exports = {
   // ses utils
@@ -128,7 +130,7 @@ module.exports = {
   ): TemplateType {
     return {
       Source: EMAIL_SOURCE,
-      ConfigurationSetName: 'email',
+      ConfigurationSetName: sesConfigSetName,
       Destination: {
         ToAddresses: [toAddress]
       },
@@ -186,6 +188,9 @@ module.exports = {
     params: TransferDataEmailCompatibleType
   ): TemplateType {
     return this.getTemplate(params.destination, 'reminderActionReceiverEmail', params)
+  },
+  emailErrorSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
+    return this.getTemplate(params.sender, 'wrongActionSenderEmail', params)
   },
   sendAction: async function (
     params: TransferDataType
@@ -313,6 +318,22 @@ module.exports = {
     )
     return messageIds
   },
+  // send to sender after email error
+  emailErrorAction: async function (
+    params: TransferDataType
+  ): Promise<Array<SendTemplatedEmailReturnType>> {
+    const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
+    const messageIds: Array<SendTemplatedEmailReturnType> = await Promise.all([
+      ses.sendTemplatedEmail(this.emailErrorSenderEmailParams(paramsEmailCompatible)).promise()
+    ])
+    await Promise.all(
+      messageIds.map(async (item: SendTemplatedEmailReturnType): Promise<Array<EmailActionRecordType>> => {
+        const { MessageId } = item
+        return this.saveEmailActionRecord(MessageId, paramsEmailCompatible.transferId)
+      })
+    )
+    return messageIds
+  },
   saveEmailActionRecord: async function (
     messageId: string,
     transferId: string
@@ -330,6 +351,20 @@ module.exports = {
     return {
       messageId: messageId,
       transferId: transferId
+    }
+  },
+  getEmailActionRecord: async function (messageId: string): Promise<EmailActionRecordType> {
+    const params = {
+      TableName: emailRecordsTableName,
+      Key: {
+        messageId: messageId
+      }
+    }
+
+    const { Item } = await documentClient.get(params).promise()
+    return {
+      messageId: Item.messageId,
+      transferId: Item.transferId
     }
   }
 }

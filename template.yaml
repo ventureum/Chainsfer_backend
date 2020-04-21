@@ -33,14 +33,6 @@ Parameters:
     Description: The rate that triggers validateTx Lambda function
     Default: rate(2 minutes)
     Type: String
-  LambdaUpdateBtcBlockHashDataRate:
-    Description: The rate that triggers updateBtcBlockHashData Lambda function
-    Default: rate(10 minutes)
-    Type: String
-  LambdaUpdateBtcXpubIndexRate:
-    Description: The rate that triggers UpdateBtcXpubIndex Lambda function
-    Default: rate(14 minutes)
-    Type: String  
   EthPrivateKey:
     Description: The ETH private key for referal
     Default: '0x0'
@@ -56,6 +48,10 @@ Parameters:
   EmailRecordsTableName:
     Description: The name of the sent Email records table
     Default: EmailRecordsTable
+    Type: String
+  SESConfigSetName:
+    Description: SES configuration set
+    Default: emailConfigSet
     Type: String
 Globals:
   Function:
@@ -98,6 +94,11 @@ Globals:
           'Fn::Join':
             - ''
             - - Ref: EmailRecordsTableName
+              - Ref: ENV
+        SES_CONFIG_SET_NAME:
+          'Fn::Join':
+            - ''
+            - - Ref: SESConfigSetName
               - Ref: ENV
 Resources:
   stream:
@@ -264,6 +265,45 @@ Resources:
       Timeout: 900
       Description: 'Validate tx state and update transfer data'
     Type: 'AWS::Serverless::Function'
+  emailErrorNotification:
+    Properties:
+      Timeout: 600
+      FunctionName:
+        'Fn::Join':
+          - ''
+          - - LambdaEmailErrorNotification
+            - Ref: ENV
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+      Handler: dist/emailErrorNotification.handler
+      MemorySize: 128
+      Description: 'Handle email error notifications'
+    Type: 'AWS::Serverless::Function'
+  EmailErrorTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        'Fn::Join':
+          - ''
+          - - EmailErrorTopic
+            - Ref: ENV
+      Subscription:
+        - Protocol: lambda
+          Endpoint:
+            'Fn::GetAtt':
+              - emailErrorNotification
+              - Arn
+  EmailErrorNotificationInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - emailErrorNotification
+          - Arn
+      Principal: sns.amazonaws.com
+      SourceArn:
+        Ref: EmailErrorTopic
   LambdaValidateTxSchedule:
     Type: 'AWS::Events::Rule'
     Properties:
@@ -365,21 +405,21 @@ Resources:
             - AttributeName: sendTxHash
               KeyType: HASH
           Projection:
-              ProjectionType: KEYS_ONLY
+            ProjectionType: KEYS_ONLY
         - IndexName: receiveTxHash-index
           KeySchema:
             - AttributeName: receiveTxHash
               KeyType: HASH
           Projection:
-              NonKeyAttributes:
-                - receivingId
-              ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - receivingId
+            ProjectionType: INCLUDE
         - IndexName: cancelTxHash-index
           KeySchema:
             - AttributeName: cancelTxHash
               KeyType: HASH
           Projection:
-              ProjectionType: KEYS_ONLY
+            ProjectionType: KEYS_ONLY
         - IndexName: inEscrow-index
           KeySchema:
             - AttributeName: inEscrow
@@ -426,14 +466,22 @@ Resources:
       KeySchema:
         - AttributeName: googleId
           KeyType: HASH
-      GlobalSecondaryIndexes: 
+      GlobalSecondaryIndexes:
         - IndexName: emailIndex
-          KeySchema: 
+          KeySchema:
             - AttributeName: email
               KeyType: HASH
-          Projection: 
+          Projection:
             ProjectionType: 'ALL'
       BillingMode: PAY_PER_REQUEST
+  SESConfigSet:
+    Type: AWS::SES::ConfigurationSet
+    Properties:
+      Name:
+        'Fn::Join':
+            - ''
+            - - Ref: SESConfigSetName
+              - Ref: ENV
   EmailRecordsTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:

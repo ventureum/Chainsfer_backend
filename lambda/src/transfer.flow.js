@@ -67,6 +67,7 @@ export type TransferDataStateType = {
     reminderToReceiverCount: number,
     reminderToSenderCount: number
   },
+  emailSentFailure: ?string,
   inEscrow: number,
   expired: boolean,
   // transfer expiration timestamp

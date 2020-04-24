@@ -358,9 +358,6 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
         ReturnValues: 'ALL_NEW'
       })
       .promise()
-
-    // use first generated timestamp
-    timestamp = response.Attributes.senderToChainsfer.txTimestamp
   }
 
   console.log('sendTransfer: transferId %s, receivingId %s', transferId, receivingId)

@@ -174,12 +174,11 @@ async function updateTxState (state: string, item: TransferDataType) {
     Key: {
       transferId: item.transferId
     },
-    UpdateExpression: 'SET #stcTx.#state = :stcTxState, #upt = :up, #stcTx.#ts = :ts,' +
+    UpdateExpression: 'SET #stcTx.#state = :stcTxState, #upt = :up,' +
     ' #inEscrow = :inEscrow, #re.#nrt = :nrt, #expiresAt = :expiresAt',
     ExpressionAttributeNames: {
       '#stcTx': utils.lowerCaseFirstLetter(transferStage),
       '#state': 'txState',
-      '#ts': 'txTimestamp',
       '#inEscrow': 'inEscrow',
       '#upt': 'updated',
       '#re': 'reminder',
@@ -190,7 +189,6 @@ async function updateTxState (state: string, item: TransferDataType) {
       ':stcTxState': state,
       ':inEscrow': inEscrow,
       ':up': ts,
-      ':ts': ts,
       ':nrt': ts + reminderInterval,
       ':expiresAt': expiresAt
     }

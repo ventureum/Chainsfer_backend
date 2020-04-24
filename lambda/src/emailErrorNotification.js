@@ -3,6 +3,8 @@ import type { Context, Callback } from 'flow-aws-lambda'
 import email from './email'
 import { getTransfer } from './dynamoDBTxOps'
 import type { TransferDataType } from './transfer.flow'
+import { updateEmailSentFailure } from './dynamoDBTxOps'
+
 // eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   // eslint-disable-next-line flowtype/no-weak-types
@@ -41,10 +43,15 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
         transferId: item.transferId,
         receivingId: ''
       })
-      if (!transferData.error) {
+      
+      // getTransfer returns { error: string } when Tx is not found
+      if (!transferData.error && !transferData.emailSentFailure) {
+        // Send only one notification per transferData
+        // i.e. transferData.emailSentFailure is null
         console.log(`sending error email for transfer: ${item.transferId}`)
         //$FlowFixMe
         rv = await email.emailErrorAction(transferData)
+        await updateEmailSentFailure(item.transferId, event.Records[0].Sns.Message)
       }
     }
     handleResults(rv)

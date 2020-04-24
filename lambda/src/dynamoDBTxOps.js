@@ -653,13 +653,16 @@ async function collectReminderList (): Promise<Array<Object>> {
     FilterExpression:
       'attribute_exists(#re) and attribute_exists(#re.#nrt) and #re.#nrt <= :ts' +
       ' and attribute_exists(#ctr) and attribute_exists(#ctr.#txState) and #ctr.#txState <> :txStatePending' +
-      ' and attribute_exists(#cts) and attribute_exists(#cts.#txState) and #cts.#txState <> :txStatePending',
+      ' and attribute_exists(#cts) and attribute_exists(#cts.#txState) and #cts.#txState <> :txStatePending' +
+      // dont send reminder when emailSentFailure exists
+      ' and attribute_not_exists(#esf)',
     ExpressionAttributeNames: {
       '#re': 'reminder',
       '#nrt': 'nextReminderTimestamp',
       '#ctr': 'chainsferToReceiver',
       '#cts': 'chainsferToSender',
-      '#txState': 'txState'
+      '#txState': 'txState',
+      '#esf': 'emailSentFailure'
     },
     ExpressionAttributeValues: {
       ':inEscrow': 1,
@@ -754,6 +757,29 @@ async function updateReminderToSender (transferId: string) {
     console.log('ReminderToReceiver is updated successfully to be: ', data)
   } catch (err) {
     throw new Error('Unable to update ReminderToReceiver. Error: ' + err.message)
+  }
+}
+
+async function updateEmailSentFailure (transferId: string, message: string) {
+  const params = {
+    TableName: transActionDataTableName,
+    Key: {
+      transferId: transferId
+    },
+    UpdateExpression: 'SET #esf = :msg',
+    ExpressionAttributeNames: {
+      '#esf': 'emailSentFailure'
+    },
+    ExpressionAttributeValues: {
+      ':msg': message
+    },
+    ReturnValues: 'ALL_NEW'
+  }
+  try {
+    let data = await documentClient.update(params).promise()
+    console.log('emailSentFailure is updated successfully to be: ', message)
+  } catch (err) {
+    throw new Error('Unable to update emailSentFailure. Error: ' + err.message)
   }
 }
 
@@ -944,5 +970,6 @@ module.exports = {
   directTransfer,
   lookupTxHashes,
   collectReminderList,
-  resetTransfers
+  resetTransfers,
+  updateEmailSentFailure
 }

@@ -21,6 +21,10 @@ Parameters:
     Description: Development ENV
     Type: String
     Default: Dev
+  EnvLowercase:
+    Description: Development ENV (lowercase)
+    Type: String
+    Default: dev
   ApiRoleVersion:
     Description: Api Role Version
     Type: String
@@ -52,6 +56,10 @@ Parameters:
   SESConfigSetName:
     Description: SES configuration set
     Default: emailConfigSet
+    Type: String
+  CloudfrontDistributionName:
+    Description: Cloudfront distribution
+    Default: ChainsfrApi
     Type: String
 Globals:
   Function:
@@ -791,15 +799,101 @@ Resources:
             method.response.header.Access-Control-Allow-Methods: true
             method.response.header.Access-Control-Allow-Origin: true
           StatusCode: '200'
+  # Create a cloudfront distribution to generate
+  # a custom domain for the corresponding API gateway
+  # resource
+  #
+  # Also introduce a switch for maintenance mode by
+  # redirecting traffic to S3 bucket 
+  # api.maintenance.chainsfr.com/down.js
+  # and return http code 503 Service Unavailable
+  CloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: 'true'
+        Comment: !Sub '${CloudfrontDistributionName}${ENV}'
+        Origins:
+          # API gateway origin
+          - Id: !Sub 'ApiGatewayOrigin${ENV}'
+            DomainName:
+              'Fn::Join':
+                - ''
+                - - Ref: ChainsferRestApi
+                  - .execute-api.
+                  - Ref: 'AWS::Region'
+                  - .amazonaws.com
+            OriginPath: '/Prod'
+            CustomOriginConfig:
+              HTTPPort: '80'
+              HTTPSPort: '443'
+              OriginProtocolPolicy: match-viewer
+          # Maintenance s3 bucket origin
+          - Id: 'ChainsfrApiMaintenanceBucket'
+            DomainName: api.maintenance.chainsfr.com.s3.amazonaws.com
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        # must use http2 to avoid
+        # request failures in react
+        HttpVersion: http2
+        # CNAME for the custom domain
+        Aliases: 
+          - !Sub '${EnvLowercase}.api.chainsfr.com'
+        DefaultCacheBehavior:
+            TargetOriginId: !Sub 'ApiGatewayOrigin${ENV}'
+            AllowedMethods:
+              - DELETE
+              - GET
+              - HEAD
+              - OPTIONS
+              - PATCH
+              - POST
+              - PUT
+            ForwardedValues:
+              QueryString: 'true'
+              Headers:
+                - Access-Control-Request-Headers
+                - Access-Control-Request-Method
+                - Origin
+            DefaultTTL: 1
+            MaxTTL: 1
+            MinTTL: 1
+            ViewerProtocolPolicy: allow-all
+        CacheBehaviors:
+          - AllowedMethods:
+            - DELETE
+            - GET
+            - HEAD
+            - OPTIONS
+            - PATCH
+            - POST
+            - PUT
+            TargetOriginId: ChainsfrApiMaintenanceBucket
+            # To switch on maintenance mode
+            # modify the PathPattern to '*'
+            # in cloudfront console
+            PathPattern: '/disabled/*'
+            ForwardedValues:
+              QueryString: 'true'
+            DefaultTTL: 1
+            MaxTTL: 1
+            MinTTL: 1
+            ViewerProtocolPolicy: allow-all
+        # Little trick to make API to return
+        # HTTP 503 in maintenance mode
+        CustomErrorResponses:
+          - ErrorCode: '404'
+            ResponsePagePath: "/down.json"
+            ResponseCode: '503'
+            ErrorCachingMinTTL: '5'
+        IPV6Enabled: 'true'
+        ViewerCertificate:
+          # we use ssl certificate for *.api.chainsfr.com
+          AcmCertificateArn: 'arn:aws:acm:us-east-1:727151012682:certificate/c5bd5aac-0fe5-4a03-a2d2-221731dd6a2e'
+          SslSupportMethod: 'sni-only'
+          MinimumProtocolVersion: 'TLSv1.1_2016'
 Outputs:
   RootUrl:
     Description: Root URL of the API gateway
-    Value:
-      'Fn::Join':
-        - ''
-        - - 'https://'
-          - Ref: ChainsferRestApi
-          - .execute-api.
-          - Ref: 'AWS::Region'
-          - .amazonaws.com/Prod
+    Value: !Sub '${EnvLowercase}.api.chainsfr.com'
 Transform: 'AWS::Serverless-2016-10-31'

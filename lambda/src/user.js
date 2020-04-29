@@ -39,11 +39,21 @@ type CloudWalletFolderMetaType = {
   lastModified: number // timestamp
 }
 
+type UserTagType = {
+  // login in a dapp with chainsfr login sdk
+  dappUser: boolean,
+  // register a dapp with chainsfr
+  dappOwner: boolean,
+   // users sending out invoices
+  invoiceUser: boolean
+}
+
 type UserType = {
   googleId: string,
   email: string,
   recipients: Array<RecipientType>,
   profile: UserProfileType,
+  tags: UserTagType,
   cloudWalletFolderMeta: CloudWalletFolderMetaType,
   registerTime: number, // timestamp
   masterKey: ?string
@@ -107,6 +117,11 @@ async function register (
         googleId: googleId,
         recipients: [],
         profile: profile,
+        tags: {
+          dappUser: false,
+          dappOwner: false,
+          invoiceUser: false
+        },
         email: email,
         registerTime: now,
         masterKey: generateMasterKey()

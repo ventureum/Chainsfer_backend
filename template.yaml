@@ -35,7 +35,7 @@ Parameters:
     Type: String
   LambdaValidateTxRate:
     Description: The rate that triggers validateTx Lambda function
-    Default: rate(2 minutes)
+    Default: rate(1 minute)
     Type: String
   EthPrivateKey:
     Description: The ETH private key for referal

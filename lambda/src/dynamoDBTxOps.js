@@ -335,6 +335,19 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
       })
       .promise()
   } else {
+    // first do a strongly consistent read to make sure
+    // item has been written into the db
+    const params = {
+      TableName: transActionDataTableName,
+      Key: {
+        transferId: transferId
+      },
+      ConsistentRead: true
+    }
+
+    // we do not actually use the data
+    let data = await documentClient.get(params).promise()
+
     // update sendTxHash
     const response = await documentClient
       .update({

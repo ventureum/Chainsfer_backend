@@ -1,13 +1,15 @@
 // @flow
 
 var ethers = require('ethers')
-var ethProviderTest = ethers.getDefaultProvider('rinkeby')
-let ethProviderMain = ethers.getDefaultProvider('homestead')
+
+const InfuraAPIKey = '100db43af19d4ad7b24fe4957bdf5adb'
+var ethProviderTest = new ethers.providers.InfuraProvider('rinkeby', InfuraAPIKey)
+var ethProviderMain = new ethers.providers.InfuraProvider('homestead', InfuraAPIKey)
 var request = require('request-promise')
 
 const BlockcypherMainURL = 'https://api.blockcypher.com/v1/btc/main'
 const BlockcypherTest3URL = 'https://api.blockcypher.com/v1/btc/test3'
-const InfuraAPIKey = '9775236247814824bc231e65b1d4972a'
+
 const BlockcypherMainTxURL = 'https://api.blockcypher.com/v1/btc/main/txs/'
 const BlockcypherTest3TxURL = 'https://api.blockcypher.com/v1/btc/test3/txs/'
 

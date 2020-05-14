@@ -1,5 +1,15 @@
 // @flow
 import type { Context, Callback } from 'flow-aws-lambda'
+import type {
+  RecipientType,
+  UserProfileType,
+  CloudWalletFolderMetaType,
+  UserTagType,
+  UserType,
+  RecipientListType,
+  CryptoAccountType,
+  CryptoAccounResponsetType
+} from './user.flow'
 import { verifyGoogleIdToken, resetTransfers } from './dynamoDBTxOps.js'
 import type { TransferDataType } from './transfer.flow'
 import moment from 'moment'
@@ -16,70 +26,8 @@ const userTableName = process.env.USER_TABLE_NAME
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
 const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 
-const googleAPIConfig = Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
-
-type RecipientType = {
-  name: string,
-  email: string,
-  imageUrl: ?string, // recipient google avatar
-  imageUrlUpdatedAt: ?number,
-  addedAt: number, // timestamp
-  updatedAt: number // timestamp
-}
-
-type UserProfileType = {
-  imageUrl: ?string,
-  name: string,
-  givenName: string,
-  familyName: string
-}
-
-type CloudWalletFolderMetaType = {
-  fileId: string,
-  lastModified: number // timestamp
-}
-
-type UserTagType = {
-  // login in a dapp with chainsfr login sdk
-  dappUser: boolean,
-  // register a dapp with chainsfr
-  dappOwner: boolean,
-   // users sending out invoices
-  invoiceUser: boolean
-}
-
-type UserType = {
-  googleId: string,
-  email: string,
-  recipients: Array<RecipientType>,
-  profile: UserProfileType,
-  tags: UserTagType,
-  cloudWalletFolderMeta: CloudWalletFolderMetaType,
-  registerTime: number, // timestamp
-  masterKey: ?string
-}
-
-type RecipientListType = {
-  googleId: string,
-  recipients: Array<RecipientType>
-}
-
-type CryptoAccountType = {
-  id: string,
-
-  cryptoType: string,
-  walletType: string,
-  address: ?string,
-  xpub: ?string,
-  name: string,
-  verified: boolean,
-  receivable: boolean,
-  sendable: boolean,
-  addedAt: number, // timestamp
-  updatedAt: number // timestamp
-}
-
-type CryptoAccounResponsetType = { cryptoAccounts: Array<CryptoAccountType> }
+const googleAPIConfig =
+  Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
 
 function generateMasterKey (): string {
   return generator.generate({

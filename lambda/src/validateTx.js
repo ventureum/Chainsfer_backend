@@ -29,7 +29,8 @@ var utils = require('./utils.js')
 var Config = require('./config.js')
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
 
-if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
+if (!process.env.TRANSACTION_DATA_TABLE_NAME)
+  throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
 const transactionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
 
 if (!process.env.SQS_NAME) throw new Error('SQS_NAME missing')
@@ -42,7 +43,7 @@ const expirationLength =
   Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
 const reminderInterval =
   Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
-  
+
 const ethProvider = Config.EthTxAPIConfig[deploymentStage] || Config.EthTxAPIConfig['default']
 const btcApiURL = Config.BtcAPIConfig[deploymentStage] || Config.BtcAPIConfig['default']
 
@@ -151,8 +152,7 @@ async function processTxConfirmation (
 }
 
 async function updateTxState (state: string, item: TransferDataType) {
-  const ts = moment()
-    .unix()
+  const ts = moment().unix()
   const transferStage = item.transferStage
   let inEscrow = item.inEscrow
   let expiresAt = item.expiresAt
@@ -169,28 +169,51 @@ async function updateTxState (state: string, item: TransferDataType) {
     }
   }
 
-  const params = {
-    TableName: transactionDataTableName,
-    Key: {
-      transferId: item.transferId
-    },
-    UpdateExpression: 'SET #stcTx.#state = :stcTxState, #upt = :up,' +
-    ' #inEscrow = :inEscrow, #re.#nrt = :nrt, #expiresAt = :expiresAt',
-    ExpressionAttributeNames: {
-      '#stcTx': utils.lowerCaseFirstLetter(transferStage),
-      '#state': 'txState',
-      '#inEscrow': 'inEscrow',
-      '#upt': 'updated',
-      '#re': 'reminder',
-      '#nrt': 'nextReminderTimestamp',
-      '#expiresAt': 'expiresAt'
-    },
-    ExpressionAttributeValues: {
-      ':stcTxState': state,
-      ':inEscrow': inEscrow,
-      ':up': ts,
-      ':nrt': ts + reminderInterval,
-      ':expiresAt': expiresAt
+  let params
+  if (transferStage != 'SenderToReceiver') {
+    // regular transfer
+    params = {
+      TableName: transactionDataTableName,
+      Key: {
+        transferId: item.transferId
+      },
+      UpdateExpression:
+        'SET #stcTx.#state = :stcTxState, #upt = :up,' +
+        ' #inEscrow = :inEscrow, #re.#nrt = :nrt, #expiresAt = :expiresAt',
+      ExpressionAttributeNames: {
+        '#stcTx': utils.lowerCaseFirstLetter(transferStage),
+        '#state': 'txState',
+        '#inEscrow': 'inEscrow',
+        '#upt': 'updated',
+        '#re': 'reminder',
+        '#nrt': 'nextReminderTimestamp',
+        '#expiresAt': 'expiresAt'
+      },
+      ExpressionAttributeValues: {
+        ':stcTxState': state,
+        ':inEscrow': inEscrow,
+        ':up': ts,
+        ':nrt': ts + reminderInterval,
+        ':expiresAt': expiresAt
+      }
+    }
+  } else {
+    // direct transfer
+    params = {
+      TableName: transactionDataTableName,
+      Key: {
+        transferId: item.transferId
+      },
+      UpdateExpression: 'SET #strTx.#state = :strTxState, #upt = :up',
+      ExpressionAttributeNames: {
+        '#strTx': utils.lowerCaseFirstLetter(transferStage),
+        '#state': 'txState',
+        '#upt': 'updated'
+      },
+      ExpressionAttributeValues: {
+        ':strTxState': state,
+        ':up': ts
+      }
     }
   }
 

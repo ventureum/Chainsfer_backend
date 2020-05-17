@@ -62,16 +62,15 @@ exports.handler = function (
           }
           sqs.sendMessage(params, function (err: string, data: { MessageId: string }) {
             if (err) {
-              console.log('Fail to send message: ', err)
-              context.done('error', 'ERROR Put SQS')
+              console.error('Fail to send message: ', err)
             } else {
               console.log('MessageId:', data.MessageId)
-              context.done(null, '')
             }
           })
         }
       } catch (err) {
-        throw new Error(`Unable to process record: ${JSON.stringify(record)}`)
+        // produce a warning and drop the event
+        console.error(`Unable to process record: ${JSON.stringify(record)}`)
       }
     }
     callback(null, 'message')

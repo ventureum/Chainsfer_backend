@@ -27,7 +27,8 @@ var utils = require('./utils.js')
 const { OAuth2Client } = require('google-auth-library')
 const SimpleMultiSigContractArtifacts = require('./contracts/SimpleMultiSig.json')
 
-if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
+if (!process.env.TRANSACTION_DATA_TABLE_NAME)
+  throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
 const transActionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
 
 if (!process.env.WALLET_ADDRESSES_DATA_TABLE_NAME)
@@ -41,7 +42,8 @@ const expirationLength =
   Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
 const reminderInterval =
   Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
-const googleAPIConfig = Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
+const googleAPIConfig =
+  Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
 
 // returns googleId given an idToken
 async function verifyGoogleIdToken (clientId: string, idToken: string): Promise<string> {
@@ -335,42 +337,43 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
       })
       .promise()
   } else {
-    // first do a strongly consistent read to make sure
-    // item has been written into the db
-    const params = {
+    const updateParams = {
       TableName: transActionDataTableName,
       Key: {
         transferId: transferId
       },
-      ConsistentRead: true
+      UpdateExpression: 'SET #stc = :stc, #sTxHash = :sTxHash',
+      // make sure update() will not overwrite put() executed by backing-up data 
+      // the two steps can be separated by a very small interval (<500ms)
+      ConditionExpression: 'attribute_exists(transferId)',
+      ExpressionAttributeNames: {
+        '#stc': 'senderToChainsfer',
+        '#sTxHash': 'sendTxHash'
+      },
+      ExpressionAttributeValues: {
+        ':stc': {
+          txHash: sendTxHash,
+          txState: 'Pending',
+          txTimestamp: timestamp
+        },
+        ':sTxHash': sendTxHash
+      },
+      ReturnValues: 'ALL_NEW'
     }
-
-    // we do not actually use the data
-    let data = await documentClient.get(params).promise()
-
     // update sendTxHash
-    const response = await documentClient
-      .update({
-        TableName: transActionDataTableName,
-        Key: {
-          transferId: transferId
-        },
-        UpdateExpression: 'SET #stc = :stc, #sTxHash = :sTxHash',
-        ExpressionAttributeNames: {
-          '#stc': 'senderToChainsfer',
-          '#sTxHash': 'sendTxHash'
-        },
-        ExpressionAttributeValues: {
-          ':stc': {
-            txHash: sendTxHash,
-            txState: 'Pending',
-            txTimestamp: timestamp
-          },
-          ':sTxHash': sendTxHash
-        },
-        ReturnValues: 'ALL_NEW'
-      })
-      .promise()
+    try {
+      await documentClient.update(updateParams).promise()
+    } catch (error) {
+      console.error(`Retrying updating sendTransfer ${transferId} due to error`, error)
+
+      // sleep for 500ms
+      // put() takes 1s to be fully synced
+      // this should be sufficient
+      await new Promise((r: function): function => setTimeout(r, 500))
+
+      // this will throw if retry fails
+      await documentClient.update(updateParams).promise()
+    }
   }
 
   console.log('sendTransfer: transferId %s, receivingId %s', transferId, receivingId)
@@ -457,7 +460,9 @@ async function receiveTransfer (
   return result
 }
 
-async function cancelTransfer (params: CancelTransferParamsType): Promise<CancelTransferReturnType> {
+async function cancelTransfer (
+  params: CancelTransferParamsType
+): Promise<CancelTransferReturnType> {
   // due to limitation of dynamodb, convert message to undefined if it is an empty string
   params.cancelMessage =
     params.cancelMessage && params.cancelMessage.length > 0 ? params.cancelMessage : null
@@ -592,7 +597,9 @@ async function getMultiSigSigningData (
   }
 }
 
-async function directTransfer (params: DirectTransferParamsType): Promise<DirectTransferReturnType> {
+async function directTransfer (
+  params: DirectTransferParamsType
+): Promise<DirectTransferReturnType> {
   const timestamp = moment().unix()
   const transferId = UUID()
 

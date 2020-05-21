@@ -544,7 +544,11 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       callback(null, response)
     } else {
       console.log(err)
-      response.statusCode = 500
+      if (err.message === 'User not found') {
+        response.statusCode = 404
+      } else {
+        response.statusCode = 500
+      }
       response.body = err.message
       callback(null, response)
     }

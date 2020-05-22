@@ -147,6 +147,28 @@ async function getRecipients (userTableName: string, googleId: string): Promise<
   const currentTimestamp = moment().unix()
   for (let i = 0; i < result.length; i++) {
     let recipient = result[i]
+    if (
+      !recipient.registeredUserUpdatedAt ||
+      recipient.registeredUserUpdatedAt + 2592000 < currentTimestamp // one month
+    ) {
+      try {
+        let recipientUser = await getUser(userTableName, null, recipient.email)
+        result[i].registeredUser = true
+        result[i].registeredUserUpdatedAt = moment().unix()
+        recipientModified = true
+      } catch (e) {
+        if (e.message === 'User not found') {
+          if (result[i].registeredUser === true) {
+            // if the recipient was a user, but not any more, update it
+            result[i].registeredUser = false
+            result[i].registeredUserUpdatedAt = moment().unix()
+            recipientModified = true
+          }
+        } else {
+          throw e
+        }
+      }
+    }
     if (!recipient.imageUrlUpdatedAt || recipient.imageUrlUpdatedAt + 604800 < currentTimestamp) {
       // if last update was more than 1 week ago or has not been updated yet
       try {
@@ -240,11 +262,16 @@ async function addRecipient (
     try {
       // add imageUrl if available
       let recipientUser = await getUser(userTableName, null, recipient.email)
+      recipient.registeredUser = true
+      recipient.registeredUserUpdatedAt = moment().unix()
       recipient.imageUrl = recipientUser.profile.imageUrl
       recipient.imageUrlUpdatedAt = moment().unix()
     } catch (e) {
-      // ignore user not found error
-      if (e.message !== 'User not found') {
+      if (e.message === 'User not found') {
+        // set registeredUser to false if recipient not found in user data
+        recipient.registeredUser = false
+        recipient.registeredUserUpdatedAt = moment().unix()
+      } else {
         throw e
       }
     }

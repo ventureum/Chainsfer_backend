@@ -4,6 +4,8 @@ export type RecipientType = {
   email: string,
   imageUrl: ?string, // recipient google avatar
   imageUrlUpdatedAt: ?number,
+  registeredUser: boolean, // if the recipient is a chainsfr user
+  registeredUserUpdatedAt?: number,
   addedAt: number, // timestamp
   updatedAt: number // timestamp
 }

@@ -117,8 +117,11 @@ async function migrateUserAccounts (userTableName: string) {
   }
   // Go through every user in the database
   await Promise.all(
-    users.map(async (user: UserType): Promise<CryptoAccounResponsetType> => {
-      let { cryptoAccounts } = user
+    users.map(async (user: UserType): Promise<?CryptoAccounResponsetType> => {
+      const { cryptoAccounts } = user
+      if (!cryptoAccounts) return Promise.resolve()
+
+      let newCryptoAccounts = [...cryptoAccounts]
       // this store what wallet and crypto the user has added under each address
       let addressWalletCryptoDict = {}
 
@@ -155,13 +158,13 @@ async function migrateUserAccounts (userTableName: string) {
                   `Adding ${walletType} ${cryptoType} account
                   for user ${user.profile.name} (ID: ${user.googleId})`
                 )
-                cryptoAccounts.push(newERC20Account(walletType, cryptoType, address, name))
+                newCryptoAccounts.push(newERC20Account(walletType, cryptoType, address, name))
               }
             })
           }
         })
       })
-      return _updateCryptoAccounts(userTableName, user.googleId, cryptoAccounts)
+      return _updateCryptoAccounts(userTableName, user.googleId, newCryptoAccounts)
     })
   )
 }

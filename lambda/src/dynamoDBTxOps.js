@@ -399,7 +399,7 @@ async function receiveTransfer (
   let receiveTxHash = '0x'
 
   // eth based coins
-  if (['ethereum', 'dai'].includes(transfer.cryptoType)) {
+  if (transfer.cryptoType === 'ethereum' || Config.ERC20Tokens[transfer.cryptoType]) {
     // execute tx in multisig wallet
     receiveTxHash = await ethMultiSig.executeMultiSig(
       transfer,
@@ -474,7 +474,7 @@ async function cancelTransfer (
   let cancelTxHash = '0x'
 
   // eth based coins
-  if (['ethereum', 'dai'].includes(transfer.cryptoType)) {
+  if (transfer.cryptoType === 'ethereum' || Config.ERC20Tokens[transfer.cryptoType]) {
     // execute tx in multisig wallet
     cancelTxHash = await ethMultiSig.executeMultiSig(
       transfer,
@@ -550,7 +550,7 @@ async function getMultiSigSigningData (
   let destinationAddress
 
   // eth based coins
-  if (['ethereum', 'dai'].includes(transfer.cryptoType)) {
+  if (transfer.cryptoType === 'ethereum' || Config.ERC20Tokens[transfer.cryptoType]) {
     if (params.transferId) {
       // cancellation
       // send it back to sender

@@ -27,9 +27,13 @@ const documentClient = new AWS.DynamoDB.DocumentClient()
 
 const CRYPTO_SYMBOL = {
   ethereum: 'ETH',
-  bitcoin: 'BTC',
-  dai: 'DAI',
-  libra: 'LIBRA'
+  bitcoin: 'BTC'
+}
+
+// add erc20 token symbols
+for (let [key, value] of Object.entries(Config.ERC20Tokens)) {
+  // $FlowFixMe
+  CRYPTO_SYMBOL[key] = value.symbol
 }
 
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')

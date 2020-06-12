@@ -13,6 +13,9 @@ const BlockcypherTest3URL = 'https://api.blockcypher.com/v1/btc/test3'
 const BlockcypherMainTxURL = 'https://api.blockcypher.com/v1/btc/main/txs/'
 const BlockcypherTest3TxURL = 'https://api.blockcypher.com/v1/btc/test3/txs/'
 
+if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
+const deploymentStage = process.env.ENV_VALUE.toLowerCase()
+
 // eslint-disable-next-line flowtype/no-weak-types
 async function getBtcTx (txHash: string, apiUrl: string): Promise<Object> {
   try {
@@ -36,13 +39,21 @@ const TxConfirmationConfig = {
     delaySeconds: 60,
     maxRetry: 20
   },
+  tether: {
+    delaySeconds: 60,
+    maxRetry: 20
+  },
+  'usd-coin': {
+    delaySeconds: 60,
+    maxRetry: 20
+  },
+  'true-usd': {
+    delaySeconds: 60,
+    maxRetry: 20
+  },
   bitcoin: {
     delaySeconds: 600,
     maxRetry: 72 // 12 hours
-  },
-  libra: {
-    delaySeconds: 60,
-    maxRetry: 6
   }
 }
 
@@ -151,11 +162,53 @@ const LedgerApiUrlConfig: { [key: string]: string } = {
 
 const QueueURLPrefix = 'https://sqs.us-east-1.amazonaws.com/727151012682/'
 
+const addressMap = {
+  dai: {
+  'rinkeby': '0x4aacB7f0bA0A5CfF9A8a5e8C0F24626Ee9FDA4a6',
+  'mainnet': '0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359'
+  },
+  tether: {
+    'rinkeby': '0xF76eB2f15a960A5d96d046a00007EFd737e5ea14',
+    'mainnet': '0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359'
+  },
+  'usd-coin': {
+    'rinkeby': '0xF76eB2f15a960A5d96d046a00007EFd737e5ea14',
+    'mainnet': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+  },
+  'true-usd': {
+    'rinkeby': '0x4aacB7f0bA0A5CfF9A8a5e8C0F24626Ee9FDA4a6',
+    'mainnet': '0x0000000000085d4780B73119b644AE5ecd22b376'
+  }
+}
+
 // list of token data
 const ERC20Tokens = {
   dai: {
     symbol: 'DAI',
-    address: '0x4aacB7f0bA0A5CfF9A8a5e8C0F24626Ee9FDA4a6',
+    address: deploymentStage === 'prod'
+      ? addressMap['dai']['mainnet']
+      : addressMap['dai']['rinkeby'],
+    decimals: 18
+  },
+  tether: {
+    symbol: 'USDT',
+    address: deploymentStage === 'prod'
+      ? addressMap['tether']['mainnet']
+      : addressMap['tether']['rinkeby'],
+    decimals: 6
+  },
+  'usd-coin': {
+    symbol: 'USDC',
+    address: deploymentStage === 'prod'
+      ? addressMap['usd-coin']['mainnet']
+      : addressMap['usd-coin']['rinkeby'],
+    decimals: 6
+  },
+  'true-usd': {
+    symbol: 'TUSD',
+    address: deploymentStage === 'prod'
+      ? addressMap['true-usd']['mainnet']
+      : addressMap['true-usd']['rinkeby'],
     decimals: 18
   }
 }

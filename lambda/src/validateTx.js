@@ -355,66 +355,32 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
         }
 
         const cryptoType: string = item.cryptoType
-        switch (cryptoType) {
-          case 'bitcoin':
-            await processTxConfirmation(
-              retryCount,
-              checkBtcTxConfirmation,
-              cryptoType,
-              txHash,
-              null,
-              txHashConfirmed,
-              1,
-              item,
-              messageBody
-            )
-            break
-          case 'ethereum':
-            await processTxConfirmation(
-              retryCount,
-              checkEthTxConfirmation,
-              cryptoType,
-              txHash,
-              null,
-              txHashConfirmed,
-              1,
-              item,
-              messageBody
-            )
-            break
-          case 'dai': // ERC20
-            if (gasTxHash === null) {
-              // assume gasTx is confirmed if it is null
-              // necessary for validating a single erc20 tx (without prepaid eth tx)
-              gasTxHashConfirmed = 1
-            }
-            await processTxConfirmation(
-              retryCount,
-              checkEthTxConfirmation,
-              cryptoType,
-              txHash,
-              gasTxHash,
-              txHashConfirmed,
-              gasTxHashConfirmed,
-              item,
-              messageBody
-            )
-            break
-          case 'libra':
-            processTxConfirmation(
-              retryCount,
-              checkLibraTxConfirmation,
-              cryptoType,
-              txHash,
-              null,
-              txHashConfirmed,
-              1,
-              item,
-              messageBody
-            )
-            break
-          default:
-            throw new Error(`Invalid cryptoType: ${cryptoType}`)
+        if (cryptoType === 'bitcoin') {
+          await processTxConfirmation(
+            retryCount,
+            checkBtcTxConfirmation,
+            cryptoType,
+            txHash,
+            null,
+            txHashConfirmed,
+            1,
+            item,
+            messageBody
+          )
+        } else if (cryptoType === 'ethereum' || Config.ERC20Tokens[cryptoType]) {
+          await processTxConfirmation(
+            retryCount,
+            checkEthTxConfirmation,
+            cryptoType,
+            txHash,
+            null,
+            txHashConfirmed,
+            1,
+            item,
+            messageBody
+          )
+        } else {
+          throw new Error(`Invalid cryptoType: ${cryptoType}`)
         }
       } catch (err) {
         await updateTxState('Failed', item)

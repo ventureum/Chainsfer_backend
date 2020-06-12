@@ -1,5 +1,5 @@
 // @flow
 
-export type CryptoType = 'bitcoin' | 'ethereum' | 'dai' | 'libra'
+export type CryptoType = string
 
 export type WalletType = 'drive' | 'ledger' | 'metamask'

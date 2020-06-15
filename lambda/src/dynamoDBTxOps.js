@@ -276,6 +276,7 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
     transferAmount,
     transferFiatAmountSpot,
     fiatType,
+    exchangeRate,
     data,
     // others
     sendMessage,
@@ -303,6 +304,7 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
           transferAmount,
           transferFiatAmountSpot,
           fiatType,
+          exchangeRate,
           data,
           // others
           sendMessage,
@@ -619,6 +621,7 @@ async function directTransfer (
     transferAmount,
     transferFiatAmountSpot,
     fiatType,
+    exchangeRate,
     // others
     sendTxHash
   } = params
@@ -636,6 +639,7 @@ async function directTransfer (
         transferAmount,
         transferFiatAmountSpot,
         fiatType,
+        exchangeRate,
         // others
         sendTxHash,
         // auto generated

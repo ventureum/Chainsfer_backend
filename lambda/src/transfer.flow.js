@@ -45,7 +45,8 @@ export type TransferDataCryptoType = {
   cryptoSymbol: string,
   transferAmount: string,
   transferFiatAmountSpot: string,
-  fiatType: string
+  fiatType: string,
+  exchangeRate: { cryptoExchangeRate: string, txFeeCryptoExchangeRate: string }
 }
 
 export type TransferDataPrivateKeyType = {

@@ -399,6 +399,8 @@ Resources:
           AttributeType: N
         - AttributeName: destination
           AttributeType: S
+        - AttributeName: sender
+          AttributeType: S
         - AttributeName: created
           AttributeType: N
       KeySchema:
@@ -415,6 +417,14 @@ Resources:
         - IndexName: destination-index
           KeySchema:
             - AttributeName: destination
+              KeyType: HASH
+            - AttributeName: created
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: sender-index
+          KeySchema:
+            - AttributeName: sender
               KeyType: HASH
             - AttributeName: created
               KeyType: RANGE

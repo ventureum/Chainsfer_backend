@@ -397,6 +397,10 @@ Resources:
           AttributeType: S
         - AttributeName: inEscrow
           AttributeType: N
+        - AttributeName: destination
+          AttributeType: S
+        - AttributeName: created
+          AttributeType: N
       KeySchema:
         - AttributeName: transferId
           KeyType: HASH
@@ -406,6 +410,14 @@ Resources:
           KeySchema:
             - AttributeName: receivingId
               KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: destination-index
+          KeySchema:
+            - AttributeName: destination
+              KeyType: HASH
+            - AttributeName: created
+              KeyType: RANGE
           Projection:
             ProjectionType: ALL
         - IndexName: sendTxHash-index

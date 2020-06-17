@@ -17,7 +17,8 @@ const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 if (!process.env.ETH_PRIVATE_KEY) throw new Error('ETH_PRIVATE_KEY missing')
 const ethPrivateKey = process.env.ETH_PRIVATE_KEY
 
-const googleAPIConfig = Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
+const googleAPIConfig =
+  Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
 const ethProvider = Config.EthTxAPIConfig[deploymentStage] || Config.EthTxAPIConfig['default']
 const ethChainId = Config.EthChainId[deploymentStage] || Config.EthChainId['default']
 
@@ -228,7 +229,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
   try {
     let rv = null
     const { idToken, destination, transferAmount } = request
-    let googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], idToken)
+    let { googleId } = await verifyGoogleIdToken(googleAPIConfig['clientId'], idToken)
 
     if (request.action === 'SEND') {
       rv = await sendTrasaction(googleId, destination, transferAmount)

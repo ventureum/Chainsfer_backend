@@ -37,7 +37,8 @@ export type TransferDataSenderType = {
 export type TransferDataReceiverType = {
   receiverName: string,
   destination: EmailAddressType,
-  destinationAddress: string
+  destinationAddress: string,
+  receiverAvatar?: string
 }
 
 export type TransferDataCryptoType = {
@@ -83,8 +84,8 @@ export type TransferDataMessageType = {
 
 export type TransferDataMetaType = {
   // auto generated data
-  created: string,
-  updated: string
+  created: number,
+  updated: number
 }
 
 export type MultiSigWalletType = {
@@ -172,5 +173,17 @@ export type DirectTransferReturnType = {
   sendTimestamp: string
 }
 
-
 export type EcdsaSigType = string
+
+export type FetchEmailTransfersParamType = {
+  idToken: string,
+  limit?: number,
+  senderExclusiveStartKey?: { sender: string, created: number, transferId: string },
+  destinationExclusiveStartKey?: { destination: string, created: number, receivingId: string }
+}
+
+export type FetchEmailTransfersReturnType = {
+  senderLastEvaluatedKey: ?{ sender: string, created: number, transferId: string },
+  destinationLastEvaluatedKey: ?{ destination: string, created: number, receivingId: string },
+  data: Array<TransferDataType>
+}

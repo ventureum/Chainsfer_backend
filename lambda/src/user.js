@@ -586,7 +586,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     let googleId = ''
     const { action, idToken, email } = request
     if (idToken) {
-      googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], idToken)
+      googleId = (await verifyGoogleIdToken(googleAPIConfig['clientId'], idToken)).googleId
     }
 
     if (action === 'REGISTER') {

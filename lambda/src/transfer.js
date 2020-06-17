@@ -7,23 +7,31 @@ var dynamoDBTxOps = require('./dynamoDBTxOps.js')
 var Config = require('./config.js')
 var bitcoin = require('bitcoinjs-lib')
 
-if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
+if (!process.env.TRANSACTION_DATA_TABLE_NAME)
+  throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
 const transactionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
 
-if (!process.env.WALLET_ADDRESSES_DATA_TABLE_NAME) throw new Error('WALLET_ADDRESSES_DATA_TABLE_NAME missing')
+if (!process.env.WALLET_ADDRESSES_DATA_TABLE_NAME)
+  throw new Error('WALLET_ADDRESSES_DATA_TABLE_NAME missing')
 const walletAddressesDataTableName = process.env.WALLET_ADDRESSES_DATA_TABLE_NAME
 
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
 const deploymentStage = process.env.ENV_VALUE.toLowerCase()
 
-const expirationLength = Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
-const reminderInterval = Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
-const googleAPIConfig = Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
+const expirationLength =
+  Config.ExpirationLengthConfig[deploymentStage] || Config.ExpirationLengthConfig['default']
+const reminderInterval =
+  Config.ReminderIntervalConfig[deploymentStage] || Config.ReminderIntervalConfig['default']
+const googleAPIConfig =
+  Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
 
-const BtcNetworkName = Config.BtcNetworkConfig[deploymentStage] || Config.BtcNetworkConfig['default']
-const BtcNetworkConfig = BtcNetworkName === 'mainnet' ? bitcoin.networks.bitcoin : bitcoin.networks.testnet
+const BtcNetworkName =
+  Config.BtcNetworkConfig[deploymentStage] || Config.BtcNetworkConfig['default']
+const BtcNetworkConfig =
+  BtcNetworkName === 'mainnet' ? bitcoin.networks.bitcoin : bitcoin.networks.testnet
 const BaseBtcPath = BtcNetworkName === 'mainnet' ? "m/49'/0'" : "m/49'/1'"
-const LedgerApiUrl = Config.LedgerApiUrlConfig[deploymentStage] || Config.LedgerApiUrlConfig['default']
+const LedgerApiUrl =
+  Config.LedgerApiUrlConfig[deploymentStage] || Config.LedgerApiUrlConfig['default']
 
 // eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
@@ -95,6 +103,8 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await dynamoDBTxOps.directTransfer(request)
     } else if (request.action === 'LOOKUP_TX_HASHES') {
       rv = await dynamoDBTxOps.lookupTxHashes(request)
+    } else if (request.action === 'FETCH_EMAIL_TRANSFERS') {
+      rv = await dynamoDBTxOps.fetchEmailTransfers(request)
     } else {
       throw new Error('Invalid command')
     }

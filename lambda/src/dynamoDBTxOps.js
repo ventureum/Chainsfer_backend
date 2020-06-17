@@ -13,7 +13,9 @@ import type {
   GetMultiSigSigningDataParamsType,
   GetMultiSigSigningDataReturnType,
   DirectTransferParamsType,
-  DirectTransferReturnType
+  DirectTransferReturnType,
+  FetchEmailTransfersParamType,
+  FetchEmailTransfersReturnType
 } from './transfer.flow'
 import ethMultiSig from './EthMultiSig'
 import BtcMultiSig from './BtcMultiSig'
@@ -29,11 +31,14 @@ const SimpleMultiSigContractArtifacts = require('./contracts/SimpleMultiSig.json
 
 if (!process.env.TRANSACTION_DATA_TABLE_NAME)
   throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
-const transActionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
+const transactionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME
 
 if (!process.env.WALLET_ADDRESSES_DATA_TABLE_NAME)
   throw new Error('WALLET_ADDRESSES_DATA_TABLE_NAME missing')
 const walletAddressTableName = process.env.WALLET_ADDRESSES_DATA_TABLE_NAME
+
+if (!process.env.USER_TABLE_NAME) throw new Error('USER_TABLE_NAME missing')
+const userTableName = process.env.USER_TABLE_NAME
 
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
 const deploymentStage = process.env.ENV_VALUE.toLowerCase()
@@ -46,7 +51,10 @@ const googleAPIConfig =
   Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
 
 // returns googleId given an idToken
-async function verifyGoogleIdToken (clientId: string, idToken: string): Promise<string> {
+async function verifyGoogleIdToken (
+  clientId: string,
+  idToken: string
+): Promise<{ googleId: string, email: string }> {
   try {
     const client = new OAuth2Client(clientId)
     const ticket = await client.verifyIdToken({
@@ -54,14 +62,21 @@ async function verifyGoogleIdToken (clientId: string, idToken: string): Promise<
       audience: clientId
     })
     const payload = ticket.getPayload()
-    return payload['sub']
+
+    return {
+      googleId: payload.sub,
+      email: payload.email
+    }
   } catch (err) {
     if (deploymentStage !== 'staging' && deploymentStage !== 'prod') {
-      // fall back to mock user (chainsfre2etest@gmail.com) googleId
+      // return mock user info
       // ignore all possible errors:
       // 1. expiration error
       // 2. kid not matched error ("No pem found for envelope")
-      return '116840519665671803638'
+      const [mock, googleId, email] = idToken.split('-')
+      if (mock === 'mock') {
+        return { googleId: googleId, email: email }
+      }
     }
     console.error('Failed to verify Id Token: ' + err.message)
     throw new Error('Failed to verify Id Token')
@@ -69,7 +84,7 @@ async function verifyGoogleIdToken (clientId: string, idToken: string): Promise<
 }
 
 async function getLastUsedAddress (params: { idToken: string }): Promise<WalletAddressDataType> {
-  const googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], params.idToken)
+  const { googleId } = await verifyGoogleIdToken(googleAPIConfig['clientId'], params.idToken)
   let data = await documentClient
     .get({
       TableName: walletAddressTableName,
@@ -87,7 +102,7 @@ async function setLastUsedAddress (params: {
   cryptoType: CryptoType,
   address: string
 }) {
-  const googleId = await verifyGoogleIdToken(googleAPIConfig['clientId'], params.idToken)
+  const { googleId } = await verifyGoogleIdToken(googleAPIConfig['clientId'], params.idToken)
   const timestamp = moment().unix()
 
   const wallet: WalletLastUsedAddressType = {
@@ -145,7 +160,7 @@ async function batchQueryTransfersByIds (
 
 async function getTransferByReceivingId (receivingId: string): Promise<TransferDataType> {
   const params = {
-    TableName: transActionDataTableName,
+    TableName: transactionDataTableName,
     IndexName: 'receivingId-index',
     KeyConditionExpression: 'receivingId = :rid',
     ExpressionAttributeValues: {
@@ -158,7 +173,7 @@ async function getTransferByReceivingId (receivingId: string): Promise<TransferD
 
 async function getTransferByTransferId (transferId: string): Promise<TransferDataType> {
   const params = {
-    TableName: transActionDataTableName,
+    TableName: transactionDataTableName,
     Key: {
       transferId: transferId
     }
@@ -288,7 +303,7 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
   if (!sendTxHash) {
     await documentClient
       .put({
-        TableName: transActionDataTableName,
+        TableName: transactionDataTableName,
         Item: {
           // sender
           senderName,
@@ -340,12 +355,12 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
       .promise()
   } else {
     const updateParams = {
-      TableName: transActionDataTableName,
+      TableName: transactionDataTableName,
       Key: {
         transferId: transferId
       },
       UpdateExpression: 'SET #stc = :stc, #sTxHash = :sTxHash',
-      // make sure update() will not overwrite put() executed by backing-up data 
+      // make sure update() will not overwrite put() executed by backing-up data
       // the two steps can be separated by a very small interval (<500ms)
       ConditionExpression: 'attribute_exists(transferId)',
       ExpressionAttributeNames: {
@@ -417,7 +432,7 @@ async function receiveTransfer (
 
   let data = await documentClient
     .update({
-      TableName: transActionDataTableName,
+      TableName: transactionDataTableName,
       Key: {
         transferId: transfer.transferId
       },
@@ -493,7 +508,7 @@ async function cancelTransfer (
 
   let data = await documentClient
     .update({
-      TableName: transActionDataTableName,
+      TableName: transactionDataTableName,
       Key: {
         transferId: params.transferId
       },
@@ -572,7 +587,7 @@ async function getMultiSigSigningData (
     // store master signature and destinationAddress in transfer data
     await documentClient
       .update({
-        TableName: transActionDataTableName,
+        TableName: transactionDataTableName,
         Key: {
           transferId: transfer.transferId
         },
@@ -628,7 +643,7 @@ async function directTransfer (
 
   await documentClient
     .put({
-      TableName: transActionDataTableName,
+      TableName: transactionDataTableName,
       Item: {
         // sender
         senderAccount,
@@ -666,7 +681,7 @@ async function collectReminderList (): Promise<Array<Object>> {
   const timestamp = moment().unix()
 
   const queryParams = {
-    TableName: transActionDataTableName,
+    TableName: transactionDataTableName,
     IndexName: 'inEscrow-index',
     KeyConditionExpression: 'inEscrow = :inEscrow',
     // next reminder time has passed
@@ -726,7 +741,7 @@ async function collectReminderList (): Promise<Array<Object>> {
 async function updateReminderToReceiver (transferId: string) {
   const ts = moment().unix()
   const params = {
-    TableName: transActionDataTableName,
+    TableName: transactionDataTableName,
     Key: {
       transferId: transferId
     },
@@ -755,7 +770,7 @@ async function updateReminderToReceiver (transferId: string) {
 async function updateReminderToSender (transferId: string) {
   const ts = moment().unix()
   const params = {
-    TableName: transActionDataTableName,
+    TableName: transactionDataTableName,
     Key: {
       transferId: transferId
     },
@@ -783,7 +798,7 @@ async function updateReminderToSender (transferId: string) {
 
 async function updateEmailSentFailure (transferId: string, message: string) {
   const params = {
-    TableName: transActionDataTableName,
+    TableName: transactionDataTableName,
     Key: {
       transferId: transferId
     },
@@ -829,7 +844,7 @@ async function lookupTxHashes (params: {
       let txHash = chunks[j]
 
       let sendTxHashParams = {
-        TableName: transActionDataTableName,
+        TableName: transactionDataTableName,
         IndexName: 'sendTxHash-index',
         KeyConditionExpression: 'sendTxHash = :hash',
         ExpressionAttributeValues: {
@@ -838,7 +853,7 @@ async function lookupTxHashes (params: {
       }
 
       let receiveTxHashParams = {
-        TableName: transActionDataTableName,
+        TableName: transactionDataTableName,
         IndexName: 'receiveTxHash-index',
         KeyConditionExpression: 'receiveTxHash = :hash',
         ExpressionAttributeValues: {
@@ -847,7 +862,7 @@ async function lookupTxHashes (params: {
       }
 
       let cancelTxHashParams = {
-        TableName: transActionDataTableName,
+        TableName: transactionDataTableName,
         IndexName: 'cancelTxHash-index',
         KeyConditionExpression: 'cancelTxHash = :hash',
         ExpressionAttributeValues: {
@@ -924,7 +939,7 @@ async function lookupTxHashes (params: {
 async function resetTransfers (email: string, transfers: ?Array<TransferDataType>) {
   // first clear transfers
   const scanParams = {
-    TableName: transActionDataTableName,
+    TableName: transactionDataTableName,
     ProjectionExpression: 'transferId',
     FilterExpression: '#sender = :email or #destination = :email',
     ExpressionAttributeNames: {
@@ -950,7 +965,7 @@ async function resetTransfers (email: string, transfers: ?Array<TransferDataType
       data = await documentClient.scan(params).promise()
       for (let { transferId } of data.Items) {
         const deleteParams = {
-          TableName: transActionDataTableName,
+          TableName: transactionDataTableName,
           Key: {
             transferId: transferId
           }
@@ -964,7 +979,7 @@ async function resetTransfers (email: string, transfers: ?Array<TransferDataType
     if (transfers) {
       for (let transfer of transfers) {
         const insertParams = {
-          TableName: transActionDataTableName,
+          TableName: transactionDataTableName,
           Item: transfer
         }
         await documentClient.put(insertParams).promise()
@@ -974,6 +989,131 @@ async function resetTransfers (email: string, transfers: ?Array<TransferDataType
   } catch (err) {
     console.log(JSON.stringify(err, null, 2))
   }
+}
+
+const getUserAvatarUrl = async (email: string): Promise<string> => {
+  const params = {
+    TableName: userTableName,
+    IndexName: 'emailIndex',
+    KeyConditionExpression: 'email = :em',
+    ExpressionAttributeValues: {
+      ':em': email
+    }
+  }
+  const response = await documentClient.query(params).promise()
+  if (response.Count < 1) {
+    return ''
+  }
+  return response.Items[0].profile.imageUrl || ''
+}
+
+async function fetchEmailTransfers (
+  request: FetchEmailTransfersParamType
+): Promise<FetchEmailTransfersReturnType> {
+  let { idToken, limit, senderExclusiveStartKey, destinationExclusiveStartKey } = request
+  const { email } = await verifyGoogleIdToken(googleAPIConfig['clientId'], idToken)
+
+  if (!limit) limit = 10
+
+  // eslint-disable-next-line flowtype/no-weak-types
+  let senderQueryParams: Object = {
+    TableName: transactionDataTableName,
+    IndexName: 'sender-index',
+    KeyConditionExpression: 'sender = :email',
+    ExpressionAttributeValues: {
+      ':email': email
+    },
+    Limit: limit,
+    ScanIndexForward: false // false for descending
+  }
+  if (senderExclusiveStartKey) {
+    senderQueryParams.ExclusiveStartKey = senderExclusiveStartKey
+  }
+
+  // eslint-disable-next-line flowtype/no-weak-types
+  let destinationQueryParams: Object = {
+    TableName: transactionDataTableName,
+    IndexName: 'destination-index',
+    KeyConditionExpression: 'destination = :email',
+    ExpressionAttributeValues: {
+      ':email': email
+    },
+    Limit: limit,
+    ScanIndexForward: false // false for descending
+  }
+  if (destinationExclusiveStartKey) {
+    const { receivingId } = destinationExclusiveStartKey
+    const { transferId } = await getTransferByReceivingId(receivingId)
+    destinationQueryParams.ExclusiveStartKey = {
+      destination: destinationExclusiveStartKey.destination,
+      created: destinationExclusiveStartKey.created,
+      transferId: transferId
+    }
+  }
+
+  const [senderQueryResult, destinationQueryResult] = await Promise.all([
+    documentClient.query(senderQueryParams).promise(),
+    documentClient.query(destinationQueryParams).promise()
+  ])
+
+  let combinedData: Array<TransferDataType> = [
+    ...senderQueryResult.Items.map((item: TransferDataType): TransferDataType => {
+      // $FlowFixMe
+      return formatQueriedTransfer(item, false)
+    }),
+    ...destinationQueryResult.Items.map((item: TransferDataType): TransferDataType => {
+      // $FlowFixMe
+      return formatQueriedTransfer(item, true)
+    })
+  ]
+
+  combinedData = combinedData.sort((a: TransferDataType, b: TransferDataType): number => {
+    return b.created - a.created
+  })
+
+  if (combinedData.length > limit) {
+    // if combine data exceeds limit, trim the data
+    combinedData = combinedData.slice(0, limit)
+  }
+
+  // construct LastEvaluatedKey for pagenation
+  let senderLastEvaluatedKey = null
+  let destinationLastEvaluatedKey = null
+  combinedData.forEach((item: TransferDataType) => {
+    if (item.transferId === '') {
+      // if it is a "destination" record, update destinationLastEvaluatedKey
+      destinationLastEvaluatedKey = {
+        destination: item.destination,
+        created: item.created,
+        receivingId: item.receivingId
+      }
+    } else if (item.transferId !== '') {
+      // if it is a "sender" record, update senderLastEvaluatedKey
+      senderLastEvaluatedKey = {
+        sender: item.sender,
+        created: item.created,
+        transferId: item.transferId
+      }
+    }
+  })
+
+  let receiverAvatars = {}
+  for (let item of combinedData) {
+    if (!item.receiverAvatar) {
+      if (!receiverAvatars[item.destination]) {
+        receiverAvatars[item.destination] = await getUserAvatarUrl(item.destination)
+      }
+      item.receiverAvatar = receiverAvatars[item.destination]
+    }
+  }
+
+  const output = {
+    senderLastEvaluatedKey: senderLastEvaluatedKey,
+    destinationLastEvaluatedKey: destinationLastEvaluatedKey,
+    data: combinedData
+  }
+
+  return output
 }
 
 module.exports = {
@@ -992,5 +1132,6 @@ module.exports = {
   lookupTxHashes,
   collectReminderList,
   resetTransfers,
-  updateEmailSentFailure
+  updateEmailSentFailure,
+  fetchEmailTransfers
 }

@@ -50,6 +50,7 @@ async function register (
   googleId: string,
   recipients: Array<RecipientType>
 }> {
+  email = email.toLocaleLowerCase()
   try {
     const user = await getUser(userTableName, googleId)
     return {
@@ -110,6 +111,7 @@ async function getUser (
     }
   } else if (email) {
     // query by secondary index
+    email = email.toLocaleLowerCase()
     params = {
       TableName: userTableName,
       IndexName: 'emailIndex',
@@ -213,7 +215,7 @@ async function removeRecipient (
   recipient: RecipientType
 ): Promise<RecipientListType> {
   let { recipients } = await getRecipients(userTableName, googleId)
-
+  recipient.email = recipient.email.toLocaleLowerCase()
   recipients = recipients.filter((item: RecipientType): boolean => {
     return item.email !== recipient.email
   })
@@ -245,6 +247,7 @@ async function addRecipient (
   action: string,
   ...$Exact<RecipientListType>
 }> {
+  recipient.email = recipient.email.toLocaleLowerCase()
   let { recipients } = await getRecipients(userTableName, googleId)
   const index = recipients.findIndex(
     (item: RecipientType): boolean => item.email === recipient.email

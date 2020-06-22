@@ -1035,8 +1035,14 @@ async function fetchEmailTransfers (
     TableName: transactionDataTableName,
     IndexName: 'destination-index',
     KeyConditionExpression: 'destination = :email',
+    FilterExpression: 'attribute_exists(#stc) and #stc.#txState = :txStateConfirmed',
+    ExpressionAttributeNames: {
+      '#stc': 'senderToChainsfer',
+      '#txState': 'txState'
+    },
     ExpressionAttributeValues: {
-      ':email': email
+      ':email': email,
+      ':txStateConfirmed': 'Confirmed'
     },
     Limit: limit,
     ScanIndexForward: false // false for descending
@@ -1057,13 +1063,15 @@ async function fetchEmailTransfers (
   ])
 
   let combinedData: Array<TransferDataType> = [
-    ...senderQueryResult.Items.map((item: TransferDataType): TransferDataType => {
-      // $FlowFixMe
-      return formatQueriedTransfer(item, false)
-    }),
+    // Destination query results appear before sender query results
+    // in case of 'created' timestamp are the same.
     ...destinationQueryResult.Items.map((item: TransferDataType): TransferDataType => {
       // $FlowFixMe
       return formatQueriedTransfer(item, true)
+    }),
+    ...senderQueryResult.Items.map((item: TransferDataType): TransferDataType => {
+      // $FlowFixMe
+      return formatQueriedTransfer(item, false)
     })
   ]
 

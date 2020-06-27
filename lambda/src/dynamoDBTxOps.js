@@ -1124,6 +1124,30 @@ async function fetchEmailTransfers (
   return output
 }
 
+// clear user-rejected transfers
+// only applies to email transfer
+// the transfer must contain no txHash for stc, cts, ctr
+async function clearTransfer (request: { transferId: string }) {
+  await documentClient.delete({
+    TableName: transactionDataTableName,
+    Key: {
+      transferId: request.transferId
+    },
+    ConditionExpression:
+      'attribute_exists(senderToChainsfer) and attribute_exists(chainsferToReceiver) and attribute_exists(chainsferToSender)' +
+      ' and #stc.#txState = :notInitiated and #ctr.#txState = :notInitiated and #cts.#txState = :notInitiated',
+    ExpressionAttributeNames: {
+      '#stc': 'senderToChainsfer',
+      '#ctr': 'chainsferToReceiver',
+      '#cts': 'chainsferToSender',
+      '#txState': 'txState'
+    },
+    ExpressionAttributeValues: {
+      ':notInitiated': 'NotInitiated'
+    }
+  }).promise()
+}
+
 module.exports = {
   sendTransfer: sendTransfer,
   cancelTransfer: cancelTransfer,
@@ -1141,5 +1165,6 @@ module.exports = {
   collectReminderList,
   resetTransfers,
   updateEmailSentFailure,
-  fetchEmailTransfers
+  fetchEmailTransfers,
+  clearTransfer
 }

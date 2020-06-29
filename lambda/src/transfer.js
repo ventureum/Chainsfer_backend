@@ -105,6 +105,8 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await dynamoDBTxOps.lookupTxHashes(request)
     } else if (request.action === 'FETCH_EMAIL_TRANSFERS') {
       rv = await dynamoDBTxOps.fetchEmailTransfers(request)
+    } else if (request.action === 'CLEAR_TRANSFER') {
+      rv = await dynamoDBTxOps.clearTransfer(request)
     } else {
       throw new Error('Invalid command')
     }

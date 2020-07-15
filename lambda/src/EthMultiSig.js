@@ -14,6 +14,7 @@ import type {
 } from './transfer.flow'
 
 import { ethers } from 'ethers'
+import Web3 from 'web3'
 
 var Config = require('./config.js')
 
@@ -89,13 +90,15 @@ async function executeMultiSig (
   const masterSigSplit = ethers.utils.splitSignature(masterSig)
   const clientSigSplit = ethers.utils.splitSignature(clientSig)
 
-  const receiveTxHash = (await multiSigInstance.transfer(
-    transfer.walletId,
-    [masterSigSplit.v, clientSigSplit.v],
-    [masterSigSplit.r, clientSigSplit.r],
-    [masterSigSplit.s, clientSigSplit.s],
-    destinationAddress
-  )).hash
+  const receiveTxHash = (
+    await multiSigInstance.transfer(
+      transfer.walletId,
+      [masterSigSplit.v, clientSigSplit.v],
+      [masterSigSplit.r, clientSigSplit.r],
+      [masterSigSplit.s, clientSigSplit.s],
+      destinationAddress
+    )
+  ).hash
 
   return receiveTxHash
 }
@@ -115,4 +118,50 @@ async function getSenderAddress (transfer: TransferDataType): Promise<string> {
   return receipt.from
 }
 
-export default { executeMultiSig, createSigningData, getMasterSig, getSenderAddress }
+async function getSendToEscrowTxObj (
+  walletId: string,
+  from: string,
+  to: string, // escrow wallet address, generated offline
+  value: string,
+  cryptoType: string
+): Promise<{
+  to: string,
+  data: string,
+  value: string
+}> {
+  const web3 = new Web3(
+    new Web3(new Web3.providers.HttpProvider(`https://${deploymentStage === 'prod' ? 'mainnet' : 'rinkeby'}.infura.io/v3/${Config.InfuraAPIKey}`))
+  )
+  const multiSigContract = new web3.eth.Contract(
+    SimpleMultiSigContractArtifacts.abi,
+    multiSigAddress
+  )
+
+  let data
+  const gasLimit = 120000
+
+  if (cryptoType === 'ethereum') {
+    data = multiSigContract.methods.createEthWallet(walletId, to).encodeABI()
+  } else {
+    // erc20 tokens
+    data = multiSigContract.methods
+      .createErc20Wallet(walletId, to, Config.ERC20Tokens[cryptoType].address, value)
+      .encodeABI()
+  }
+
+  return {
+    from: from,
+    to: multiSigAddress,
+    data: data,
+    value: value,
+    gasLimit: web3.utils.numberToHex(gasLimit)
+  }
+}
+
+export default {
+  executeMultiSig,
+  createSigningData,
+  getMasterSig,
+  getSenderAddress,
+  getSendToEscrowTxObj
+}

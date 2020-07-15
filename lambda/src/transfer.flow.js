@@ -90,7 +90,7 @@ export type TransferDataMetaType = {
 
 export type MultiSigWalletType = {
   walletId: string,
-  masterSig: EcdsaSigType
+  masterSig: ?EcdsaSigType
 }
 
 // complete transfer data db schema

@@ -50,6 +50,12 @@ const reminderInterval =
 const googleAPIConfig =
   Config.GoogleAPIConfig[deploymentStage] || Config.GoogleAPIConfig['default']
 
+// setup master account
+if (!process.env.ETH_PRIVATE_KEY) throw new Error('ETH_PRIVATE_KEY missing')
+const ETH_PRIVATE_KEY = process.env.ETH_PRIVATE_KEY
+
+const provider = Config.EthTxAPIConfig[deploymentStage] || Config.EthTxAPIConfig['default']
+
 // returns googleId given an idToken
 async function verifyGoogleIdToken (
   clientId: string,
@@ -1128,24 +1134,26 @@ async function fetchEmailTransfers (
 // only applies to email transfer
 // the transfer must contain no txHash for stc, cts, ctr
 async function clearTransfer (request: { transferId: string }) {
-  await documentClient.delete({
-    TableName: transactionDataTableName,
-    Key: {
-      transferId: request.transferId
-    },
-    ConditionExpression:
-      'attribute_exists(senderToChainsfer) and attribute_exists(chainsferToReceiver) and attribute_exists(chainsferToSender)' +
-      ' and #stc.#txState = :notInitiated and #ctr.#txState = :notInitiated and #cts.#txState = :notInitiated',
-    ExpressionAttributeNames: {
-      '#stc': 'senderToChainsfer',
-      '#ctr': 'chainsferToReceiver',
-      '#cts': 'chainsferToSender',
-      '#txState': 'txState'
-    },
-    ExpressionAttributeValues: {
-      ':notInitiated': 'NotInitiated'
-    }
-  }).promise()
+  await documentClient
+    .delete({
+      TableName: transactionDataTableName,
+      Key: {
+        transferId: request.transferId
+      },
+      ConditionExpression:
+        'attribute_exists(senderToChainsfer) and attribute_exists(chainsferToReceiver) and attribute_exists(chainsferToSender)' +
+        ' and #stc.#txState = :notInitiated and #ctr.#txState = :notInitiated and #cts.#txState = :notInitiated',
+      ExpressionAttributeNames: {
+        '#stc': 'senderToChainsfer',
+        '#ctr': 'chainsferToReceiver',
+        '#cts': 'chainsferToSender',
+        '#txState': 'txState'
+      },
+      ExpressionAttributeValues: {
+        ':notInitiated': 'NotInitiated'
+      }
+    })
+    .promise()
 }
 
 module.exports = {

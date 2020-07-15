@@ -2,7 +2,7 @@
 import type { Context, Callback } from 'flow-aws-lambda'
 import axios from 'axios'
 import BtcMultiSig from './BtcMultiSig'
-
+import promoteOps from './promoteOps.js'
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
 var Config = require('./config.js')
 var bitcoin = require('bitcoinjs-lib')
@@ -107,6 +107,8 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await dynamoDBTxOps.fetchEmailTransfers(request)
     } else if (request.action === 'CLEAR_TRANSFER') {
       rv = await dynamoDBTxOps.clearTransfer(request)
+    } else if (request.action === 'PROMOTE_TRANSFER') {
+      rv = await promoteOps.promoteTransfer(request)
     } else {
       throw new Error('Invalid command')
     }

@@ -9,7 +9,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
 
   function handleResults (origin: string, err: Object) {
     let allowedOrigin = DEFAULT_ALLOWED_ORIGIN
-    if (origin.endsWith('.serveo.ventureum.io') || origin.endsWith('.chainsfr.com')) {
+    if (origin.endsWith('.serveo.ventureum.io') || origin.endsWith('chainsfr.com')) {
       allowedOrigin = origin
     }
     let response = {

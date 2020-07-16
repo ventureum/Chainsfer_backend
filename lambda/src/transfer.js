@@ -69,7 +69,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     } else {
       console.log(err)
       response.statusCode = 500
-      response.body = JSON.stringify(err)
+      response.body = err.toString()
       callback(null, response)
     }
   }

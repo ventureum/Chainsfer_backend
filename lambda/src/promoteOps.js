@@ -211,7 +211,7 @@ async function promoteTransfer (request: { receiverName: string, destination: st
 
   const escrowWallet = web3.eth.accounts.create()
   const escrowAddress = escrowWallet.address
-  const encryptedPrivateKey = await encryptMessage(escrowWallet.privateKey, 'Welcome2020')
+  const encryptedPrivateKey = await encryptMessage(escrowWallet.privateKey, 'welcome2020')
 
   // create a master wallet to executing transfers
   const masterWallet = web3.eth.accounts.privateKeyToAccount(masterPrivateKey)

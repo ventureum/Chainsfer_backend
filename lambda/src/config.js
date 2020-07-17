@@ -164,20 +164,20 @@ const QueueURLPrefix = 'https://sqs.us-east-1.amazonaws.com/727151012682/'
 
 const addressMap = {
   dai: {
-  'rinkeby': '0x4aacB7f0bA0A5CfF9A8a5e8C0F24626Ee9FDA4a6',
-  'mainnet': '0x6B175474E89094C44Da98b954EedeAC495271d0F'
+    rinkeby: '0x4aacB7f0bA0A5CfF9A8a5e8C0F24626Ee9FDA4a6',
+    mainnet: '0x6B175474E89094C44Da98b954EedeAC495271d0F'
   },
   tether: {
-    'rinkeby': '0xF76eB2f15a960A5d96d046a00007EFd737e5ea14',
-    'mainnet': '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+    rinkeby: '0xF76eB2f15a960A5d96d046a00007EFd737e5ea14',
+    mainnet: '0xdAC17F958D2ee523a2206206994597C13D831ec7'
   },
   'usd-coin': {
-    'rinkeby': '0xF76eB2f15a960A5d96d046a00007EFd737e5ea14',
-    'mainnet': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+    rinkeby: '0xF76eB2f15a960A5d96d046a00007EFd737e5ea14',
+    mainnet: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
   },
   'true-usd': {
-    'rinkeby': '0x4aacB7f0bA0A5CfF9A8a5e8C0F24626Ee9FDA4a6',
-    'mainnet': '0x0000000000085d4780B73119b644AE5ecd22b376'
+    rinkeby: '0x4aacB7f0bA0A5CfF9A8a5e8C0F24626Ee9FDA4a6',
+    mainnet: '0x0000000000085d4780B73119b644AE5ecd22b376'
   }
 }
 
@@ -185,32 +185,42 @@ const addressMap = {
 const ERC20Tokens = {
   dai: {
     symbol: 'DAI',
-    address: deploymentStage === 'prod'
-      ? addressMap['dai']['mainnet']
-      : addressMap['dai']['rinkeby'],
+    address:
+      deploymentStage === 'prod' ? addressMap['dai']['mainnet'] : addressMap['dai']['rinkeby'],
     decimals: 18
   },
   tether: {
     symbol: 'USDT',
-    address: deploymentStage === 'prod'
-      ? addressMap['tether']['mainnet']
-      : addressMap['tether']['rinkeby'],
+    address:
+      deploymentStage === 'prod'
+        ? addressMap['tether']['mainnet']
+        : addressMap['tether']['rinkeby'],
     decimals: 6
   },
   'usd-coin': {
     symbol: 'USDC',
-    address: deploymentStage === 'prod'
-      ? addressMap['usd-coin']['mainnet']
-      : addressMap['usd-coin']['rinkeby'],
+    address:
+      deploymentStage === 'prod'
+        ? addressMap['usd-coin']['mainnet']
+        : addressMap['usd-coin']['rinkeby'],
     decimals: 6
   },
   'true-usd': {
     symbol: 'TUSD',
-    address: deploymentStage === 'prod'
-      ? addressMap['true-usd']['mainnet']
-      : addressMap['true-usd']['rinkeby'],
+    address:
+      deploymentStage === 'prod'
+        ? addressMap['true-usd']['mainnet']
+        : addressMap['true-usd']['rinkeby'],
     decimals: 18
   }
+}
+
+function getAllowOrigin (origin: string): string {
+  let allowedOrigin = 'https://app.chainsfr.com' // default
+  if (origin.endsWith('.serveo.ventureum.io') || origin.endsWith('chainsfr.com')) {
+    allowedOrigin = origin
+  }
+  return allowedOrigin
 }
 
 module.exports = {
@@ -228,5 +238,6 @@ module.exports = {
   EthChainId: EthChainId,
   ERC20Tokens: ERC20Tokens,
   InfuraAPIKey: InfuraAPIKey,
-  ChainIdMap: ChainIdMap
+  ChainIdMap: ChainIdMap,
+  getAllowOrigin: getAllowOrigin
 }

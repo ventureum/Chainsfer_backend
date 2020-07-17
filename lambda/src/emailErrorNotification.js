@@ -4,6 +4,7 @@ import email from './email'
 import { getTransfer } from './dynamoDBTxOps'
 import type { TransferDataType } from './transfer.flow'
 import { updateEmailSentFailure } from './dynamoDBTxOps'
+import Config from './config'
 
 // eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
@@ -11,7 +12,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
   function handleResults (rv: Object, err: Object) {
     let response = {
       headers: {
-        'Access-Control-Allow-Origin': '*', // Required for CORS support to work
+        'Access-Control-Allow-Origin': Config.getAllowOrigin(event.headers.origin), // Required for CORS support to work
         'Access-Control-Allow-Credentials': true // Required for cookies, authorization headers with HTTPS
       },
       isBase64Encoded: false,
@@ -43,7 +44,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
         transferId: item.transferId,
         receivingId: ''
       })
-      
+
       // getTransfer returns { error: string } when Tx is not found
       if (!transferData.error && !transferData.emailSentFailure) {
         // Send only one notification per transferData

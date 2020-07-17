@@ -1,5 +1,7 @@
 // @flow
 import type { Context, Callback, ProxyResult } from 'flow-aws-lambda'
+import Config from './config'
+
 const AWS = require('aws-sdk')
 const dynamodb = new AWS.DynamoDB({ region: 'us-east-1' })
 
@@ -17,9 +19,11 @@ function getItemBuilder (): {
   }
 }
 
-function deleteItemBuilder (address: string): {
+function deleteItemBuilder (
+  address: string
+): {
   Key: {
-    'address': {
+    address: {
       S: string
     }
   },
@@ -28,7 +32,7 @@ function deleteItemBuilder (address: string): {
 } {
   return {
     Key: {
-      'address': {
+      address: {
         S: address
       }
     },
@@ -40,11 +44,11 @@ function deleteItemBuilder (address: string): {
 // eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
   let response: ProxyResult = {
-    'headers': {
-      'Access-Control-Allow-Origin': '*', // Required for CORS support to work
+    headers: {
+      'Access-Control-Allow-Origin': Config.getAllowOrigin(event.headers.origin), // Required for CORS support to work
       'Access-Control-Allow-Credentials': true // Required for cookies, authorization headers with HTTPS
     },
-    'isBase64Encoded': false
+    isBase64Encoded: false
   }
 
   try {

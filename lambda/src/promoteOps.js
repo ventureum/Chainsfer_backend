@@ -8,6 +8,7 @@ import { getUser } from './userOps'
 import { sendTransfer } from './dynamoDBTxOps'
 import EthMultiSig from './EthMultiSig'
 import { Base64 } from 'js-base64'
+const utils = require('./utils')
 const AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 const Config = require('./config.js')
@@ -279,7 +280,7 @@ async function promoteTransfer (request: { receiverName: string, destination: st
     cryptoType: CRYPTO_TYPE,
     cryptoSymbol: 'ETH',
     transferAmount: TRANSFER_AMOUNT,
-    transferFiatAmountSpot: TRANSFER_CURRENCY_AMOUNT.toString(),
+    transferFiatAmountSpot: utils.formatNumber(TRANSFER_CURRENCY_AMOUNT.toString()),
     fiatType: 'USD',
     exchangeRate: {
       cryptoExchangeRate: cryptoPrices[CRYPTO_TYPE],

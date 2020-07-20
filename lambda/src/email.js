@@ -16,7 +16,8 @@ import type {
   TransferDataEmailCompatibleType,
   TemplateType,
   SendTemplatedEmailReturnType,
-  EmailActionRecordType
+  EmailActionRecordType,
+  EmailMessageEventType
 } from './email.flow'
 
 var AWS = require('aws-sdk')
@@ -53,7 +54,10 @@ module.exports = {
     return moment.unix(timestamp).format('MMM Do YYYY, HH:mm:ss a')
   },
   getTimestampLinkParams: function (timestamp: number): string {
-    const { years, months, date, hours, minutes, seconds } = moment.unix(timestamp).utc().toObject()
+    const { years, months, date, hours, minutes, seconds } = moment
+      .unix(timestamp)
+      .utc()
+      .toObject()
     return `day=${date}&month=${
       months + 1
     }&year=${years}&hour=${hours}&min=${minutes}&sec=${seconds}`
@@ -156,7 +160,9 @@ module.exports = {
   sendActionReceiverEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.destination, 'sendActionReceiverEmail', params)
   },
-  receiveActionSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
+  receiveActionSenderEmailParams: function (
+    params: TransferDataEmailCompatibleType
+  ): TemplateType {
     return this.getTemplate(params.sender, 'receiveActionSenderEmail', params)
   },
   receiveActionReceiverEmailParams: function (
@@ -167,7 +173,9 @@ module.exports = {
   cancelActionSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.sender, 'cancelActionSenderEmail', params)
   },
-  reclaimActionSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
+  reclaimActionSenderEmailParams: function (
+    params: TransferDataEmailCompatibleType
+  ): TemplateType {
     return this.getTemplate(params.sender, 'reclaimActionSenderEmail', params)
   },
   cancelActionReceiverEmailParams: function (
@@ -196,62 +204,61 @@ module.exports = {
   emailErrorSenderEmailParams: function (params: TransferDataEmailCompatibleType): TemplateType {
     return this.getTemplate(params.sender, 'wrongActionSenderEmail', params)
   },
+  sendTemplatedEmailFromQueue: async function (
+    emailQueue: Array<TemplateType>,
+    params: TransferDataType
+  ): Promise<Array<SendTemplatedEmailReturnType>> {
+    const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
+    const messageIds = await Promise.all(
+      emailQueue.map(async (param: TemplateType): Promise<SendTemplatedEmailReturnType> => {
+        return ses.sendTemplatedEmail(param).promise()
+      })
+    )
+    await Promise.all(
+      messageIds.map(async (item: SendTemplatedEmailReturnType, index: number): Promise<Array<EmailActionRecordType>> => {
+        const { MessageId } = item
+        return this.saveEmailActionRecord(
+          MessageId,
+          paramsEmailCompatible.transferId,
+          params.promoteTransfer,
+          emailQueue[index].Template
+        )
+      })
+    )
+    return messageIds
+  },
   sendAction: async function (
     params: TransferDataType
   ): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
-    const messageIds: Array<SendTemplatedEmailReturnType> = await Promise.all([
-      ses.sendTemplatedEmail(this.sendActionSenderEmailParams(paramsEmailCompatible)).promise(),
-      ses.sendTemplatedEmail(this.sendActionReceiverEmailParams(paramsEmailCompatible)).promise()
-    ])
-    await Promise.all(
-      messageIds.map(async (item: SendTemplatedEmailReturnType): Promise<Array<EmailActionRecordType>> => {
-        const { MessageId } = item
-        return this.saveEmailActionRecord(MessageId, paramsEmailCompatible.transferId)
-      })
-    )
+    let emailQueue = []
+    emailQueue.push(this.sendActionSenderEmailParams(paramsEmailCompatible))
+    emailQueue.push(this.sendActionReceiverEmailParams(paramsEmailCompatible))
+    const messageIds = await this.sendTemplatedEmailFromQueue(emailQueue, params)
     return messageIds
   },
   receiveAction: async function (
     params: TransferDataType
   ): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
-    const messageIds: Array<SendTemplatedEmailReturnType> = await Promise.all([
-      ses.sendTemplatedEmail(this.receiveActionSenderEmailParams(paramsEmailCompatible)).promise(),
-      ses.sendTemplatedEmail(this.receiveActionReceiverEmailParams(paramsEmailCompatible)).promise()
-    ])
-    await Promise.all(
-      messageIds.map(async (item: SendTemplatedEmailReturnType): Promise<Array<EmailActionRecordType>> => {
-        const { MessageId } = item
-        return this.saveEmailActionRecord(MessageId, paramsEmailCompatible.transferId)
-      })
-    )
+    let emailQueue = []
+    emailQueue.push(this.receiveActionSenderEmailParams(paramsEmailCompatible))
+    emailQueue.push(this.receiveActionReceiverEmailParams(paramsEmailCompatible))
+
+    const messageIds = await this.sendTemplatedEmailFromQueue(emailQueue, params)
     return messageIds
   },
   cancelAction: async function (
     params: TransferDataType
   ): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
-    let emailQueue = [
-      ses.sendTemplatedEmail(this.cancelActionSenderEmailParams(paramsEmailCompatible)).promise()
-    ]
+    let emailQueue = []
+    emailQueue.push(this.cancelActionSenderEmailParams(paramsEmailCompatible))
     if (!params.expired) {
       // send cancel email to receiver only before expiration
-      emailQueue.push(
-        ses
-          .sendTemplatedEmail(this.cancelActionReceiverEmailParams(paramsEmailCompatible))
-          .promise()
-      )
+      emailQueue.push(this.cancelActionReceiverEmailParams(paramsEmailCompatible))
     }
-
-    const messageIds: Array<SendTemplatedEmailReturnType> = await Promise.all(emailQueue)
-    await Promise.all(
-      messageIds.map(async (item: SendTemplatedEmailReturnType): Promise<Array<EmailActionRecordType>> => {
-        const { MessageId } = item
-        return this.saveEmailActionRecord(MessageId, paramsEmailCompatible.transferId)
-      })
-    )
-
+    const messageIds = await this.sendTemplatedEmailFromQueue(emailQueue, params)
     return messageIds
   },
   // send to sender when the expired transfer is reclaimed by the sender
@@ -259,16 +266,10 @@ module.exports = {
     params: TransferDataType
   ): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
+    let emailQueue = []
+    emailQueue.push(this.reclaimActionSenderEmailParams(paramsEmailCompatible))
 
-    const messageIds: Array<SendTemplatedEmailReturnType> = await Promise.all([
-      ses.sendTemplatedEmail(this.reclaimActionSenderEmailParams(paramsEmailCompatible)).promise()
-    ])
-    await Promise.all(
-      messageIds.map(async (item: SendTemplatedEmailReturnType): Promise<Array<EmailActionRecordType>> => {
-        const { MessageId } = item
-        return this.saveEmailActionRecord(MessageId, paramsEmailCompatible.transferId)
-      })
-    )
+    const messageIds = await this.sendTemplatedEmailFromQueue(emailQueue, params)
     return messageIds
   },
   // only send once to both sender and receiver when the transfer is expired
@@ -276,16 +277,11 @@ module.exports = {
     params: TransferDataType
   ): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
-    const messageIds: Array<SendTemplatedEmailReturnType> = await Promise.all([
-      ses.sendTemplatedEmail(this.expireActionSenderEmailParams(paramsEmailCompatible)).promise(),
-      ses.sendTemplatedEmail(this.expireActionReceiverEmailParams(paramsEmailCompatible)).promise()
-    ])
-    await Promise.all(
-      messageIds.map(async (item: SendTemplatedEmailReturnType): Promise<Array<EmailActionRecordType>> => {
-        const { MessageId } = item
-        return this.saveEmailActionRecord(MessageId, paramsEmailCompatible.transferId)
-      })
-    )
+    let emailQueue = []
+    emailQueue.push(this.expireActionSenderEmailParams(paramsEmailCompatible))
+    emailQueue.push(this.expireActionReceiverEmailParams(paramsEmailCompatible))
+
+    const messageIds = await this.sendTemplatedEmailFromQueue(emailQueue, params)
     return messageIds
   },
   // sent to receiver before expiration
@@ -293,17 +289,9 @@ module.exports = {
     params: TransferDataType
   ): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
-    const messageIds: Array<SendTemplatedEmailReturnType> = await Promise.all([
-      ses
-        .sendTemplatedEmail(this.reminderActionReceiverEmailParams(paramsEmailCompatible))
-        .promise()
-    ])
-    await Promise.all(
-      messageIds.map(async (item: SendTemplatedEmailReturnType): Promise<Array<EmailActionRecordType>> => {
-        const { MessageId } = item
-        return this.saveEmailActionRecord(MessageId, paramsEmailCompatible.transferId)
-      })
-    )
+    let emailQueue = [this.reminderActionReceiverEmailParams(paramsEmailCompatible)]
+
+    const messageIds = await this.sendTemplatedEmailFromQueue(emailQueue, params)
     return messageIds
   },
   // sent to sender after expiration
@@ -311,15 +299,10 @@ module.exports = {
     params: TransferDataType
   ): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
-    const messageIds: Array<SendTemplatedEmailReturnType> = await Promise.all([
-      ses.sendTemplatedEmail(this.reminderActionSenderEmailParams(paramsEmailCompatible)).promise()
-    ])
-    await Promise.all(
-      messageIds.map(async (item: SendTemplatedEmailReturnType): Promise<Array<EmailActionRecordType>> => {
-        const { MessageId } = item
-        return this.saveEmailActionRecord(MessageId, paramsEmailCompatible.transferId)
-      })
-    )
+    let emailQueue = []
+    emailQueue.push(this.reminderActionSenderEmailParams(paramsEmailCompatible))
+
+    const messageIds = await this.sendTemplatedEmailFromQueue(emailQueue, params)
     return messageIds
   },
   // send to sender after email error
@@ -327,24 +310,23 @@ module.exports = {
     params: TransferDataType
   ): Promise<Array<SendTemplatedEmailReturnType>> {
     const paramsEmailCompatible: TransferDataEmailCompatibleType = this.toEmailCompatible(params)
-    const messageIds: Array<SendTemplatedEmailReturnType> = await Promise.all([
-      ses.sendTemplatedEmail(this.emailErrorSenderEmailParams(paramsEmailCompatible)).promise()
-    ])
-    await Promise.all(
-      messageIds.map(async (item: SendTemplatedEmailReturnType): Promise<Array<EmailActionRecordType>> => {
-        const { MessageId } = item
-        return this.saveEmailActionRecord(MessageId, paramsEmailCompatible.transferId)
-      })
-    )
+    let emailQueue = [this.emailErrorSenderEmailParams(paramsEmailCompatible)]
+
+    const messageIds = await this.sendTemplatedEmailFromQueue(emailQueue, params)
     return messageIds
   },
   saveEmailActionRecord: async function (
     messageId: string,
-    transferId: string
+    transferId: string,
+    promoteTransfer?: boolean,
+    template: string
   ): Promise<EmailActionRecordType> {
+    if (!promoteTransfer) promoteTransfer = false
     const newRecord = {
       messageId: messageId,
-      transferId: transferId
+      transferId: transferId,
+      template: template,
+      promoteTransfer: promoteTransfer
     }
     await documentClient
       .put({
@@ -352,10 +334,29 @@ module.exports = {
         Item: newRecord
       })
       .promise()
-    return {
-      messageId: messageId,
-      transferId: transferId
-    }
+    return newRecord
+  },
+  updateEmailActionRecord: async function (
+    messageId: string,
+    userAction: EmailMessageEventType
+  ): Promise<EmailActionRecordType> {
+    const rv = await documentClient
+      .update({
+        TableName: emailRecordsTableName,
+        Key: {
+          messageId: messageId
+        },
+        UpdateExpression: 'set #a = :t',
+        ConditionExpression: '#mId = :m', // update only when exist
+        ExpressionAttributeNames: { '#a': userAction.toLocaleLowerCase(), '#mId': 'messageId' },
+        ExpressionAttributeValues: {
+          ':t': moment().unix(),
+          ':m': messageId
+        },
+        ReturnValues: 'ALL_NEW'
+      })
+      .promise()
+    return rv.Attributes
   },
   getEmailActionRecord: async function (messageId: string): Promise<EmailActionRecordType> {
     const params = {
@@ -364,11 +365,7 @@ module.exports = {
         messageId: messageId
       }
     }
-
     const { Item } = await documentClient.get(params).promise()
-    return {
-      messageId: Item.messageId,
-      transferId: Item.transferId
-    }
+    return Item
   }
 }

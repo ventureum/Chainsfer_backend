@@ -105,6 +105,7 @@ export type TransferDataType = {
   ...$Exact<TransferDataStateType>,
   ...$Exact<TransferDataMetaType>,
   ...$Exact<MultiSigWalletType>,
+  ...$Exact<PromoteTransferType>,
   receiverAccount: string,
   // testing
   mock: ?boolean
@@ -117,6 +118,7 @@ export type SendTransferParamsType = {
   ...$Exact<TransferDataCryptoType>,
   ...$Exact<TransferDataPrivateKeyType>,
   ...$Exact<MultiSigWalletType>,
+  ...$Exact<PromoteTransferType>,
   sendMessage: ?string,
   sendTxHash: string,
   transferId: ?string
@@ -174,6 +176,10 @@ export type DirectTransferReturnType = {
 }
 
 export type EcdsaSigType = string
+
+export type PromoteTransferType = {
+  promoteTransfer?: boolean
+}
 
 export type FetchEmailTransfersParamType = {
   idToken: string,

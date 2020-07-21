@@ -38,5 +38,11 @@ export type SendTemplatedEmailReturnType = {
 
 export type EmailActionRecordType = {
   messageId: string,
-  transferId: string
+  transferId: string,
+  promoteTransfer?: boolean,
+  click?: number, // unix timestamp
+  open?: number, // unix timestamp
+  complaint?: number // unix timestamp
 }
+
+export type EmailMessageEventType = 'Click' | 'Open' | 'Complaint' | 'Bounce'

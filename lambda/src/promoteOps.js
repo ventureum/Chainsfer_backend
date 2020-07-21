@@ -290,7 +290,8 @@ async function promoteTransfer (request: { receiverName: string, destination: st
     // others
     sendMessage: 'Welcome to Chainsfr!',
     // multisig wallet
-    walletId
+    walletId,
+    promoteTransfer: true
   }
 
   // $FlowFixMe

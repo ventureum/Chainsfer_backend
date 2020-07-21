@@ -282,6 +282,11 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
   if (params.sendTxHash) {
     senderToChainsfer.txHash = params.sendTxHash
   }
+
+  if (params.promoteTransfer !== true) {
+    params.promoteTransfer = false
+  }
+
   let {
     // sender
     senderName,
@@ -303,7 +308,8 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
     sendMessage,
     sendTxHash,
     // multisig wallet
-    walletId
+    walletId,
+    promoteTransfer
   } = params
 
   if (!sendTxHash) {
@@ -355,7 +361,8 @@ async function sendTransfer (params: SendTransferParamsType): Promise<SendTransf
           // transfer expiration time
           // will be set once funds have arrived at
           // escrow wallet
-          expiresAt: 0
+          expiresAt: 0,
+          promoteTransfer: promoteTransfer
         }
       })
       .promise()

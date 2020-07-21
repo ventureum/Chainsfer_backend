@@ -8,11 +8,12 @@ import Config from './config'
 
 // eslint-disable-next-line flowtype/no-weak-types
 exports.handler = async (event: any, context: Context, callback: Callback) => {
+  console.log('event', event)
   // eslint-disable-next-line flowtype/no-weak-types
   function handleResults (rv: Object, err: Object) {
     let response = {
       headers: {
-        'Access-Control-Allow-Origin': Config.getAllowOrigin(event.headers.origin), // Required for CORS support to work
+        'Access-Control-Allow-Origin': true, // Required for CORS support to work
         'Access-Control-Allow-Credentials': true // Required for cookies, authorization headers with HTTPS
       },
       isBase64Encoded: false,
@@ -37,9 +38,10 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
     }
     let rv = {}
     const message = JSON.parse(event.Records[0].Sns.Message)
+    const { messageId } = message.mail
+    const item = await email.getEmailActionRecord(messageId)
+    console.log(`New message event: ${message.eventType}`)
     if (message.eventType === 'Bounce') {
-      const { messageId } = message.mail
-      const item = await email.getEmailActionRecord(messageId)
       const transferData = await getTransfer({
         transferId: item.transferId,
         receivingId: ''
@@ -53,6 +55,16 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
         //$FlowFixMe
         rv = await email.emailErrorAction(transferData)
         await updateEmailSentFailure(item.transferId, event.Records[0].Sns.Message)
+        await email.updateEmailActionRecord(messageId, message.eventType)
+      }
+    } else if (
+      message.eventType === 'Click' ||
+      message.eventType === 'Open' ||
+      message.eventType === 'Complaint'
+    ) {
+      if (item && !item[message.eventType.toLowerCase()]) {
+        console.log(`Updating message record ${messageId} with event type ${message.eventType}`)
+        rv = await email.updateEmailActionRecord(messageId, message.eventType)
       }
     }
     handleResults(rv)

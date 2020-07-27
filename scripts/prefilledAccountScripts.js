@@ -3,7 +3,7 @@ const AWS = require('aws-sdk')
 const Web3 = require('web3')
 const EthereumTx = require('ethereumjs-tx')
 const dynamodb = new AWS.DynamoDB({ region: 'us-east-1' })
-const ERC20_ABI = require('./contracts/ERC20.json')
+const ERC20_ABI = require('../lambda/src/contracts/ERC20.json')
 const infuraAPIKey = '5e1a4561588d43838ed87e12dbe2d1f0'
 // fill in funding account's privateKey
 const fundingPrivateKey = Buffer.from('', 'hex') // remove 0x

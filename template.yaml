@@ -13,6 +13,10 @@ Parameters:
     Description: Table Name for user Data
     Type: String
     Default: UserTable
+  EthContractsTableName:
+    Description: Table Name for Eth contracts
+    Type: String
+    Default: EthContracts
   TransactionConfirmationSQSName:
     Description: Transaction Confirmation SQS Name
     Type: String
@@ -86,6 +90,11 @@ Globals:
           'Fn::Join':
             - ''
             - - Ref: UserTableName
+              - Ref: ENV
+        ETH_CONTRACTS_TABLE_NAME:
+          'Fn::Join':
+            - ''
+            - - Ref: EthContractsTableName
               - Ref: ENV
         ENV_VALUE:
           Ref: ENV
@@ -204,6 +213,35 @@ Resources:
           arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/POST/referralWallet
     DependsOn:
       - ChainsferRestApi
+
+  ethContractsRequest:
+    Properties:
+      FunctionName:
+        'Fn::Join':
+          - ''
+          - - ethContracts
+            - Ref: ENV
+      Role: >-
+        arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
+      Handler: dist/ethContracts.handler
+      MemorySize: 128
+      Description: 'Handle eth contracts requests'
+    Type: 'AWS::Serverless::Function'
+
+  EthContractsRequestApiGatewayInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - ethContractsRequest
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        'Fn::Sub': >-
+          arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/POST/ethContracts
+    DependsOn:
+      - ChainsferRestApi
   resourceOptionsMethod:
     Properties:
       FunctionName:
@@ -256,7 +294,21 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn:
         'Fn::Sub': >-
-          arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/OPTIONS/referralWallet
+          arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/OPTIONS/ethContracts
+    DependsOn:
+      - ChainsferRestApi
+  resourceOptionsMethodEthContractsApiGatewayInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        'Fn::GetAtt':
+          - resourceOptionsMethod
+          - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        'Fn::Sub': >-
+          arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/OPTIONS/user
     DependsOn:
       - ChainsferRestApi
   validateTx:
@@ -503,6 +555,21 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: 'ALL'
+      BillingMode: PAY_PER_REQUEST
+  EthContractsTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName:
+        'Fn::Join':
+          - ''
+          - - Ref: EthContractsTableName
+            - Ref: ENV
+      AttributeDefinitions:
+        - AttributeName: address
+          AttributeType: S
+      KeySchema:
+        - AttributeName: address
+          KeyType: HASH
       BillingMode: PAY_PER_REQUEST
   SESConfigSet:
     Type: AWS::SES::ConfigurationSet
@@ -755,6 +822,59 @@ Resources:
             method.response.header.Access-Control-Allow-Methods: true
             method.response.header.Access-Control-Allow-Origin: true
           StatusCode: '200'
+
+  EthContractsRestApiResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId:
+        Ref: ChainsferRestApi
+      ParentId:
+        'Fn::GetAtt':
+          - ChainsferRestApi
+          - RootResourceId
+      PathPart: ethContracts
+  EthContractsRestApiRequestPOST:
+    DependsOn: EthContractsRequestApiGatewayInvokePermission
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          'Fn::Sub':
+            - >-
+              arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+            - lambdaArn:
+                'Fn::GetAtt':
+                  - ethContractsRequest
+                  - Arn
+      ResourceId:
+        Ref: EthContractsRestApiResource
+      RestApiId:
+        Ref: ChainsferRestApi
+  EthContractsRestApiCORSOptionMethod:
+    Type: 'AWS::ApiGateway::Method'
+    DependsOn: resourceOptionsMethodReferralWalletApiGatewayInvokePermission
+    Properties:
+      ResourceId:
+        Ref: EthContractsRestApiResource
+      RestApiId:
+        Ref: ChainsferRestApi
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: OPTIONS
+        Uri:
+          'Fn::Sub':
+            - >-
+              arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+            - lambdaArn:
+                'Fn::GetAtt':
+                  - resourceOptionsMethod
+                  - Arn
   ChainsferReferralWalletRestApiResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:

@@ -1,20 +1,13 @@
 // @flow
 import type { Context, Callback } from 'flow-aws-lambda'
+import type { EthContractType } from './ethContracts.flow'
 import Config from './config'
 import AWS from 'aws-sdk'
+
 AWS.config.update({ region: 'us-east-1' })
 
 const ethContractsTableName = process.env.ETH_CONTRACTS_TABLE_NAME
 if (!process.env.ETH_CONTRACTS_TABLE_NAME) throw new Error('ETH_CONTRACTS_TABLE_NAME missing')
-
-type EthContractType = {
-  address: string,
-  decimals: number,
-  symbol: string,
-  name: string,
-  erc20?: boolean,
-  erc721?: boolean
-}
 
 const documentClient = new AWS.DynamoDB.DocumentClient()
 

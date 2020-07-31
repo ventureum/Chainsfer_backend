@@ -54,7 +54,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       body: string
     } = {
       headers: {
-        'Access-Control-Allow-Origin': Config.getAllowOrigin(event.headers.origin), // Required for CORS support to work
+        'Access-Control-Allow-Origin': Config.getAllowOrigin(event.headers), // Required for CORS support to work
         'Access-Control-Allow-Credentials': true // Required for cookies, authorization headers with HTTPS
       },
       isBase64Encoded: false,

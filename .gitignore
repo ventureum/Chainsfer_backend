@@ -2,6 +2,7 @@
 /node_modules
 /**/lambda-payloads.json
 /dist
+/scriptsDist
 /flow-typed
 template_packaged*.yml
 upload.sh

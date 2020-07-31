@@ -4,14 +4,12 @@ import type { Context, Callback } from 'flow-aws-lambda'
 import Config from './config'
 
 exports.handler = async (event: any, context: Context, callback: Callback) => {
-  let request = JSON.parse(event.body)
-
   function handleResults (origin: string, err: Object) {
     let response = {
       headers: {
         'Access-Control-Allow-Headers':
           'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-        'Access-Control-Allow-Origin': Config.getAllowOrigin(event.headers.origin), // Required for CORS support to work
+        'Access-Control-Allow-Origin': Config.getAllowOrigin(event.headers), // Required for CORS support to work
         'Access-Control-Allow-Credentials': true, // Required for cookies, authorization headers with HTTPS
         'Access-Control-Allow-Methods': "'GET,POST,PUT,DELETE,OPTIONS'"
       },
@@ -32,7 +30,7 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
   }
 
   try {
-    handleResults(event.headers.origin)
+    handleResults('')
   } catch (err) {
     handleResults('', err)
   }

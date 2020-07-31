@@ -215,13 +215,16 @@ const ERC20Tokens = {
   }
 }
 
-function getAllowOrigin (origin: string): string {
+function getAllowOrigin (headers?: { origin?: string }): string {
+  let origin = ''
+  if (headers && headers.origin) {
+    origin = headers.origin
+  }
   let allowedOrigin = 'https://app.chainsfr.com' // default
   // e2e test resetUser request does not have origin
   if (!origin && !['prod', 'staging'].includes(deploymentStage)) {
-    allowedOrigin = origin
-  }
-  else if (
+    allowedOrigin = '*'
+  } else if (
     origin.endsWith('.serveo.ventureum.io') ||
     origin.endsWith('chainsfr.com') ||
     !['prod', 'staging'].includes(deploymentStage)

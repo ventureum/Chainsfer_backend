@@ -294,7 +294,7 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn:
         'Fn::Sub': >-
-          arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/OPTIONS/ethContracts
+          arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/OPTIONS/referralWallet
     DependsOn:
       - ChainsferRestApi
   resourceOptionsMethodEthContractsApiGatewayInvokePermission:
@@ -308,7 +308,7 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn:
         'Fn::Sub': >-
-          arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/OPTIONS/user
+          arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChainsferRestApi}/*/OPTIONS/ethContracts
     DependsOn:
       - ChainsferRestApi
   validateTx:
@@ -856,17 +856,17 @@ Resources:
         Ref: ChainsferRestApi
   EthContractsRestApiCORSOptionMethod:
     Type: 'AWS::ApiGateway::Method'
-    DependsOn: resourceOptionsMethodReferralWalletApiGatewayInvokePermission
+    DependsOn: resourceOptionsMethodEthContractsApiGatewayInvokePermission
     Properties:
       ResourceId:
         Ref: EthContractsRestApiResource
       RestApiId:
         Ref: ChainsferRestApi
-      HttpMethod: OPTIONS
       AuthorizationType: NONE
+      HttpMethod: OPTIONS
       Integration:
         Type: AWS_PROXY
-        IntegrationHttpMethod: OPTIONS
+        IntegrationHttpMethod: POST
         Uri:
           'Fn::Sub':
             - >-
@@ -875,6 +875,14 @@ Resources:
                 'Fn::GetAtt':
                   - resourceOptionsMethod
                   - Arn
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+          StatusCode: '200'
   ChainsferReferralWalletRestApiResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:

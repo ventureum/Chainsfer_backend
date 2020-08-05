@@ -565,10 +565,10 @@ Resources:
           - - Ref: EthContractsTableName
             - Ref: ENV
       AttributeDefinitions:
-        - AttributeName: address
+        - AttributeName: cryptoType
           AttributeType: S
       KeySchema:
-        - AttributeName: address
+        - AttributeName: cryptoType
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
   SESConfigSet:

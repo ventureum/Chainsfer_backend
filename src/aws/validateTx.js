@@ -18,6 +18,8 @@ import type {
   TemplateType,
   SendTemplatedEmailReturnType
 } from './email.flow'
+import Config from './config.js'
+
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var ddb = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' })
@@ -26,7 +28,6 @@ var ses = new AWS.SES({ apiVersion: '2010-12-01' })
 var sqs = new AWS.SQS({ region: 'us-east-1' })
 var moment = require('moment')
 var utils = require('./utils.js')
-var Config = require('./config.js')
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
 
 if (!process.env.TRANSACTION_DATA_TABLE_NAME)

@@ -18,7 +18,7 @@ AWS.config.update({ region: 'us-east-1' })
 const path = require('path')
 const fs = require('fs')
 
-let templatesDir = path.resolve(__dirname, '../emailTemplates/templates')
+let templatesDir = path.resolve(__dirname, './templates')
 
 const EMAIL_META = [
   {

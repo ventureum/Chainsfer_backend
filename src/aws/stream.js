@@ -1,10 +1,11 @@
 // @flow
 import type { Context, Callback } from 'flow-aws-lambda'
 import type { TransferDataType } from './transfer.flow'
+import Config from './config.js'
+
 var AWS = require('aws-sdk')
 var sqs = new AWS.SQS({ region: 'us-east-1' })
 var utils = require('./utils.js')
-var Config = require('./config.js')
 
 if (!process.env.SQS_NAME) throw new Error('SQS_NAME missing')
 const sqsName = process.env.SQS_NAME

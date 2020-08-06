@@ -126,7 +126,7 @@ Resources:
           - - LambdaDynamodbStream
             - Ref: ENV
       MemorySize: 128
-      Handler: dist/stream.handler
+      Handler: dist/aws/stream.handler
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
       Description: 'Tracking tx state in transfer data SQS'
@@ -141,7 +141,7 @@ Resources:
             - Ref: ENV
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-      Handler: dist/transfer.handler
+      Handler: dist/aws/transfer.handler
       MemorySize: 128
       Description: 'Handle user transfer requests'
     Type: 'AWS::Serverless::Function'
@@ -168,7 +168,7 @@ Resources:
             - Ref: ENV
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-      Handler: dist/user.handler
+      Handler: dist/aws/user.handler
       MemorySize: 128
       Description: 'Handle user data requests'
     Type: 'AWS::Serverless::Function'
@@ -195,7 +195,7 @@ Resources:
             - Ref: ENV
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-      Handler: dist/referralWallet.handler
+      Handler: dist/aws/referralWallet.handler
       MemorySize: 128
       Description: 'Handle referral wallet transfer requests'
     Type: 'AWS::Serverless::Function'
@@ -223,7 +223,7 @@ Resources:
             - Ref: ENV
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-      Handler: dist/ethContracts.handler
+      Handler: dist/aws/ethContracts.handler
       MemorySize: 128
       Description: 'Handle eth contracts requests'
     Type: 'AWS::Serverless::Function'
@@ -251,7 +251,7 @@ Resources:
             - Ref: ENV
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-      Handler: dist/resourceOptionsMethod.handler
+      Handler: dist/aws/resourceOptionsMethod.handler
       MemorySize: 128
       Description: 'Global options config for lambda functions'
     Type: 'AWS::Serverless::Function'
@@ -320,7 +320,7 @@ Resources:
             - Ref: ENV
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-      Handler: dist/validateTx.handler
+      Handler: dist/aws/validateTx.handler
       MemorySize: 128
       Timeout: 900
       Description: 'Validate tx state and update transfer data'
@@ -335,7 +335,7 @@ Resources:
             - Ref: ENV
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-      Handler: dist/emailErrorNotification.handler
+      Handler: dist/aws/emailErrorNotification.handler
       MemorySize: 128
       Description: 'Handle email error notifications'
     Type: 'AWS::Serverless::Function'
@@ -398,7 +398,7 @@ Resources:
             - Ref: ENV
       Role: >-
         arn:aws:iam::727151012682:role/cloud9-chainsfer-transferRequestRole-YJZX77XEMNPC
-      Handler: dist/checkTxExpiration.handler
+      Handler: dist/aws/checkTxExpiration.handler
       MemorySize: 128
       Timeout: 900
       Description: 'Check if a transfer request is expired'

@@ -3,8 +3,9 @@ import type { Context, Callback } from 'flow-aws-lambda'
 import axios from 'axios'
 import BtcMultiSig from './BtcMultiSig'
 import promoteOps from './promoteOps.js'
+import Config from './config.js'
+
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
-var Config = require('./config.js')
 var bitcoin = require('bitcoinjs-lib')
 
 if (!process.env.TRANSACTION_DATA_TABLE_NAME)

@@ -1,11 +1,13 @@
 // @flow
+import { ERC20TokensList } from '../aws/ERC20Tokens'
+import type { EthContractType } from './ethContracts.flow'
+import { ethers } from 'ethers'
 
-var ethers = require('ethers')
+import request from 'request-promise'
 
 const InfuraAPIKey = '100db43af19d4ad7b24fe4957bdf5adb'
 var ethProviderTest = new ethers.providers.InfuraProvider('rinkeby', InfuraAPIKey)
 var ethProviderMain = new ethers.providers.InfuraProvider('homestead', InfuraAPIKey)
-var request = require('request-promise')
 
 const BlockcypherMainURL = 'https://api.blockcypher.com/v1/btc/main'
 const BlockcypherTest3URL = 'https://api.blockcypher.com/v1/btc/test3'
@@ -182,38 +184,13 @@ const addressMap = {
 }
 
 // list of token data
-const ERC20Tokens = {
-  dai: {
-    symbol: 'DAI',
-    address:
-      deploymentStage === 'prod' ? addressMap['dai']['mainnet'] : addressMap['dai']['rinkeby'],
-    decimals: 18
-  },
-  tether: {
-    symbol: 'USDT',
-    address:
-      deploymentStage === 'prod'
-        ? addressMap['tether']['mainnet']
-        : addressMap['tether']['rinkeby'],
-    decimals: 6
-  },
-  'usd-coin': {
-    symbol: 'USDC',
-    address:
-      deploymentStage === 'prod'
-        ? addressMap['usd-coin']['mainnet']
-        : addressMap['usd-coin']['rinkeby'],
-    decimals: 6
-  },
-  'true-usd': {
-    symbol: 'TUSD',
-    address:
-      deploymentStage === 'prod'
-        ? addressMap['true-usd']['mainnet']
-        : addressMap['true-usd']['rinkeby'],
-    decimals: 18
+let ERC20Tokens = {}
+ERC20TokensList.forEach((token: { ...$Exact<EthContractType>, testnetAddress: string }) => {
+  ERC20Tokens[token.cryptoType] = token
+  if (deploymentStage !== 'prod') {
+    ERC20Tokens[token.cryptoType].address = token.testnetAddress
   }
-}
+})
 
 function getAllowOrigin (headers?: { origin?: string }): string {
   let origin = ''
@@ -234,7 +211,7 @@ function getAllowOrigin (headers?: { origin?: string }): string {
   return allowedOrigin
 }
 
-module.exports = {
+export default {
   RootUrlConfig,
   TxConfirmationConfig: TxConfirmationConfig,
   QueueURLPrefix: QueueURLPrefix,

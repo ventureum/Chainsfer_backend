@@ -8,13 +8,12 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 0",
-    "build": "./fix1980.sh && rimraf dist/ && ./node_modules/.bin/babel */src ./migrations --out-dir dist --ignore ./package.json,./npm-debug.log --copy-files",
-    "buildScripts":"./fix1980.sh && rimraf dist/ && ./node_modules/.bin/babel ./scripts --out-dir scriptsDist --ignore ./package.json,./npm-debug.log --copy-files",
-    "upload": "node ./dist/emailTemplateJsonGenerator.js",
+    "build": "./fix1980.sh && rimraf dist/ && ./node_modules/.bin/babel ./src --out-dir dist --ignore ./package.json,./npm-debug.log --copy-files",
+    "upload": "node ./dist/emailTemplates/emailTemplateJsonGenerator.js",
     "flow-typed": "flow-typed install",
     "flow": "flow",
-    "eslint": "eslint \"./lambda/src/**/*.js\"",
-    "eslint-fix": "eslint --fix \"./lambda/src/**/*.js\""
+    "eslint": "eslint \"./src/**/*.js\"",
+    "eslint-fix": "eslint --fix \"./src/**/*.js\""
   },
   "author": "",
   "license": "ISC",

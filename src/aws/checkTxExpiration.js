@@ -1,5 +1,7 @@
 // @flow
 import type { Context, Callback } from 'flow-aws-lambda'
+import Config from './config.js'
+
 var moment = require('moment')
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
@@ -7,7 +9,6 @@ var dynamoDBTxOps = require('./dynamoDBTxOps.js')
 var ddb = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' })
 var ses = new AWS.SES({ apiVersion: '2010-12-01' })
 var email = require('./email.js')
-var Config = require('./config.js')
 
 if (!process.env.TRANSACTION_DATA_TABLE_NAME) throw new Error('TRANSACTION_DATA_TABLE_NAME missing')
 const transactionDataTableName = process.env.TRANSACTION_DATA_TABLE_NAME

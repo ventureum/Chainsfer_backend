@@ -4,8 +4,8 @@ import type { Context, Callback } from 'flow-aws-lambda'
 import BN from 'bn.js'
 import { Wallet, utils } from 'ethers'
 import { verifyGoogleIdToken } from './dynamoDBTxOps.js'
+import Config from './config.js'
 
-const Config = require('./config.js')
 const AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 let documentClient = new AWS.DynamoDB.DocumentClient()

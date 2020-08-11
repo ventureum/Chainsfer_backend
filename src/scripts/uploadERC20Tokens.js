@@ -1,34 +1,33 @@
 // @flow
 import AWS from 'aws-sdk'
 import fs from 'fs'
-import type { EthContractType } from '../lambda/src/ethContracts.flow'
+import type { EthContractType } from '../aws/ethContracts.flow'
 import CoinGecko from 'coingecko-api'
+import { ERC20TokensList, testnetContractAddresses } from '../aws/ERC20Tokens'
 
 const CoinGeckoClient = new CoinGecko()
 const documentClient = new AWS.DynamoDB.DocumentClient({ region: 'us-east-1' })
 
 async function uploadERC20Contracts (env: string) {
   if (!env) throw new Error('taget env missing')
-  const file = fs.readFileSync(__dirname + '/ERC20Tokens.json')
-  let erc20Contracts = JSON.parse(file.toString())
-  const coinList = (await CoinGeckoClient.coins.list()).data
-  let symbolIdMap = {}
-  coinList.forEach((coin: { symbol: string, id: string }) => {
-    symbolIdMap[coin.symbol.toLocaleLowerCase()] = coin.id
-  })
-  let putRequests = erc20Contracts.map((contract: EthContractType): {
-    PutRequest: { Item: EthContractType }
-  } => {
-    return {
-      PutRequest: {
-        Item: {
-          ...contract,
-          erc20: true,
-          cryptoType: symbolIdMap[contract.symbol.toLocaleLowerCase()]
+  let putRequests = ERC20TokensList.map(
+    (contract: {
+      ...$Exact<EthContractType>,
+      testnetAddress: string
+    }): {
+      PutRequest: { Item: EthContractType }
+    } => {
+      if (env.toLocaleLowerCase() !== 'prod') {
+        contract.address = testnetContractAddresses[contract.decimals.toString()]
+      }
+      delete contract.testnetAddress
+      return {
+        PutRequest: {
+          Item: contract
         }
       }
     }
-  })
+  )
   // Remove coins that does not have cryptoTypes
   putRequests = putRequests.filter(
     (item: { PutRequest: { Item: EthContractType } }): boolean =>

@@ -15,11 +15,10 @@ import type {
 
 import { ethers } from 'ethers'
 import Web3 from 'web3'
+import Config from './config.js'
 
-var Config = require('./config.js')
-
-const SimpleMultiSigContractArtifacts = require('./contracts/SimpleMultiSig.json')
-const ERC20Artifacts = require('./contracts/ERC20.json')
+const SimpleMultiSigContractArtifacts = require('../contracts/SimpleMultiSig.json')
+const ERC20Artifacts = require('../contracts/ERC20.json')
 
 // constants
 const TXTYPE_HASH = '0x3ee892349ae4bbe61dce18f95115b5dc02daf49204cc602458cd4c1f540d56d7'

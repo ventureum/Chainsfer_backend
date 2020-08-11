@@ -16,7 +16,7 @@ import {
   resetUser
 } from './userOps.js'
 import { verifyGoogleIdToken, resetTransfers } from './dynamoDBTxOps.js'
-var Config = require('./config.js')
+import Config from './config.js'
 if (!process.env.USER_TABLE_NAME) throw new Error('USER_TABLE_NAME missing')
 const userTableName = process.env.USER_TABLE_NAME
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')

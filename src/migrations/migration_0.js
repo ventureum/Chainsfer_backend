@@ -7,7 +7,7 @@ import type {
   CryptoAccountType,
   UserType,
   CryptoAccounResponsetType
-} from '../lambda/src/user.flow'
+} from '../aws/user.flow'
 import moment from 'moment'
 import AWS from 'aws-sdk'
 AWS.config.update({ region: 'us-east-1' })

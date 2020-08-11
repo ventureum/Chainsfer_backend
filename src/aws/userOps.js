@@ -13,9 +13,9 @@ import type {
 import { verifyGoogleIdToken, resetTransfers } from './dynamoDBTxOps.js'
 import type { TransferDataType } from './transfer.flow'
 import moment from 'moment'
+import Config from './config.js'
 
 var referralWallet = require('./referralWallet.js')
-var Config = require('./config.js')
 const AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient()

@@ -19,15 +19,16 @@ import type {
 } from './transfer.flow'
 import ethMultiSig from './EthMultiSig'
 import BtcMultiSig from './BtcMultiSig'
+import Config from './config.js'
+
 var moment = require('moment')
 var UUID = require('uuid/v4')
 var AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
 var documentClient = new AWS.DynamoDB.DocumentClient()
-var Config = require('./config.js')
 var utils = require('./utils.js')
 const { OAuth2Client } = require('google-auth-library')
-const SimpleMultiSigContractArtifacts = require('./contracts/SimpleMultiSig.json')
+const SimpleMultiSigContractArtifacts = require('../contracts/SimpleMultiSig.json')
 
 if (!process.env.TRANSACTION_DATA_TABLE_NAME)
   throw new Error('TRANSACTION_DATA_TABLE_NAME missing')

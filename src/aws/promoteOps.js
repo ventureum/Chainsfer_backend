@@ -8,10 +8,11 @@ import { getUser } from './userOps'
 import { sendTransfer } from './dynamoDBTxOps'
 import EthMultiSig from './EthMultiSig'
 import { Base64 } from 'js-base64'
+import Config from './config.js'
+
 const utils = require('./utils')
 const AWS = require('aws-sdk')
 AWS.config.update({ region: 'us-east-1' })
-const Config = require('./config.js')
 
 if (!process.env.ENV_VALUE) throw new Error('ENV_VALUE missing')
 const deploymentStage = process.env.ENV_VALUE.toLowerCase()

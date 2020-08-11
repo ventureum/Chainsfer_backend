@@ -32,30 +32,25 @@ async function getBtcTx (txHash: string, apiUrl: string): Promise<Object> {
   }
 }
 
-const TxConfirmationConfig = {
-  ethereum: {
-    delaySeconds: 60,
-    maxRetry: 20
-  },
-  dai: {
-    delaySeconds: 60,
-    maxRetry: 20
-  },
-  tether: {
-    delaySeconds: 60,
-    maxRetry: 20
-  },
-  'usd-coin': {
-    delaySeconds: 60,
-    maxRetry: 20
-  },
-  'true-usd': {
-    delaySeconds: 60,
-    maxRetry: 20
-  },
-  bitcoin: {
-    delaySeconds: 600,
-    maxRetry: 72 // 12 hours
+const getTxConfirmationConfig = (
+  cryptoType: string
+): { delaySeconds: number, maxRetry: number } => {
+  switch (cryptoType) {
+    case 'bitcon':
+      return {
+        delaySeconds: 600,
+        maxRetry: 72 // 12 hours
+      }
+    case 'ethereum':
+      return {
+        delaySeconds: 600,
+        maxRetry: 72 // 12 hours
+      }
+    default:
+      return {
+        delaySeconds: 60,
+        maxRetry: 20
+      }
   }
 }
 
@@ -164,25 +159,6 @@ const LedgerApiUrlConfig: { [key: string]: string } = {
 
 const QueueURLPrefix = 'https://sqs.us-east-1.amazonaws.com/727151012682/'
 
-const addressMap = {
-  dai: {
-    rinkeby: '0x4aacB7f0bA0A5CfF9A8a5e8C0F24626Ee9FDA4a6',
-    mainnet: '0x6B175474E89094C44Da98b954EedeAC495271d0F'
-  },
-  tether: {
-    rinkeby: '0xF76eB2f15a960A5d96d046a00007EFd737e5ea14',
-    mainnet: '0xdAC17F958D2ee523a2206206994597C13D831ec7'
-  },
-  'usd-coin': {
-    rinkeby: '0xF76eB2f15a960A5d96d046a00007EFd737e5ea14',
-    mainnet: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
-  },
-  'true-usd': {
-    rinkeby: '0x4aacB7f0bA0A5CfF9A8a5e8C0F24626Ee9FDA4a6',
-    mainnet: '0x0000000000085d4780B73119b644AE5ecd22b376'
-  }
-}
-
 // list of token data
 let ERC20Tokens = {}
 ERC20TokensList.forEach((token: { ...$Exact<EthContractType>, testnetAddress: string }) => {
@@ -213,7 +189,7 @@ function getAllowOrigin (headers?: { origin?: string }): string {
 
 export default {
   RootUrlConfig,
-  TxConfirmationConfig: TxConfirmationConfig,
+  getTxConfirmationConfig: getTxConfirmationConfig,
   QueueURLPrefix: QueueURLPrefix,
   ExpirationLengthConfig: ExpirationLengthConfig,
   ReminderIntervalConfig: ReminderIntervalConfig,

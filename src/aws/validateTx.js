@@ -89,7 +89,7 @@ async function processTxConfirmation (
   messageBody: string
 ) {
   try {
-    const maxRetry = Config.TxConfirmationConfig[cryptoType].maxRetry
+    const maxRetry = Config.getTxConfirmationConfig(cryptoType).maxRetry
     if (retryCount <= maxRetry) {
       if (txHash !== null && txHashConfirmed === 0) {
         txHashConfirmed = await checkFunction(txHash)
@@ -233,7 +233,7 @@ async function sendMessageBackToSQS (
   gasTxHash: number,
   cryptoType: string
 ) {
-  const delaySeconds = Config.TxConfirmationConfig[cryptoType].delaySeconds
+  const delaySeconds = Config.getTxConfirmationConfig(cryptoType).delaySeconds
   const params = {
     DelaySeconds: delaySeconds,
     MessageBody: messageBody,

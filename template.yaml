@@ -502,6 +502,18 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: KEYS_ONLY
+        - IndexName: inEscrow-index
+          KeySchema:
+            - AttributeName: inEscrow
+              KeyType: HASH
+          Projection:
+            NonKeyAttributes:
+              - transferId
+              - reminder
+              - chainsferToSender
+              - emailSentFailure
+              - chainsferToReceiver
+            ProjectionType: INCLUDE
       StreamSpecification:
         StreamViewType: NEW_IMAGE
     DependsOn:

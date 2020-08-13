@@ -3,6 +3,7 @@ import type { Context, Callback } from 'flow-aws-lambda'
 import axios from 'axios'
 import BtcMultiSig from './BtcMultiSig'
 import promoteOps from './promoteOps.js'
+import { sendReward, receiveReward } from './reward'
 import Config from './config.js'
 
 var dynamoDBTxOps = require('./dynamoDBTxOps.js')
@@ -86,8 +87,10 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await dynamoDBTxOps.getBatchTransfers(request)
     } else if (request.action === 'SEND') {
       rv = await dynamoDBTxOps.sendTransfer(request)
+      rv = {...rv, reward: await sendReward(request.action, request)}
     } else if (request.action === 'RECEIVE') {
       rv = await dynamoDBTxOps.receiveTransfer(request)
+      rv = {...rv, reward: await receiveReward(request.action, request)}
     } else if (request.action === 'CANCEL') {
       rv = await dynamoDBTxOps.cancelTransfer(request)
     } else if (request.action === 'GET_MULTISIG_SIGNING_DATA') {

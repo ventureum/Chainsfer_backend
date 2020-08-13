@@ -1,4 +1,6 @@
 // @flow
+import type { RewardDataType } from './reward.flow'
+
 export type RecipientType = {
   name: string,
   email: string,
@@ -40,7 +42,8 @@ export type UserType = {
   cloudWalletFolderMeta: CloudWalletFolderMetaType,
   registerTime: number, // timestamp
   masterKey: ?string,
-  cryptoAccounts: Array<CryptoAccountType>
+  cryptoAccounts: Array<CryptoAccountType>,
+  rewards: Array<RewardDataType>
 }
 
 export type RecipientListType = {

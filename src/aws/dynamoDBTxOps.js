@@ -1182,5 +1182,6 @@ module.exports = {
   resetTransfers,
   updateEmailSentFailure,
   fetchEmailTransfers,
-  clearTransfer
+  clearTransfer,
+  getTransferByReceivingId
 }

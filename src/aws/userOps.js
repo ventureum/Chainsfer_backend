@@ -12,6 +12,7 @@ import type {
 } from './user.flow'
 import { verifyGoogleIdToken, resetTransfers } from './dynamoDBTxOps.js'
 import type { TransferDataType } from './transfer.flow'
+import type { RewardDataType } from './reward.flow'
 import moment from 'moment'
 import Config from './config.js'
 
@@ -551,6 +552,33 @@ async function resetUser (
   }
 }
 
+async function getUserRewards (
+  userTableName: string,
+  googleId: string
+): Promise<Array<RewardDataType>> {
+  const userData = await getUser(userTableName, googleId)
+  return userData.rewards || []
+}
+
+async function updateUserRewards (
+  userTableName: string,
+  googleId: string,
+  rewards: Array<RewardDataType>
+) {
+  const params = {
+    TableName: userTableName,
+    Key: {
+      googleId
+    },
+    UpdateExpression: `set rewards = :rewards`,
+    ExpressionAttributeValues: {
+      ':rewards': rewards
+    },
+    ReturnValues: 'UPDATED_NEW'
+  }
+  await documentClient.update(params).promise()
+}
+
 export {
   register,
   getUser,
@@ -564,5 +592,7 @@ export {
   clearCloudWalletCryptoAccounts,
   updateUserCloudWalletFolderMeta,
   getUserCloudWalletFolderMeta,
-  resetUser
+  resetUser,
+  getUserRewards,
+  updateUserRewards
 }

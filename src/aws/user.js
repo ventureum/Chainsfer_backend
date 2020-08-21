@@ -16,7 +16,7 @@ import {
   resetUser
 } from './userOps.js'
 import { verifyGoogleIdToken, resetTransfers } from './dynamoDBTxOps.js'
-import { addRecipientReward, addCryptoAccountsReward } from './reward'
+import { addRecipientReward, addCryptoAccountsReward, twitterShareReceiptReward } from './reward'
 import Config from './config.js'
 if (!process.env.USER_TABLE_NAME) throw new Error('USER_TABLE_NAME missing')
 const userTableName = process.env.USER_TABLE_NAME
@@ -76,10 +76,13 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await removeRecipient(userTableName, googleId, request.recipient)
     } else if (action === 'ADD_RECIPIENT') {
       rv = await addRecipient(userTableName, googleId, request.recipient)
-      rv = {...rv, reward: await addRecipientReward(googleId, action, request.recipient)}
+      rv = { ...rv, reward: await addRecipientReward(googleId, action, request.recipient) }
     } else if (action === 'ADD_CRYPTO_ACCOUNTS') {
       rv = await addCryptoAccounts(userTableName, googleId, request.payloadAccounts)
-      rv = {...rv, reward: await addCryptoAccountsReward(googleId, action, request.payloadAccounts)}
+      rv = {
+        ...rv,
+        reward: await addCryptoAccountsReward(googleId, action, request.payloadAccounts)
+      }
     } else if (action === 'REMOVE_CRYPTO_ACCOUNTS') {
       rv = await removeCryptoAccounts(userTableName, googleId, request.payloadAccounts)
     } else if (action === 'MODIFY_CRYPTO_ACCOUNT_NAMES') {
@@ -92,6 +95,15 @@ exports.handler = async (event: any, context: Context, callback: Callback) => {
       rv = await updateUserCloudWalletFolderMeta(userTableName, googleId, request.newMetaInfo)
     } else if (action === 'GET_UESR_CLOUD_WALLET_FOLDER_META') {
       rv = await getUserCloudWalletFolderMeta(userTableName, googleId)
+    } else if (action === 'TWITTER_SHARE_RECEIPT') {
+      rv = {
+        reward: await twitterShareReceiptReward(
+          googleId,
+          action,
+          request.transferId,
+          request.receivingId
+        )
+      }
     } else if (
       action === 'RESET_USER' &&
       deploymentStage !== 'prod' &&

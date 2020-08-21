@@ -115,26 +115,69 @@ async function receiveReward (
   const user = await getUser(userTableName, null, transfer.destination)
   const { googleId } = user
   const rewards = await getUserRewards(userTableName, googleId)
-    const reward = {
-      rewardType: action,
-      rewardValue: Math.floor(
-        100 + Math.log(1.0 + parseFloat(transfer.transferFiatAmountSpot))
-      ).toString(),
-      timestamp: moment().unix(),
-      meta: {
-        receivingId: transfer.receivingId,
-        senderName: transfer.senderName,
-        sender: transfer.sender,
-        receiverName: transfer.receiverName,
-        destination: transfer.destination,
-        cryptoType: transfer.cryptoType,
-        cryptoSymbol: transfer.cryptoSymbol,
-        transferAmount: transfer.transferAmount,
-        transferFiatAmountSpot: transfer.transferFiatAmountSpot
-      }
+  const reward = {
+    rewardType: action,
+    rewardValue: Math.floor(
+      100 + Math.log(1.0 + parseFloat(transfer.transferFiatAmountSpot))
+    ).toString(),
+    timestamp: moment().unix(),
+    meta: {
+      receivingId: transfer.receivingId,
+      senderName: transfer.senderName,
+      sender: transfer.sender,
+      receiverName: transfer.receiverName,
+      destination: transfer.destination,
+      cryptoType: transfer.cryptoType,
+      cryptoSymbol: transfer.cryptoSymbol,
+      transferAmount: transfer.transferAmount,
+      transferFiatAmountSpot: transfer.transferFiatAmountSpot
     }
-    await updateUserRewards(userTableName, googleId, [...rewards, reward])
-    return reward
+  }
+  await updateUserRewards(userTableName, googleId, [...rewards, reward])
+  return reward
 }
 
-export { addRecipientReward, addCryptoAccountsReward, sendReward, receiveReward }
+async function twitterShareReceiptReward (
+  googleId: string,
+  action: string,
+  transferId?: string,
+  receivingId?: string
+): Promise<RewardDataType | { error: string }> {
+  const rewards = await getUserRewards(userTableName, googleId)
+  // gather past transferId and receivingId
+  const idSet = rewards
+    .filter((r: RewardDataType): boolean => r.rewardType === action)
+    .reduce((walletTypeSet: Set<string>, r: RewardDataType): Set<string> => {
+      if (r.meta.transferId) {
+        walletTypeSet.add(r.meta.transferId)
+      } else if (r.meta.receivingId) {
+        walletTypeSet.add(r.meta.receivingId)
+      }
+      return walletTypeSet
+    }, new Set())
+
+  const reward = {
+    rewardType: action,
+    rewardValue: '100',
+    timestamp: moment().unix(),
+    meta: {
+      transferId,
+      receivingId
+    }
+  }
+  if ((transferId && !idSet.has(transferId)) || (receivingId && !idSet.has(receivingId))) {
+    // each id can only associated with max 1 reward
+    await updateUserRewards(userTableName, googleId, [...rewards, reward])
+    return reward
+  } else {
+    return { error: 'Twitter share reward for this transfer has already been given' }
+  }
+}
+
+export {
+  addRecipientReward,
+  addCryptoAccountsReward,
+  sendReward,
+  receiveReward,
+  twitterShareReceiptReward
+}
